@@ -1,0 +1,28 @@
+[package]
+name = "humfmt"
+version = "0.1.0"
+edition = "2021"
+authors = ["MuXolotl"]
+description = "Ergonomic human-readable formatting toolkit for Rust applications"
+license = "MIT"
+repository = "https://github.com/MuXolotl/humfmt"
+readme = "README.md"
+keywords = ["format", "humanize", "display", "duration", "bytes"]
+categories = ["value-formatting", "text-processing", "no-std"]
+
+[features]
+default = ["std", "english"]
+
+std = []
+alloc = []
+
+english = []
+russian = []
+polish = []
+
+chrono = ["dep:chrono"]
+time = ["dep:time"]
+
+[dependencies]
+chrono = { version = "0.4", optional = true, default-features = false }
+time = { version = "0.3", optional = true, default-features = false }
