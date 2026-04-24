@@ -1,5 +1,5 @@
-mod traits;
 mod english;
+mod traits;
 
-pub use traits::Locale;
 pub use english::English;
+pub use traits::Locale;

@@ -9,12 +9,12 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod number;
 pub mod locale;
+pub mod number;
 pub mod prelude;
 
-mod traits;
 mod common;
+mod traits;
 
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use traits::Humanize;

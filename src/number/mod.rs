@@ -10,7 +10,7 @@ pub use traits::NumberLike;
 use crate::locale::{English, Locale};
 
 pub fn number<T: NumberLike>(value: T) -> NumberDisplay<English> {
-    NumberDisplay::new(value.into_numeric(), NumberOptions::default())
+    NumberDisplay::new(value.into_numeric(), NumberOptions::<English>::default())
 }
 
 pub fn number_with<T: NumberLike, L: Locale>(
