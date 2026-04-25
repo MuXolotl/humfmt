@@ -1,3 +1,8 @@
+//! Human-readable duration formatting.
+//!
+//! This module focuses on compact and long-form duration rendering and shares
+//! its locale configuration with relative-time formatting.
+
 mod display;
 mod format;
 mod options;

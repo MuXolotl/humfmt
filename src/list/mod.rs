@@ -1,3 +1,8 @@
+//! Natural-language list formatting.
+//!
+//! This module joins slices into readable lists while respecting locale-aware
+//! conjunctions and serial-comma preferences.
+
 mod display;
 mod format;
 mod options;

@@ -1,3 +1,8 @@
+//! Relative-time formatting.
+//!
+//! This module builds on [`crate::duration`] and shares the same locale-aware
+//! configuration surface through [`crate::DurationOptions`].
+
 mod display;
 
 pub use display::AgoDisplay;

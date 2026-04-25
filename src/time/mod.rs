@@ -1,8 +1,34 @@
+//! Optional integration with [`time`](https://docs.rs/time).
+//!
+//! This module adapts `time::Duration` and `time::OffsetDateTime` values into
+//! `humfmt` duration and relative-time formatters while preserving the crate's
+//! locale-aware options.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use humfmt::{time as humtime, DurationOptions};
+//!
+//! let delta = time::Duration::seconds(90);
+//! assert_eq!(humtime::duration(delta).unwrap().to_string(), "1m 30s");
+//!
+//! let then = time::OffsetDateTime::from_unix_timestamp(0).unwrap();
+//! let now = time::OffsetDateTime::from_unix_timestamp(3665).unwrap();
+//! let out = humtime::ago_since_with(
+//!     then,
+//!     now,
+//!     DurationOptions::new().long_units().max_units(3),
+//! )
+//! .unwrap();
+//! assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
+//! ```
+
 use crate::{
     ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
     NegativeDurationError,
 };
 
+/// Extension methods for `time::Duration`.
 pub trait TimeHumanize: Sized {
     fn try_human_duration(self) -> Result<DurationDisplay, NegativeDurationError>;
     fn try_human_duration_with<L: Locale>(
