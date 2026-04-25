@@ -36,6 +36,13 @@ time = ["dep:time"]
 chrono = { version = "0.4", optional = true, default-features = false }
 time = { version = "0.3", optional = true, default-features = false }
 
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "formatter_benches"
+harness = false
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

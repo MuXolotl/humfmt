@@ -8,6 +8,12 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- Criterion-based benchmark suite covering the core formatter paths
+
+### Changed
+- README documentation now points to the local benchmark workflow
+
 ---
 
 ## [0.2.0] - 2026-04-25

@@ -243,6 +243,7 @@ coverage and humanizer breadth without turning the API into a maze.
 
 - examples: [`examples/`](./examples)
 - tests: [`tests/`](./tests)
+- benchmarks: `cargo bench`
 - crates.io: [humfmt](https://crates.io/crates/humfmt)
 - docs.rs: [humfmt docs](https://docs.rs/humfmt)
 
