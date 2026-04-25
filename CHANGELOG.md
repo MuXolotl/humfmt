@@ -18,6 +18,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Tightened CI to exercise `--all-features` and minimal-feature builds
 - Narrowed crate metadata to the features that actually exist today
 - Expanded compact number suffix coverage beyond trillion
+- Documented the 0.1.x feature-flag compatibility story and added CI coverage for placeholder flags
 
 ---
 

@@ -11,8 +11,9 @@
 - [x] crates.io/docs.rs publication
 - [x] CI with fmt, clippy, tests
 - [x] no_std-compatible build check
-- [ ] README/API polish pass
+- [x] README/API polish pass
 - [x] larger compact unit coverage beyond trillion
+- [x] feature-flag compatibility docs and CI coverage
 
 ## v0.2.0
 - [ ] bytes()
