@@ -29,8 +29,13 @@ pub fn list<T: core::fmt::Display>(items: &[T]) -> ListDisplay<'_, T> {
 /// ```rust
 /// use humfmt::{list_with, ListOptions};
 ///
-/// let out = list_with(&["red", "green", "blue"], ListOptions::new().no_serial_comma());
-/// assert_eq!(out.to_string(), "red, green and blue");
+/// let out = list_with(
+///     &["red", "green", "blue"],
+///     ListOptions::new()
+///         .serial_comma_enabled(false)
+///         .conjunction("plus"),
+/// );
+/// assert_eq!(out.to_string(), "red, green plus blue");
 /// ```
 pub fn list_with<T: core::fmt::Display, L: crate::locale::Locale>(
     items: &[T],

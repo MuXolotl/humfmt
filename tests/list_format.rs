@@ -78,3 +78,28 @@ fn supports_custom_list_separator() {
 
     assert_eq!(out.to_string(), "red | green & blue");
 }
+
+#[test]
+fn supports_explicit_serial_comma_boolean_setter() {
+    let with = list_with(
+        &["red", "green", "blue"],
+        ListOptions::new().serial_comma_enabled(true),
+    );
+    let without = list_with(
+        &["red", "green", "blue"],
+        ListOptions::new().serial_comma_enabled(false),
+    );
+
+    assert_eq!(with.to_string(), "red, green, and blue");
+    assert_eq!(without.to_string(), "red, green and blue");
+}
+
+#[test]
+fn supports_conjunction_override_without_custom_locale() {
+    let out = list_with(
+        &["red", "green", "blue"],
+        ListOptions::new().conjunction("plus").no_serial_comma(),
+    );
+
+    assert_eq!(out.to_string(), "red, green plus blue");
+}

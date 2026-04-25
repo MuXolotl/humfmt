@@ -13,6 +13,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Proptest-based invariant coverage for number, bytes, duration, relative-time, and list formatting
 - `DurationConversionError` plus non-breaking `*_checked` helpers in `humfmt::chrono` and `humfmt::time`
 - locale-aware list item separator hook via `Locale::list_separator()` and `CustomLocale::list_separator(...)`
+- `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)` for explicit list-style overrides
 
 ### Changed
 - README documentation now points to the local benchmark workflow

@@ -91,9 +91,11 @@ assert_eq!(english.to_string(), "red, green, and blue");
 
 let plain = list_with(
     &["red", "green", "blue"],
-    ListOptions::new().no_serial_comma(),
+    ListOptions::new()
+        .serial_comma_enabled(false)
+        .conjunction("plus"),
 );
-assert_eq!(plain.to_string(), "red, green and blue");
+assert_eq!(plain.to_string(), "red, green plus blue");
 ```
 
 ---
