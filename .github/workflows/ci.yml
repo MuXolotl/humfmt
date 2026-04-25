@@ -53,7 +53,7 @@ jobs:
             args: --no-default-features --features alloc
           - label: english-placeholder
             args: --no-default-features --features english
-          - label: russian-placeholder
+          - label: russian-locale
             args: --no-default-features --features russian
           - label: polish-placeholder
             args: --no-default-features --features polish
