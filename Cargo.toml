@@ -28,8 +28,7 @@ english = []
 russian = []
 polish = []
 
-# Reserved integration flags. These currently ensure the optional dependencies
-# remain buildable before the public APIs land.
+# Optional ecosystem integration layers.
 chrono = ["dep:chrono"]
 time = ["dep:time"]
 

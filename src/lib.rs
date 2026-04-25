@@ -39,6 +39,7 @@
 //! - relative time formatting
 //! - configurable precision
 //! - locale-ready suffix system
+//! - optional chrono/time integration
 //!
 //! More humanizers (`bytes`) are planned.
 
@@ -47,17 +48,23 @@
 extern crate alloc;
 
 pub mod ago;
+#[cfg(feature = "chrono")]
+pub mod chrono;
 pub mod duration;
+mod error;
 pub mod locale;
 pub mod number;
 pub mod ordinal;
 pub mod prelude;
+#[cfg(feature = "time")]
+pub mod time;
 
 mod common;
 mod traits;
 
 pub use ago::{ago, ago_with, AgoDisplay};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
+pub use error::NegativeDurationError;
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};
 pub use traits::Humanize;

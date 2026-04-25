@@ -15,6 +15,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `DurationOptions` and `Humanize::human_duration()` / `human_duration_with(...)`
 - `ago()` and `ago_with(...)` helpers for relative time formatting
 - `Humanize::human_ago()` and `human_ago_with(...)`
+- optional `chrono` and `time` integration layers for signed durations and timestamp-based relative formatting
 
 ---
 
