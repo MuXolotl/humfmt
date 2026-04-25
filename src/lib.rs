@@ -10,6 +10,7 @@
 //! ```rust
 //! use humfmt::Humanize;
 //!
+//! assert_eq!(humfmt::bytes(1536).to_string(), "1.5KB");
 //! assert_eq!(humfmt::number(15320).to_string(), "15.3K");
 //! assert_eq!(1_500_000.human_number().to_string(), "1.5M");
 //! assert_eq!(humfmt::ordinal(21).to_string(), "21st");
@@ -33,6 +34,7 @@
 //!
 //! ## Current modules
 //!
+//! - byte-size formatting
 //! - compact number formatting
 //! - ordinal formatting
 //! - duration formatting
@@ -41,13 +43,14 @@
 //! - locale-ready suffix system
 //! - optional chrono/time integration
 //!
-//! More humanizers (`bytes`) are planned.
+//! More humanizers are planned.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 
 pub mod ago;
+pub mod bytes;
 #[cfg(feature = "chrono")]
 pub mod chrono;
 pub mod duration;
@@ -63,6 +66,7 @@ mod common;
 mod traits;
 
 pub use ago::{ago, ago_with, AgoDisplay};
+pub use bytes::{bytes, bytes_with, BytesDisplay, BytesLike, BytesOptions};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
 pub use error::NegativeDurationError;
 pub use number::{number, number_with, NumberDisplay, NumberOptions};

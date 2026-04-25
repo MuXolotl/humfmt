@@ -16,8 +16,8 @@
 - [x] feature-flag compatibility docs and CI coverage
 
 ## v0.2.0
-- [ ] bytes()
-- [ ] binary vs decimal byte units
+- [x] bytes()
+- [x] binary vs decimal byte units
 
 ## v0.3.0
 - [x] duration()
