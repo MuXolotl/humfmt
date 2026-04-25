@@ -16,6 +16,7 @@
 
 Designed to provide:
 
+- byte-size rendering (`1536 -> 1.5KB`)
 - compact number rendering (`15320 -> 15.3K`)
 - ordinal rendering (`21 -> 21st`)
 - duration rendering (`3661s -> 1h 1m`)
@@ -36,6 +37,7 @@ The crate aims to be tiny, intuitive, and pleasant enough that formatting stops 
 use humfmt::Humanize;
 
 fn main() {
+    println!("{}", humfmt::bytes(1536));           // 1.5KB
     println!("{}", humfmt::number(15320));          // 15.3K
     println!("{}", 1_500_000.human_number());      // 1.5M
     println!("{}", humfmt::ordinal(21));           // 21st
@@ -51,9 +53,12 @@ fn main() {
 ```rust
 use core::time::Duration;
 
-use humfmt::{DurationOptions, Humanize, NumberOptions};
+use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions};
 
 fn main() {
+    let disk = 1536_u64.human_bytes_with(BytesOptions::new().binary());
+    println!("{disk}"); // 1.5KiB
+
     let out = 15_320.human_number_with(
         NumberOptions::new()
             .precision(2)
@@ -79,6 +84,7 @@ fn main() {
 ## ✅ Current Features
 
 * [x] Compact number formatter
+* [x] Byte-size formatter
 * [x] Ordinal formatter
 * [x] Duration formatter
 * [x] Relative time formatter
@@ -94,7 +100,6 @@ fn main() {
 
 Upcoming humanizers planned for future releases:
 
-* [ ] `bytes()` — human-readable byte sizes
 * [ ] additional locale packs
 * [ ] zero-allocation optimization pass
 

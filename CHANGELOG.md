@@ -9,6 +9,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [Unreleased]
 
 ### Added
+- `bytes()` and `bytes_with(...)` helpers for human-readable byte sizes
+- `BytesOptions` and `Humanize::human_bytes()` / `human_bytes_with(...)`
 - `ordinal()` and `ordinal_with(...)` helpers for human-readable ordinal formatting
 - `Humanize::human_ordinal()` and `Humanize::human_ordinal_with(...)`
 - `duration()` and `duration_with(...)` helpers for compact human-readable durations

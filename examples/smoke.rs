@@ -1,12 +1,17 @@
 use std::time::Duration;
 
-use humfmt::{DurationOptions, Humanize, NumberOptions};
+use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions};
 
 fn main() {
     println!("{}", humfmt::number(15320));
     println!("{}", humfmt::number(1500000));
     println!("{}", humfmt::number(-12500));
     println!("{}", 1200000000.human_number());
+    println!("{}", humfmt::bytes(1536));
+    println!(
+        "{}",
+        1536_u64.human_bytes_with(BytesOptions::new().binary())
+    );
     println!("{}", humfmt::ordinal(21));
     println!("{}", 42.human_ordinal());
     println!("{}", humfmt::duration(Duration::from_secs(3661)));

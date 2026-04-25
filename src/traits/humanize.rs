@@ -1,4 +1,18 @@
 pub trait Humanize: Sized {
+    fn human_bytes(self) -> crate::bytes::BytesDisplay
+    where
+        Self: crate::bytes::BytesLike,
+    {
+        crate::bytes::bytes(self)
+    }
+
+    fn human_bytes_with(self, options: crate::bytes::BytesOptions) -> crate::bytes::BytesDisplay
+    where
+        Self: crate::bytes::BytesLike,
+    {
+        crate::bytes::bytes_with(self, options)
+    }
+
     fn human_ago(self) -> crate::ago::AgoDisplay
     where
         Self: crate::duration::DurationLike,
