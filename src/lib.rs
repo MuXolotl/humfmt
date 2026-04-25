@@ -63,12 +63,14 @@
 //! More humanizers are planned.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 extern crate alloc;
 
 pub mod ago;
 pub mod bytes;
 #[cfg(feature = "chrono")]
+#[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
 pub mod chrono;
 pub mod duration;
 mod error;
@@ -78,6 +80,7 @@ pub mod number;
 pub mod ordinal;
 pub mod prelude;
 #[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub mod time;
 
 mod common;

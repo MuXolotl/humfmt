@@ -1,3 +1,8 @@
+//! Human-readable byte-size formatting.
+//!
+//! Use this module when you want decimal or binary byte units without pulling
+//! formatting logic into application code.
+
 mod display;
 mod format;
 mod options;

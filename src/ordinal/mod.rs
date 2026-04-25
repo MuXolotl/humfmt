@@ -1,3 +1,8 @@
+//! Ordinal formatting.
+//!
+//! Use this module for locale-aware ordinal markers such as `1st`, `21.` or
+//! `42-й`.
+
 mod display;
 mod traits;
 

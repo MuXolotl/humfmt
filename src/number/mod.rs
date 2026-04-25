@@ -1,3 +1,8 @@
+//! Compact number formatting.
+//!
+//! This module turns large integers and floats into short or long human-readable
+//! forms while respecting locale-specific separators and suffix rules.
+
 mod display;
 mod format;
 mod options;

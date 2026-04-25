@@ -3,7 +3,7 @@ name = "humfmt"
 version = "0.1.1"
 edition = "2021"
 authors = ["MuXolotl"]
-description = "Ergonomic human-readable number formatting for Rust"
+description = "Ergonomic human-readable formatting toolkit for Rust"
 license = "MIT"
 repository = "https://github.com/MuXolotl/humfmt"
 documentation = "https://docs.rs/humfmt"
@@ -35,3 +35,7 @@ time = ["dep:time"]
 [dependencies]
 chrono = { version = "0.4", optional = true, default-features = false }
 time = { version = "0.3", optional = true, default-features = false }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -1,8 +1,34 @@
+//! Optional integration with [`chrono`](https://docs.rs/chrono).
+//!
+//! This module adapts `chrono::TimeDelta` and `chrono::DateTime` values into
+//! `humfmt` duration and relative-time formatters while preserving the crate's
+//! locale-aware options.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use humfmt::{chrono as humchrono, DurationOptions};
+//!
+//! let delta = chrono::TimeDelta::try_seconds(90).unwrap();
+//! assert_eq!(humchrono::duration(delta).unwrap().to_string(), "1m 30s");
+//!
+//! let then = chrono::DateTime::from_timestamp(0, 0).unwrap();
+//! let now = chrono::DateTime::from_timestamp(3665, 0).unwrap();
+//! let out = humchrono::ago_since_with(
+//!     then,
+//!     now,
+//!     DurationOptions::new().long_units().max_units(3),
+//! )
+//! .unwrap();
+//! assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
+//! ```
+
 use crate::{
     ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
     NegativeDurationError,
 };
 
+/// Extension methods for `chrono::TimeDelta`.
 pub trait ChronoHumanize: Sized {
     fn try_human_duration(self) -> Result<DurationDisplay, NegativeDurationError>;
     fn try_human_duration_with<L: Locale>(
@@ -66,7 +92,7 @@ pub fn ago_with<L: Locale>(
     Ok(crate::ago::ago_with(to_std(value)?, options))
 }
 
-/// Formats the elapsed time between two chrono datetimes as relative time.
+/// Formats the elapsed time between two `chrono` datetimes as relative time.
 pub fn ago_since<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
     then: ::chrono::DateTime<Tz1>,
     now: ::chrono::DateTime<Tz2>,
