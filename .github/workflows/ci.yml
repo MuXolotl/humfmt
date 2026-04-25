@@ -55,7 +55,7 @@ jobs:
             args: --no-default-features --features english
           - label: russian-locale
             args: --no-default-features --features russian
-          - label: polish-placeholder
+          - label: polish-locale
             args: --no-default-features --features polish
           - label: chrono-placeholder
             args: --no-default-features --features chrono

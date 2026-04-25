@@ -53,4 +53,10 @@ fn main() {
         "{}",
         humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Russian))
     );
+
+    #[cfg(feature = "polish")]
+    println!(
+        "{}",
+        humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Polish))
+    );
 }

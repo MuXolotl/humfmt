@@ -29,7 +29,7 @@
 
 ## v0.5.0
 - [x] Russian locale
-- [ ] Polish locale
+- [x] Polish locale
 - [x] locale customization API
 
 ## v1.0.0

@@ -41,7 +41,7 @@
 //! - relative time formatting
 //! - configurable precision
 //! - locale-aware suffix system
-//! - optional Russian locale pack
+//! - optional Russian and Polish locale packs
 //! - custom locale builder
 //! - optional chrono/time integration
 //!
