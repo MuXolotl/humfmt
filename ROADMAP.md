@@ -2,7 +2,7 @@
 
 ## v0.1.0
 - [x] number() compact numeric formatter
-- [ ] ordinal()
+- [x] ordinal()
 - [x] Humanize trait (partial)
 - [x] English locale pack
 - [x] Full tests for number formatter

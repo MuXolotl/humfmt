@@ -17,6 +17,7 @@
 Designed to provide:
 
 - compact number rendering (`15320 -> 15.3K`)
+- ordinal rendering (`21 -> 21st`)
 - fluent builder-style customization
 - locale-ready suffix formatting
 - ergonomic extension trait API
@@ -35,6 +36,7 @@ use humfmt::Humanize;
 fn main() {
     println!("{}", humfmt::number(15320));          // 15.3K
     println!("{}", 1_500_000.human_number());      // 1.5M
+    println!("{}", humfmt::ordinal(21));           // 21st
 }
 ```
 
@@ -61,6 +63,7 @@ fn main() {
 ## ✅ Current Features
 
 * [x] Compact number formatter
+* [x] Ordinal formatter
 * [x] Builder-style `NumberOptions`
 * [x] `Humanize` extension trait
 * [x] Long and short suffix units
@@ -76,7 +79,6 @@ Upcoming humanizers planned for future releases:
 * [ ] `bytes()` — human-readable byte sizes
 * [ ] `duration()` — compact duration formatting
 * [ ] `ago()` — relative time rendering
-* [ ] `ordinal()` — 1st / 2nd / 3rd style helpers
 * [ ] additional locale packs
 * [ ] zero-allocation optimization pass
 

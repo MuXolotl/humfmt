@@ -15,6 +15,23 @@ pub trait Humanize: Sized {
     {
         crate::number::number_with(self, options)
     }
+
+    fn human_ordinal(self) -> crate::ordinal::OrdinalDisplay<crate::locale::English>
+    where
+        Self: crate::ordinal::OrdinalLike,
+    {
+        crate::ordinal::ordinal(self)
+    }
+
+    fn human_ordinal_with<L: crate::locale::Locale>(
+        self,
+        locale: L,
+    ) -> crate::ordinal::OrdinalDisplay<L>
+    where
+        Self: crate::ordinal::OrdinalLike,
+    {
+        crate::ordinal::ordinal_with(self, locale)
+    }
 }
 
 impl<T> Humanize for T {}
