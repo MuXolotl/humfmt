@@ -1,4 +1,21 @@
 pub trait Humanize: Sized {
+    fn human_duration(self) -> crate::duration::DurationDisplay
+    where
+        Self: crate::duration::DurationLike,
+    {
+        crate::duration::duration(self)
+    }
+
+    fn human_duration_with(
+        self,
+        options: crate::duration::DurationOptions,
+    ) -> crate::duration::DurationDisplay
+    where
+        Self: crate::duration::DurationLike,
+    {
+        crate::duration::duration_with(self, options)
+    }
+
     fn human_number(self) -> crate::number::NumberDisplay<crate::locale::English>
     where
         Self: crate::number::NumberLike,

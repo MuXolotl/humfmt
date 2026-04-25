@@ -18,6 +18,7 @@ Designed to provide:
 
 - compact number rendering (`15320 -> 15.3K`)
 - ordinal rendering (`21 -> 21st`)
+- duration rendering (`3661s -> 1h 1m`)
 - fluent builder-style customization
 - locale-ready suffix formatting
 - ergonomic extension trait API
@@ -37,6 +38,7 @@ fn main() {
     println!("{}", humfmt::number(15320));          // 15.3K
     println!("{}", 1_500_000.human_number());      // 1.5M
     println!("{}", humfmt::ordinal(21));           // 21st
+    println!("{}", humfmt::duration(core::time::Duration::from_secs(3661))); // 1h 1m
 }
 ```
 
@@ -45,7 +47,9 @@ fn main() {
 ## ⚙️ Customized Formatting
 
 ```rust
-use humfmt::{Humanize, NumberOptions};
+use core::time::Duration;
+
+use humfmt::{DurationOptions, Humanize, NumberOptions};
 
 fn main() {
     let out = 15_320.human_number_with(
@@ -55,6 +59,11 @@ fn main() {
     );
 
     println!("{out}"); // 15.32 thousand
+
+    let elapsed = Duration::from_millis(1500)
+        .human_duration_with(DurationOptions::new().long_units());
+
+    println!("{elapsed}"); // 1 second 500 milliseconds
 }
 ```
 
@@ -64,6 +73,7 @@ fn main() {
 
 * [x] Compact number formatter
 * [x] Ordinal formatter
+* [x] Duration formatter
 * [x] Builder-style `NumberOptions`
 * [x] `Humanize` extension trait
 * [x] Long and short suffix units
@@ -77,7 +87,6 @@ fn main() {
 Upcoming humanizers planned for future releases:
 
 * [ ] `bytes()` — human-readable byte sizes
-* [ ] `duration()` — compact duration formatting
 * [ ] `ago()` — relative time rendering
 * [ ] additional locale packs
 * [ ] zero-allocation optimization pass

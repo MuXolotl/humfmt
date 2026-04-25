@@ -1,4 +1,6 @@
-use humfmt::{Humanize, NumberOptions};
+use std::time::Duration;
+
+use humfmt::{DurationOptions, Humanize, NumberOptions};
 
 fn main() {
     println!("{}", humfmt::number(15320));
@@ -7,6 +9,11 @@ fn main() {
     println!("{}", 1200000000.human_number());
     println!("{}", humfmt::ordinal(21));
     println!("{}", 42.human_ordinal());
+    println!("{}", humfmt::duration(Duration::from_secs(3661)));
+    println!(
+        "{}",
+        Duration::from_millis(1500).human_duration_with(DurationOptions::new().long_units())
+    );
 
     println!("{}", humfmt::number(999_949));
     println!("{}", humfmt::number(999_950));
