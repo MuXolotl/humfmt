@@ -1,6 +1,21 @@
-/target
-Cargo.lock
+# Rust
+/target/
 **/*.rs.bk
-.idea/
+
+# IDE
 .vscode/
+.idea/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Cargo local
+Cargo.lock
+
+# Optional (if you ever benchmark)
+*.svg
+*.png
