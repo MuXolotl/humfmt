@@ -1,39 +1,19 @@
 # humfmt Roadmap
 
-## v0.1.0
-- [x] number() compact numeric formatter
-- [x] ordinal()
-- [x] Humanize trait (partial)
-- [x] English locale pack
-- [x] Full tests for number formatter
+## Released in v0.2.0
+- [x] compact number formatting
+- [x] byte-size formatting
+- [x] ordinal formatting
+- [x] duration formatting
+- [x] relative-time formatting
+- [x] natural-language list formatting
+- [x] English, Russian, and Polish locale packs
+- [x] `CustomLocale` overrides
+- [x] optional `chrono` / `time` integrations
+- [x] docs.rs all-features documentation pass
 
-## v0.1.x polish
-- [x] crates.io/docs.rs publication
-- [x] CI with fmt, clippy, tests
-- [x] no_std-compatible build check
-- [x] README/API polish pass
-- [x] larger compact unit coverage beyond trillion
-- [x] feature-flag compatibility docs and CI coverage
-
-## v0.2.0
-- [x] bytes()
-- [x] binary vs decimal byte units
-
-## v0.3.0
-- [x] duration()
-- [x] list()
-
-## v0.4.0
-- [x] ago()
-- [x] chrono/time integration
-- [x] locale-aware duration/ago output
-
-## v0.5.0
-- [x] Russian locale
-- [x] Polish locale
-- [x] locale customization API
-
-## v1.0.0
-- [ ] Stable public API snapshot
-- [ ] docs.rs full examples
+## Next Up
+- [ ] Stable public API snapshot for the formatter surface
+- [ ] more locale packs and locale ergonomics
 - [ ] benchmark suite
+- [ ] docs.rs deep-dive examples and cookbook-style guides

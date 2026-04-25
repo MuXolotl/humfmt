@@ -206,14 +206,14 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 
 ```toml
 [dependencies]
-humfmt = "0.1"
+humfmt = "0.2"
 ```
 
 For `no_std` targets with `alloc` available:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.1", default-features = false }
+humfmt = { version = "0.2", default-features = false }
 ```
 
 ---
@@ -225,7 +225,7 @@ humfmt = { version = "0.1", default-features = false }
 - `english`: baseline locale included in the default feature set
 - `russian`: enables the `humfmt::locale::Russian` locale pack
 - `polish`: enables the `humfmt::locale::Polish` locale pack
-- `alloc`: reserved compatibility flag in `0.1.x`
+- `alloc`: reserved compatibility flag in `0.2.x`
 - `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime`
 - `time`: enables adapters for `time::Duration` and `time::OffsetDateTime`
 
