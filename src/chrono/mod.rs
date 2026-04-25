@@ -24,8 +24,8 @@
 //! ```
 
 use crate::{
-    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
-    DurationConversionError, NegativeDurationError,
+    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationConversionError,
+    DurationOptions, NegativeDurationError,
 };
 
 /// Extension methods for `chrono::TimeDelta`.
@@ -93,7 +93,10 @@ pub fn duration_with_checked<L: Locale>(
     value: ::chrono::TimeDelta,
     options: DurationOptions<L>,
 ) -> Result<DurationDisplay<L>, DurationConversionError> {
-    Ok(crate::duration::duration_with(to_std_checked(value)?, options))
+    Ok(crate::duration::duration_with(
+        to_std_checked(value)?,
+        options,
+    ))
 }
 
 /// Formats a non-negative `chrono::TimeDelta` as relative time using default options.
@@ -161,7 +164,9 @@ pub fn ago_since_with_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone, 
     ago_with_checked(now.signed_duration_since(then), options)
 }
 
-fn to_std_checked(value: ::chrono::TimeDelta) -> Result<core::time::Duration, DurationConversionError> {
+fn to_std_checked(
+    value: ::chrono::TimeDelta,
+) -> Result<core::time::Duration, DurationConversionError> {
     if value < ::chrono::TimeDelta::zero() {
         return Err(DurationConversionError::NegativeDuration);
     }

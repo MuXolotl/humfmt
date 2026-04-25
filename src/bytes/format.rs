@@ -88,7 +88,7 @@ fn normalize_scaled(value: f64, base: f64, precision: u8) -> (f64, usize) {
 
 fn round_to(value: f64, precision: u8) -> f64 {
     let factor = pow10(precision);
-    (value * factor).round() / factor
+    (((value * factor) + 0.5) as u128 as f64) / factor
 }
 
 fn pow10(precision: u8) -> f64 {
@@ -113,7 +113,7 @@ fn render_scaled(value: f64, precision: u8) -> alloc::string::String {
 }
 
 fn is_integer(value: f64) -> bool {
-    value.fract() == 0.0
+    value == (value as u128) as f64
 }
 
 fn trim_trailing_zeroes(s: &mut alloc::string::String) {

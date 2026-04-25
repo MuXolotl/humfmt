@@ -24,8 +24,8 @@
 //! ```
 
 use crate::{
-    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
-    DurationConversionError, NegativeDurationError,
+    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationConversionError,
+    DurationOptions, NegativeDurationError,
 };
 
 /// Extension methods for `time::Duration`.
@@ -81,7 +81,9 @@ pub fn duration_with<L: Locale>(
 
 /// Formats a `time::Duration` with default duration options and explicit
 /// conversion error semantics.
-pub fn duration_checked(value: ::time::Duration) -> Result<DurationDisplay, DurationConversionError> {
+pub fn duration_checked(
+    value: ::time::Duration,
+) -> Result<DurationDisplay, DurationConversionError> {
     duration_with_checked(value, DurationOptions::new())
 }
 
@@ -91,7 +93,10 @@ pub fn duration_with_checked<L: Locale>(
     value: ::time::Duration,
     options: DurationOptions<L>,
 ) -> Result<DurationDisplay<L>, DurationConversionError> {
-    Ok(crate::duration::duration_with(to_std_checked(value)?, options))
+    Ok(crate::duration::duration_with(
+        to_std_checked(value)?,
+        options,
+    ))
 }
 
 /// Formats a non-negative `time::Duration` as relative time using default options.
@@ -160,7 +165,9 @@ pub fn ago_since_with_checked<L: Locale>(
     ago_with_checked(now - then, options)
 }
 
-fn to_std_checked(value: ::time::Duration) -> Result<core::time::Duration, DurationConversionError> {
+fn to_std_checked(
+    value: ::time::Duration,
+) -> Result<core::time::Duration, DurationConversionError> {
     if value.is_negative() {
         return Err(DurationConversionError::NegativeDuration);
     }
