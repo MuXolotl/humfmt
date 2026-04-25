@@ -10,9 +10,11 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Added
 - Criterion-based benchmark suite covering the core formatter paths
+- Proptest-based invariant coverage for number, bytes, duration, relative-time, and list formatting
 
 ### Changed
 - README documentation now points to the local benchmark workflow
+- Small negative floating-point values that round to zero no longer render as `-0`
 
 ---
 

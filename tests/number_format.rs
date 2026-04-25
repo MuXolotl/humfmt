@@ -55,6 +55,15 @@ fn avoids_negative_zero_output() {
 }
 
 #[test]
+fn avoids_negative_zero_after_rounding_small_floats() {
+    assert_eq!(number(-0.04).to_string(), "0");
+    assert_eq!(
+        humfmt::number_with(-0.004, NumberOptions::new().precision(2)).to_string(),
+        "0"
+    );
+}
+
+#[test]
 fn preserves_non_finite_values() {
     assert_eq!(number(f64::INFINITY).to_string(), "inf");
     assert_eq!(number(f64::NEG_INFINITY).to_string(), "-inf");
