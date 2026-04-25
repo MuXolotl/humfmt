@@ -3,6 +3,7 @@ mod display;
 pub use display::AgoDisplay;
 
 use crate::duration::{DurationLike, DurationOptions};
+use crate::locale::{English, Locale};
 
 /// Creates a human-readable relative-time formatter using default options.
 ///
@@ -12,7 +13,7 @@ use crate::duration::{DurationLike, DurationOptions};
 /// let elapsed = core::time::Duration::from_secs(3661);
 /// assert_eq!(humfmt::ago(elapsed).to_string(), "1h 1m ago");
 /// ```
-pub fn ago<T: DurationLike>(value: T) -> AgoDisplay {
+pub fn ago<T: DurationLike>(value: T) -> AgoDisplay<English> {
     AgoDisplay::new(value, DurationOptions::new())
 }
 
@@ -27,6 +28,9 @@ pub fn ago<T: DurationLike>(value: T) -> AgoDisplay {
 /// let out = humfmt::ago_with(elapsed, DurationOptions::new().long_units());
 /// assert_eq!(out.to_string(), "1 second 500 milliseconds ago");
 /// ```
-pub fn ago_with<T: DurationLike>(value: T, options: DurationOptions) -> AgoDisplay {
+pub fn ago_with<T: DurationLike, L: Locale>(
+    value: T,
+    options: DurationOptions<L>,
+) -> AgoDisplay<L> {
     AgoDisplay::new(value, options)
 }

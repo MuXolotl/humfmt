@@ -20,7 +20,10 @@ pub trait Humanize: Sized {
         crate::ago::ago(self)
     }
 
-    fn human_ago_with(self, options: crate::duration::DurationOptions) -> crate::ago::AgoDisplay
+    fn human_ago_with<L: crate::locale::Locale>(
+        self,
+        options: crate::duration::DurationOptions<L>,
+    ) -> crate::ago::AgoDisplay<L>
     where
         Self: crate::duration::DurationLike,
     {
@@ -34,10 +37,10 @@ pub trait Humanize: Sized {
         crate::duration::duration(self)
     }
 
-    fn human_duration_with(
+    fn human_duration_with<L: crate::locale::Locale>(
         self,
-        options: crate::duration::DurationOptions,
-    ) -> crate::duration::DurationDisplay
+        options: crate::duration::DurationOptions<L>,
+    ) -> crate::duration::DurationDisplay<L>
     where
         Self: crate::duration::DurationLike,
     {

@@ -1,3 +1,5 @@
+use super::DurationUnit;
+
 pub(crate) const MAX_COMPACT_SUFFIX_INDEX: usize = 11;
 
 pub(crate) const SHORT_SUFFIXES: [&str; 12] = [
@@ -49,8 +51,38 @@ impl super::Locale for English {
         "ago"
     }
 
+    fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
+        duration_unit(unit, count, long)
+    }
+
     fn ordinal_suffix(&self, n: u128) -> &'static str {
         ordinal_suffix(n)
+    }
+}
+
+pub(crate) fn duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'static str {
+    match (unit, long) {
+        (DurationUnit::Day, false) => "d",
+        (DurationUnit::Hour, false) => "h",
+        (DurationUnit::Minute, false) => "m",
+        (DurationUnit::Second, false) => "s",
+        (DurationUnit::Millisecond, false) => "ms",
+        (DurationUnit::Microsecond, false) => "us",
+        (DurationUnit::Nanosecond, false) => "ns",
+        (DurationUnit::Day, true) if count == 1 => "day",
+        (DurationUnit::Hour, true) if count == 1 => "hour",
+        (DurationUnit::Minute, true) if count == 1 => "minute",
+        (DurationUnit::Second, true) if count == 1 => "second",
+        (DurationUnit::Millisecond, true) if count == 1 => "millisecond",
+        (DurationUnit::Microsecond, true) if count == 1 => "microsecond",
+        (DurationUnit::Nanosecond, true) if count == 1 => "nanosecond",
+        (DurationUnit::Day, true) => "days",
+        (DurationUnit::Hour, true) => "hours",
+        (DurationUnit::Minute, true) => "minutes",
+        (DurationUnit::Second, true) => "seconds",
+        (DurationUnit::Millisecond, true) => "milliseconds",
+        (DurationUnit::Microsecond, true) => "microseconds",
+        (DurationUnit::Nanosecond, true) => "nanoseconds",
     }
 }
 

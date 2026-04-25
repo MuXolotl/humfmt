@@ -7,6 +7,8 @@ pub use display::DurationDisplay;
 pub use options::DurationOptions;
 pub use traits::DurationLike;
 
+use crate::locale::{English, Locale};
+
 /// Creates a human-readable duration formatter using default options.
 ///
 /// # Examples
@@ -15,7 +17,7 @@ pub use traits::DurationLike;
 /// let value = core::time::Duration::from_secs(3661);
 /// assert_eq!(humfmt::duration(value).to_string(), "1h 1m");
 /// ```
-pub fn duration<T: DurationLike>(value: T) -> DurationDisplay {
+pub fn duration<T: DurationLike>(value: T) -> DurationDisplay<English> {
     DurationDisplay::new(value.into_duration(), DurationOptions::new())
 }
 
@@ -30,6 +32,9 @@ pub fn duration<T: DurationLike>(value: T) -> DurationDisplay {
 /// let out = humfmt::duration_with(value, DurationOptions::new().long_units());
 /// assert_eq!(out.to_string(), "1 second 500 milliseconds");
 /// ```
-pub fn duration_with<T: DurationLike>(value: T, options: DurationOptions) -> DurationDisplay {
+pub fn duration_with<T: DurationLike, L: Locale>(
+    value: T,
+    options: DurationOptions<L>,
+) -> DurationDisplay<L> {
     DurationDisplay::new(value.into_duration(), options)
 }

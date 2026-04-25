@@ -1,4 +1,4 @@
-use super::{english, Locale};
+use super::{english, DurationUnit, Locale};
 
 #[cfg(feature = "polish")]
 use super::polish;
@@ -7,6 +7,7 @@ use super::polish;
 use super::russian;
 
 pub type CompactSuffixFn = fn(idx: usize, scaled: f64, long: bool) -> &'static str;
+pub type DurationUnitFn = fn(unit: DurationUnit, count: u128, long: bool) -> &'static str;
 pub type OrdinalSuffixFn = fn(n: u128) -> &'static str;
 
 const COMPACT_SUFFIX_CAPACITY: usize = 12;
@@ -48,6 +49,7 @@ pub struct CustomLocale {
     short_overrides: [bool; COMPACT_SUFFIX_CAPACITY],
     long_overrides: [bool; COMPACT_SUFFIX_CAPACITY],
     compact_suffix_fn: Option<CompactSuffixFn>,
+    duration_unit_fn: DurationUnitFn,
     ordinal_suffix_fn: OrdinalSuffixFn,
     max_compact_suffix_index: usize,
     decimal_separator: char,
@@ -65,6 +67,7 @@ impl CustomLocale {
             short_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             long_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             compact_suffix_fn: None,
+            duration_unit_fn: english::duration_unit,
             ordinal_suffix_fn: english::ordinal_suffix,
             max_compact_suffix_index: english::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: '.',
@@ -83,6 +86,7 @@ impl CustomLocale {
             short_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             long_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             compact_suffix_fn: Some(russian::compact_suffix_for),
+            duration_unit_fn: russian::duration_unit,
             ordinal_suffix_fn: russian::ordinal_suffix,
             max_compact_suffix_index: russian::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: ',',
@@ -101,6 +105,7 @@ impl CustomLocale {
             short_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             long_overrides: [false; COMPACT_SUFFIX_CAPACITY],
             compact_suffix_fn: Some(polish::compact_suffix_for),
+            duration_unit_fn: polish::duration_unit,
             ordinal_suffix_fn: polish::ordinal_suffix,
             max_compact_suffix_index: polish::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: ',',
@@ -181,6 +186,12 @@ impl CustomLocale {
         self.ordinal_suffix_fn = suffix_fn;
         self
     }
+
+    /// Installs a custom duration-unit resolver.
+    pub fn duration_unit_fn(mut self, unit_fn: DurationUnitFn) -> Self {
+        self.duration_unit_fn = unit_fn;
+        self
+    }
 }
 
 impl Default for CustomLocale {
@@ -238,6 +249,10 @@ impl Locale for CustomLocale {
 
     fn ago_word(&self) -> &'static str {
         self.ago_word
+    }
+
+    fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
+        (self.duration_unit_fn)(unit, count, long)
     }
 
     fn ordinal_suffix(&self, n: u128) -> &'static str {

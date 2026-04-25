@@ -1,71 +1,58 @@
 use core::fmt;
 
+use crate::locale::{DurationUnit, Locale};
+
 use super::DurationOptions;
 
 #[derive(Copy, Clone)]
 struct Unit {
     nanos: u128,
-    short: &'static str,
-    singular: &'static str,
-    plural: &'static str,
+    kind: DurationUnit,
 }
 
 const UNITS: [Unit; 7] = [
     Unit {
         nanos: 86_400_000_000_000,
-        short: "d",
-        singular: "day",
-        plural: "days",
+        kind: DurationUnit::Day,
     },
     Unit {
         nanos: 3_600_000_000_000,
-        short: "h",
-        singular: "hour",
-        plural: "hours",
+        kind: DurationUnit::Hour,
     },
     Unit {
         nanos: 60_000_000_000,
-        short: "m",
-        singular: "minute",
-        plural: "minutes",
+        kind: DurationUnit::Minute,
     },
     Unit {
         nanos: 1_000_000_000,
-        short: "s",
-        singular: "second",
-        plural: "seconds",
+        kind: DurationUnit::Second,
     },
     Unit {
         nanos: 1_000_000,
-        short: "ms",
-        singular: "millisecond",
-        plural: "milliseconds",
+        kind: DurationUnit::Millisecond,
     },
     Unit {
         nanos: 1_000,
-        short: "us",
-        singular: "microsecond",
-        plural: "microseconds",
+        kind: DurationUnit::Microsecond,
     },
     Unit {
         nanos: 1,
-        short: "ns",
-        singular: "nanosecond",
-        plural: "nanoseconds",
+        kind: DurationUnit::Nanosecond,
     },
 ];
 
-pub fn format_duration(
+pub fn format_duration<L: Locale>(
     f: &mut fmt::Formatter<'_>,
     value: core::time::Duration,
-    options: &DurationOptions,
+    options: &DurationOptions<L>,
 ) -> fmt::Result {
     let mut remaining = value.as_nanos();
     let mut written = 0u8;
     let max_units = options.max_units_value();
+    let locale = options.locale_ref();
 
     if remaining == 0 {
-        return write_unit(f, 0, UNITS[3], options.long_units_value());
+        return write_unit(f, 0, UNITS[3], options.long_units_value(), locale);
     }
 
     for unit in UNITS {
@@ -80,7 +67,7 @@ pub fn format_duration(
             write!(f, " ")?;
         }
 
-        write_unit(f, count, unit, options.long_units_value())?;
+        write_unit(f, count, unit, options.long_units_value(), locale)?;
         written += 1;
 
         if written >= max_units {
@@ -91,21 +78,18 @@ pub fn format_duration(
     Ok(())
 }
 
-fn write_unit(
+fn write_unit<L: Locale>(
     f: &mut fmt::Formatter<'_>,
     count: u128,
     unit: Unit,
     long_units: bool,
+    locale: &L,
 ) -> fmt::Result {
-    if long_units {
-        let label = if count == 1 {
-            unit.singular
-        } else {
-            unit.plural
-        };
+    let label = locale.duration_unit(unit.kind, count, long_units);
 
+    if long_units {
         write!(f, "{count} {label}")
     } else {
-        write!(f, "{count}{}", unit.short)
+        write!(f, "{count}{label}")
     }
 }

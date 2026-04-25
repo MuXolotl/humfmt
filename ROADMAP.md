@@ -26,6 +26,7 @@
 ## v0.4.0
 - [x] ago()
 - [x] chrono/time integration
+- [x] locale-aware duration/ago output
 
 ## v0.5.0
 - [x] Russian locale

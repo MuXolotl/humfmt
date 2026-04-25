@@ -49,14 +49,37 @@ fn main() {
     );
 
     #[cfg(feature = "russian")]
-    println!(
-        "{}",
-        humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Russian))
-    );
+    {
+        println!(
+            "{}",
+            humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Russian))
+        );
+        println!(
+            "{}",
+            humfmt::duration_with(
+                Duration::from_secs(3665),
+                DurationOptions::new()
+                    .locale(humfmt::locale::Russian)
+                    .long_units()
+                    .max_units(3)
+            )
+        );
+    }
 
     #[cfg(feature = "polish")]
-    println!(
-        "{}",
-        humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Polish))
-    );
+    {
+        println!(
+            "{}",
+            humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Polish))
+        );
+        println!(
+            "{}",
+            humfmt::ago_with(
+                Duration::from_secs(90),
+                DurationOptions::new()
+                    .locale(humfmt::locale::Polish)
+                    .long_units()
+            )
+        );
+    }
 }
