@@ -124,7 +124,17 @@ humfmt = { version = "0.1", default-features = false }
 - `default-features = false`: builds the current formatter on `no_std` + `alloc`.
 - `english` stays in the default set for forward-compatible locale gating in `0.1.x`.
 - `alloc`, `russian`, and `polish` are reserved compatibility flags in `0.1.x`; they do not change runtime behavior yet.
-- `chrono` and `time` keep their optional dependencies wired and CI-checked, but no public integration API is exposed yet.
+- `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime` relative-time helpers.
+- `time`: enables adapters for `time::Duration` and `time::OffsetDateTime` relative-time helpers.
+
+Example with `chrono`:
+
+```rust
+use humfmt::chrono::ChronoHumanize;
+
+let delta = chrono::TimeDelta::try_seconds(90).unwrap();
+assert_eq!(delta.try_human_ago().unwrap().to_string(), "1m 30s ago");
+```
 
 ---
 
