@@ -135,6 +135,17 @@ fn bench_lists(c: &mut Criterion) {
         })
     });
 
+    let overridden_conjunction = ListOptions::new()
+        .serial_comma_enabled(false)
+        .conjunction("plus");
+    group.bench_function("options_conjunction_override", |b| {
+        b.iter(|| {
+            black_box(
+                humfmt::list_with(black_box(&LIST_VALUES), overridden_conjunction).to_string(),
+            )
+        })
+    });
+
     let custom_locale = CustomLocale::english().and_word("plus").serial_comma(false);
     let custom_opts = ListOptions::new().locale(custom_locale);
     group.bench_function("custom_locale", |b| {

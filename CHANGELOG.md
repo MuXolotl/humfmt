@@ -14,6 +14,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `DurationConversionError` plus non-breaking `*_checked` helpers in `humfmt::chrono` and `humfmt::time`
 - locale-aware list item separator hook via `Locale::list_separator()` and `CustomLocale::list_separator(...)`
 - `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)` for explicit list-style overrides
+- additional property tests for suffix monotonicity and locale decimal-separator invariants
+- benchmark coverage for list conjunction override options path
 
 ### Changed
 - README documentation now points to the local benchmark workflow
