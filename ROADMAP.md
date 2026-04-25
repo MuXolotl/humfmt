@@ -20,7 +20,7 @@
 - [ ] binary vs decimal byte units
 
 ## v0.3.0
-- [ ] duration()
+- [x] duration()
 - [ ] list()
 
 ## v0.4.0
