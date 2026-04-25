@@ -16,9 +16,10 @@ pub fn format_list<T: fmt::Display, L: Locale>(
         [item] => write!(f, "{item}"),
         [first, second] => write!(f, "{first} {} {second}", locale.and_word()),
         _ => {
+            let separator = locale.list_separator();
             for (idx, item) in items[..items.len() - 1].iter().enumerate() {
                 if idx != 0 {
-                    write!(f, ", ")?;
+                    write!(f, "{separator}")?;
                 }
 
                 write!(f, "{item}")?;

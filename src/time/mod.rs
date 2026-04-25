@@ -24,8 +24,8 @@
 //! ```
 
 use crate::{
-    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
-    NegativeDurationError,
+    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationConversionError,
+    DurationOptions, NegativeDurationError,
 };
 
 /// Extension methods for `time::Duration`.
@@ -76,7 +76,27 @@ pub fn duration_with<L: Locale>(
     value: ::time::Duration,
     options: DurationOptions<L>,
 ) -> Result<DurationDisplay<L>, NegativeDurationError> {
-    Ok(crate::duration::duration_with(to_std(value)?, options))
+    duration_with_checked(value, options).map_err(|_| NegativeDurationError)
+}
+
+/// Formats a `time::Duration` with default duration options and explicit
+/// conversion error semantics.
+pub fn duration_checked(
+    value: ::time::Duration,
+) -> Result<DurationDisplay, DurationConversionError> {
+    duration_with_checked(value, DurationOptions::new())
+}
+
+/// Formats a `time::Duration` with custom duration options and explicit
+/// conversion error semantics.
+pub fn duration_with_checked<L: Locale>(
+    value: ::time::Duration,
+    options: DurationOptions<L>,
+) -> Result<DurationDisplay<L>, DurationConversionError> {
+    Ok(crate::duration::duration_with(
+        to_std_checked(value)?,
+        options,
+    ))
 }
 
 /// Formats a non-negative `time::Duration` as relative time using default options.
@@ -89,7 +109,22 @@ pub fn ago_with<L: Locale>(
     value: ::time::Duration,
     options: DurationOptions<L>,
 ) -> Result<AgoDisplay<L>, NegativeDurationError> {
-    Ok(crate::ago::ago_with(to_std(value)?, options))
+    ago_with_checked(value, options).map_err(|_| NegativeDurationError)
+}
+
+/// Formats a `time::Duration` as relative time using default options and
+/// explicit conversion error semantics.
+pub fn ago_checked(value: ::time::Duration) -> Result<AgoDisplay, DurationConversionError> {
+    ago_with_checked(value, DurationOptions::new())
+}
+
+/// Formats a `time::Duration` as relative time with custom options and
+/// explicit conversion error semantics.
+pub fn ago_with_checked<L: Locale>(
+    value: ::time::Duration,
+    options: DurationOptions<L>,
+) -> Result<AgoDisplay<L>, DurationConversionError> {
+    Ok(crate::ago::ago_with(to_std_checked(value)?, options))
 }
 
 /// Formats the elapsed time between two `time::OffsetDateTime` values as relative time.
@@ -97,7 +132,7 @@ pub fn ago_since(
     then: ::time::OffsetDateTime,
     now: ::time::OffsetDateTime,
 ) -> Result<AgoDisplay, NegativeDurationError> {
-    ago(now - then)
+    ago_checked(now - then).map_err(|_| NegativeDurationError)
 }
 
 /// Formats the elapsed time between two `time::OffsetDateTime` values as
@@ -107,12 +142,34 @@ pub fn ago_since_with<L: Locale>(
     now: ::time::OffsetDateTime,
     options: DurationOptions<L>,
 ) -> Result<AgoDisplay<L>, NegativeDurationError> {
-    ago_with(now - then, options)
+    ago_since_with_checked(then, now, options).map_err(|_| NegativeDurationError)
 }
 
-fn to_std(value: ::time::Duration) -> Result<core::time::Duration, NegativeDurationError> {
+/// Formats the elapsed time between two `time::OffsetDateTime` values as
+/// relative time with explicit conversion error semantics.
+pub fn ago_since_checked(
+    then: ::time::OffsetDateTime,
+    now: ::time::OffsetDateTime,
+) -> Result<AgoDisplay, DurationConversionError> {
+    ago_checked(now - then)
+}
+
+/// Formats the elapsed time between two `time::OffsetDateTime` values as
+/// relative time using custom duration options and explicit conversion
+/// error semantics.
+pub fn ago_since_with_checked<L: Locale>(
+    then: ::time::OffsetDateTime,
+    now: ::time::OffsetDateTime,
+    options: DurationOptions<L>,
+) -> Result<AgoDisplay<L>, DurationConversionError> {
+    ago_with_checked(now - then, options)
+}
+
+fn to_std_checked(
+    value: ::time::Duration,
+) -> Result<core::time::Duration, DurationConversionError> {
     if value.is_negative() {
-        return Err(NegativeDurationError);
+        return Err(DurationConversionError::NegativeDuration);
     }
 
     Ok(value.unsigned_abs())

@@ -170,6 +170,7 @@ fn custom_duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'static
 let locale = CustomLocale::english()
     .short_suffix(1, "k")
     .separators(',', '.')
+    .list_separator(" | ")
     .duration_unit_fn(custom_duration_unit)
     .ago_word("back");
 
@@ -196,8 +197,10 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 - long and short units
 - English, Russian, and Polish locale packs
 - custom locale builder for suffix and separator overrides
+- configurable list separator per locale
 - custom duration-unit, list-style, and relative-time wording hooks
 - optional `chrono` and `time` integration
+- checked `chrono/time` adapters with detailed conversion errors
 - doctests and integration tests
 
 ---
