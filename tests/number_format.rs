@@ -84,3 +84,17 @@ fn supports_large_long_units_beyond_trillion() {
         "1 quadrillion"
     );
 }
+
+#[test]
+fn formats_extreme_u128_without_overflow_artifacts() {
+    let out = number(u128::MAX).to_string();
+    assert!(out.ends_with("Dc"));
+    assert!(!out.contains("inf"));
+    assert!(!out.contains("NaN"));
+}
+
+#[test]
+fn keeps_rounding_stable_near_suffix_boundary_for_large_values() {
+    let out = number(999_950_000_000_000_000_000_000_000_000_000_u128).to_string();
+    assert_eq!(out, "1Dc");
+}

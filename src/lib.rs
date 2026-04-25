@@ -89,7 +89,7 @@ mod traits;
 pub use ago::{ago, ago_with, AgoDisplay};
 pub use bytes::{bytes, bytes_with, BytesDisplay, BytesLike, BytesOptions};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
-pub use error::NegativeDurationError;
+pub use error::{DurationConversionError, NegativeDurationError};
 pub use list::{list, list_with, ListDisplay, ListOptions};
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};

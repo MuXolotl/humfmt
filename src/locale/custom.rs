@@ -54,6 +54,7 @@ pub struct CustomLocale {
     max_compact_suffix_index: usize,
     decimal_separator: char,
     group_separator: char,
+    list_separator: &'static str,
     and_word: &'static str,
     serial_comma: bool,
     ago_word: &'static str,
@@ -73,6 +74,7 @@ impl CustomLocale {
             max_compact_suffix_index: english::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: '.',
             group_separator: ',',
+            list_separator: ", ",
             and_word: "and",
             serial_comma: true,
             ago_word: "ago",
@@ -93,6 +95,7 @@ impl CustomLocale {
             max_compact_suffix_index: russian::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: ',',
             group_separator: ' ',
+            list_separator: ", ",
             and_word: "и",
             serial_comma: false,
             ago_word: "назад",
@@ -113,6 +116,7 @@ impl CustomLocale {
             max_compact_suffix_index: polish::MAX_COMPACT_SUFFIX_INDEX,
             decimal_separator: ',',
             group_separator: ' ',
+            list_separator: ", ",
             and_word: "i",
             serial_comma: false,
             ago_word: "temu",
@@ -147,6 +151,12 @@ impl CustomLocale {
     /// Overrides the locale word used for conjunction-style output.
     pub fn and_word(mut self, word: &'static str) -> Self {
         self.and_word = word;
+        self
+    }
+
+    /// Overrides the separator placed between list items.
+    pub fn list_separator(mut self, separator: &'static str) -> Self {
+        self.list_separator = separator;
         self
     }
 
@@ -255,6 +265,10 @@ impl Locale for CustomLocale {
 
     fn and_word(&self) -> &'static str {
         self.and_word
+    }
+
+    fn list_separator(&self) -> &'static str {
+        self.list_separator
     }
 
     fn serial_comma(&self) -> bool {

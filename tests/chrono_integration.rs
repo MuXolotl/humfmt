@@ -2,7 +2,7 @@
 
 use humfmt::{
     chrono::{self as humchrono, ChronoHumanize},
-    DurationOptions, NegativeDurationError,
+    DurationConversionError, DurationOptions, NegativeDurationError,
 };
 
 #[test]
@@ -55,4 +55,17 @@ fn supports_locale_aware_ago_since_for_chrono_datetimes() {
     .unwrap();
 
     assert_eq!(out.to_string(), "1 час 1 минута 5 секунд назад");
+}
+
+#[test]
+fn checked_api_distinguishes_negative_duration_errors() {
+    let delta = ::chrono::TimeDelta::try_seconds(-5).unwrap();
+    assert!(matches!(
+        humchrono::duration_checked(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
+    assert!(matches!(
+        humchrono::ago_checked(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
 }

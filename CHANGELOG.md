@@ -11,6 +11,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Added
 - Criterion-based benchmark suite covering the core formatter paths
 - Proptest-based invariant coverage for number, bytes, duration, relative-time, and list formatting
+- `DurationConversionError` plus non-breaking `*_checked` helpers in `humfmt::chrono` and `humfmt::time`
+- locale-aware list item separator hook via `Locale::list_separator()` and `CustomLocale::list_separator(...)`
 
 ### Changed
 - README documentation now points to the local benchmark workflow

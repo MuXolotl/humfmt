@@ -2,7 +2,7 @@
 
 use humfmt::{
     time::{self as humtime, TimeHumanize},
-    DurationOptions, NegativeDurationError,
+    DurationConversionError, DurationOptions, NegativeDurationError,
 };
 
 #[test]
@@ -55,4 +55,17 @@ fn supports_locale_aware_ago_since_for_offset_datetimes() {
     .unwrap();
 
     assert_eq!(out.to_string(), "1 godzina 1 minuta 5 sekund temu");
+}
+
+#[test]
+fn checked_api_distinguishes_negative_duration_errors() {
+    let delta = -::time::Duration::seconds(5);
+    assert!(matches!(
+        humtime::duration_checked(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
+    assert!(matches!(
+        humtime::ago_checked(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
 }

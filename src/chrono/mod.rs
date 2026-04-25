@@ -25,7 +25,7 @@
 
 use crate::{
     ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationOptions,
-    NegativeDurationError,
+    DurationConversionError, NegativeDurationError,
 };
 
 /// Extension methods for `chrono::TimeDelta`.
@@ -76,7 +76,24 @@ pub fn duration_with<L: Locale>(
     value: ::chrono::TimeDelta,
     options: DurationOptions<L>,
 ) -> Result<DurationDisplay<L>, NegativeDurationError> {
-    Ok(crate::duration::duration_with(to_std(value)?, options))
+    duration_with_checked(value, options).map_err(|_| NegativeDurationError)
+}
+
+/// Formats a `chrono::TimeDelta` with default duration options and
+/// explicit conversion error semantics.
+pub fn duration_checked(
+    value: ::chrono::TimeDelta,
+) -> Result<DurationDisplay, DurationConversionError> {
+    duration_with_checked(value, DurationOptions::new())
+}
+
+/// Formats a `chrono::TimeDelta` with custom duration options and explicit
+/// conversion error semantics.
+pub fn duration_with_checked<L: Locale>(
+    value: ::chrono::TimeDelta,
+    options: DurationOptions<L>,
+) -> Result<DurationDisplay<L>, DurationConversionError> {
+    Ok(crate::duration::duration_with(to_std_checked(value)?, options))
 }
 
 /// Formats a non-negative `chrono::TimeDelta` as relative time using default options.
@@ -89,7 +106,22 @@ pub fn ago_with<L: Locale>(
     value: ::chrono::TimeDelta,
     options: DurationOptions<L>,
 ) -> Result<AgoDisplay<L>, NegativeDurationError> {
-    Ok(crate::ago::ago_with(to_std(value)?, options))
+    ago_with_checked(value, options).map_err(|_| NegativeDurationError)
+}
+
+/// Formats a `chrono::TimeDelta` as relative time using default options and
+/// explicit conversion error semantics.
+pub fn ago_checked(value: ::chrono::TimeDelta) -> Result<AgoDisplay, DurationConversionError> {
+    ago_with_checked(value, DurationOptions::new())
+}
+
+/// Formats a `chrono::TimeDelta` as relative time with custom options and
+/// explicit conversion error semantics.
+pub fn ago_with_checked<L: Locale>(
+    value: ::chrono::TimeDelta,
+    options: DurationOptions<L>,
+) -> Result<AgoDisplay<L>, DurationConversionError> {
+    Ok(crate::ago::ago_with(to_std_checked(value)?, options))
 }
 
 /// Formats the elapsed time between two `chrono` datetimes as relative time.
@@ -97,7 +129,7 @@ pub fn ago_since<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
     then: ::chrono::DateTime<Tz1>,
     now: ::chrono::DateTime<Tz2>,
 ) -> Result<AgoDisplay, NegativeDurationError> {
-    ago(now.signed_duration_since(then))
+    ago_checked(now.signed_duration_since(then)).map_err(|_| NegativeDurationError)
 }
 
 /// Formats the elapsed time between two chrono datetimes as relative time
@@ -107,13 +139,34 @@ pub fn ago_since_with<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone, L: Local
     now: ::chrono::DateTime<Tz2>,
     options: DurationOptions<L>,
 ) -> Result<AgoDisplay<L>, NegativeDurationError> {
-    ago_with(now.signed_duration_since(then), options)
+    ago_since_with_checked(then, now, options).map_err(|_| NegativeDurationError)
 }
 
-fn to_std(value: ::chrono::TimeDelta) -> Result<core::time::Duration, NegativeDurationError> {
+/// Formats the elapsed time between two `chrono` datetimes as relative time
+/// using explicit conversion error semantics.
+pub fn ago_since_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
+    then: ::chrono::DateTime<Tz1>,
+    now: ::chrono::DateTime<Tz2>,
+) -> Result<AgoDisplay, DurationConversionError> {
+    ago_checked(now.signed_duration_since(then))
+}
+
+/// Formats the elapsed time between two `chrono` datetimes as relative time
+/// using custom duration options and explicit conversion error semantics.
+pub fn ago_since_with_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone, L: Locale>(
+    then: ::chrono::DateTime<Tz1>,
+    now: ::chrono::DateTime<Tz2>,
+    options: DurationOptions<L>,
+) -> Result<AgoDisplay<L>, DurationConversionError> {
+    ago_with_checked(now.signed_duration_since(then), options)
+}
+
+fn to_std_checked(value: ::chrono::TimeDelta) -> Result<core::time::Duration, DurationConversionError> {
     if value < ::chrono::TimeDelta::zero() {
-        return Err(NegativeDurationError);
+        return Err(DurationConversionError::NegativeDuration);
     }
 
-    value.to_std().map_err(|_| NegativeDurationError)
+    value
+        .to_std()
+        .map_err(|_| DurationConversionError::OutOfRange)
 }

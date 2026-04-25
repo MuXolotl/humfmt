@@ -67,3 +67,14 @@ fn supports_custom_conjunction_and_serial_comma_style() {
 
     assert_eq!(out.to_string(), "red, green plus blue");
 }
+
+#[test]
+fn supports_custom_list_separator() {
+    let locale = CustomLocale::english()
+        .list_separator(" | ")
+        .and_word("&")
+        .serial_comma(false);
+    let out = list_with(&["red", "green", "blue"], ListOptions::new().locale(locale));
+
+    assert_eq!(out.to_string(), "red | green & blue");
+}

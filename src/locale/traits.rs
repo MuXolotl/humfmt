@@ -33,6 +33,10 @@ pub trait Locale: Copy + Clone + Default {
         false
     }
 
+    fn list_separator(&self) -> &'static str {
+        ", "
+    }
+
     fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
         match (unit, long) {
             (DurationUnit::Day, false) => "d",
