@@ -18,7 +18,11 @@ pub fn format_number<L: crate::locale::Locale>(
     let negative = raw.is_sign_negative() && raw != 0.0;
     let abs = raw.abs();
 
-    let (scaled, idx) = normalize_scaled(abs, options.precision_value());
+    let (scaled, idx) = normalize_scaled(
+        abs,
+        options.precision_value(),
+        options.locale_ref().max_compact_suffix_index(),
+    );
 
     let rendered = render_scaled(
         scaled,
@@ -47,18 +51,18 @@ fn to_f64(value: NumericValue) -> f64 {
     }
 }
 
-fn normalize_scaled(value: f64, precision: u8) -> (f64, usize) {
+fn normalize_scaled(value: f64, precision: u8, max_idx: usize) -> (f64, usize) {
     let mut scaled = value;
     let mut idx = 0;
 
-    while scaled >= 1_000.0 && idx < 4 {
+    while scaled >= 1_000.0 && idx < max_idx {
         scaled /= 1_000.0;
         idx += 1;
     }
 
     scaled = round_to(scaled, precision);
 
-    if scaled >= 1_000.0 && idx < 4 {
+    if scaled >= 1_000.0 && idx < max_idx {
         scaled /= 1_000.0;
         idx += 1;
     }

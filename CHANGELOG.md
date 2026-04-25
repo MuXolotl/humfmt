@@ -17,6 +17,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Synced README and roadmap with the published crate state
 - Tightened CI to exercise `--all-features` and minimal-feature builds
 - Narrowed crate metadata to the features that actually exist today
+- Expanded compact number suffix coverage beyond trillion
 
 ---
 

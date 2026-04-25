@@ -12,7 +12,7 @@
 - [x] CI with fmt, clippy, tests
 - [x] no_std-compatible build check
 - [ ] README/API polish pass
-- [ ] larger compact unit coverage beyond trillion
+- [x] larger compact unit coverage beyond trillion
 
 ## v0.2.0
 - [ ] bytes()

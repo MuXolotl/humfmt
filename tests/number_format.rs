@@ -60,3 +60,18 @@ fn preserves_non_finite_values() {
     assert_eq!(number(f64::NEG_INFINITY).to_string(), "-inf");
     assert_eq!(number(f64::NAN).to_string(), "NaN");
 }
+
+#[test]
+fn supports_large_units_beyond_trillion() {
+    assert_eq!(number(1_500_000_000_000_000_i128).to_string(), "1.5Qa");
+    assert_eq!(number(1_000_000_000_000_000_000_i128).to_string(), "1Qi");
+}
+
+#[test]
+fn supports_large_long_units_beyond_trillion() {
+    let opts = NumberOptions::new().long_units();
+    assert_eq!(
+        humfmt::number_with(1_000_000_000_000_000_i128, opts).to_string(),
+        "1 quadrillion"
+    );
+}
