@@ -10,11 +10,12 @@ pub fn format_list<T: fmt::Display, L: Locale>(
     options: &ListOptions<L>,
 ) -> fmt::Result {
     let locale = options.locale_ref();
+    let conjunction = options.conjunction_or(locale.and_word());
 
     match items {
         [] => Ok(()),
         [item] => write!(f, "{item}"),
-        [first, second] => write!(f, "{first} {} {second}", locale.and_word()),
+        [first, second] => write!(f, "{first} {conjunction} {second}"),
         _ => {
             let separator = locale.list_separator();
             for (idx, item) in items[..items.len() - 1].iter().enumerate() {
@@ -29,7 +30,7 @@ pub fn format_list<T: fmt::Display, L: Locale>(
                 write!(f, ",")?;
             }
 
-            write!(f, " {} {}", locale.and_word(), &items[items.len() - 1])
+            write!(f, " {conjunction} {}", &items[items.len() - 1])
         }
     }
 }
