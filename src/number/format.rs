@@ -15,7 +15,6 @@ pub fn format_number<L: crate::locale::Locale>(
         return write!(f, "{raw}");
     }
 
-    let negative = raw.is_sign_negative() && raw != 0.0;
     let abs = raw.abs();
 
     let (scaled, idx) = normalize_scaled(
@@ -23,6 +22,7 @@ pub fn format_number<L: crate::locale::Locale>(
         options.precision_value(),
         options.locale_ref().max_compact_suffix_index(),
     );
+    let negative = raw.is_sign_negative() && scaled != 0.0;
     let locale = options.locale_ref();
 
     let rendered = render_scaled(
