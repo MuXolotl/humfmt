@@ -8,6 +8,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+---
+
+## [0.1.1] - 2026-04-25
+
 ### Fixed
 - Restored the `no_std` / `default-features = false` build path
 - Normalized `-0.0` formatting to `0`
