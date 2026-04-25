@@ -40,6 +40,39 @@ jobs:
       - name: Check no_std-compatible build
         run: cargo check --no-default-features
 
+  feature-matrix:
+    name: Feature matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: std-only
+            args: --no-default-features --features std
+          - label: alloc-placeholder
+            args: --no-default-features --features alloc
+          - label: english-placeholder
+            args: --no-default-features --features english
+          - label: russian-placeholder
+            args: --no-default-features --features russian
+          - label: polish-placeholder
+            args: --no-default-features --features polish
+          - label: chrono-placeholder
+            args: --no-default-features --features chrono
+          - label: time-placeholder
+            args: --no-default-features --features time
+          - label: chrono-time-placeholders
+            args: --no-default-features --features chrono,time
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check ${{ matrix.label }}
+        run: cargo check ${{ matrix.args }}
+
   fmt:
     name: Format check
     runs-on: ubuntu-latest

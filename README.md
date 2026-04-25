@@ -100,6 +100,16 @@ humfmt = { version = "0.1", default-features = false }
 
 ---
 
+## Feature Flags
+
+- `std` (default): enables the standard-library build.
+- `default-features = false`: builds the current formatter on `no_std` + `alloc`.
+- `english` stays in the default set for forward-compatible locale gating in `0.1.x`.
+- `alloc`, `russian`, and `polish` are reserved compatibility flags in `0.1.x`; they do not change runtime behavior yet.
+- `chrono` and `time` keep their optional dependencies wired and CI-checked, but no public integration API is exposed yet.
+
+---
+
 ## 🧪 Development Status
 
 `humfmt` is under active early-stage development.
