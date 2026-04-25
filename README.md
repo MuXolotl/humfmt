@@ -1,42 +1,137 @@
+<div align="center">
+
 # humfmt
 
-Ergonomic human-readable formatting toolkit for Rust.
+**Ergonomic human-readable formatting toolkit for Rust**
 
-`humfmt` provides tiny, intuitive, zero-friction formatters for converting raw machine values into human-friendly strings.
+[![CI](https://github.com/MuXolotl/humfmt/actions/workflows/ci.yml/badge.svg)](https://github.com/MuXolotl/humfmt/actions/workflows/ci.yml)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-actively--developing-brightgreen.svg)
 
-## Goals
+</div>
 
-- Dead simple API
-- Human-readable output
-- Low allocation overhead
-- `no_std` friendly core
-- Optional localization support
-- Clean extension trait sugar
+---
 
-## Planned formatters
+`humfmt` is a lightweight Rust library for turning raw machine values into human-friendly text.
 
-- Compact numbers (`15.3K`, `2.1M`)
-- Byte sizes (`1 MB`, `2.4 GiB`)
-- Durations (`1h 5m 3s`)
-- Relative time (`3 minutes ago`)
-- Ordinals (`21st`)
-- Human-readable lists
+Designed to provide:
 
-## Example API
+- compact number rendering (`15320 -> 15.3K`)
+- fluent builder-style customization
+- locale-ready suffix formatting
+- ergonomic extension trait API
+- zero-macro, zero-nonsense usage
+
+The crate aims to be tiny, intuitive, and pleasant enough that formatting stops feeling like work.
+
+---
+
+## ✨ Quick Example
 
 ```rust
 use humfmt::Humanize;
 
-println!("{}", humfmt::number(15320));
-println!("{}", humfmt::bytes(1048576));
-println!("{}", 3661.human_duration());
-println!("{}", 21.human_ordinal());
+fn main() {
+    println!("{}", humfmt::number(15320));          // 15.3K
+    println!("{}", 1_500_000.human_number());      // 1.5M
+}
 ````
 
-## Status
+---
 
-Early development — API is being designed carefully before first stable release.
+## ⚙️ Customized Formatting
 
-## License
+```rust
+use humfmt::{Humanize, NumberOptions};
 
-MIT
+fn main() {
+    let out = 15_320.human_number_with(
+        NumberOptions::new()
+            .precision(2)
+            .long_units()
+    );
+
+    println!("{out}"); // 15.32 thousand
+}
+```
+
+---
+
+## ✅ Current Features
+
+* [x] Compact number formatter
+* [x] Builder-style `NumberOptions`
+* [x] `Humanize` extension trait
+* [x] Long and short suffix units
+* [x] Locale abstraction foundation
+* [x] Doctests and integration tests
+
+---
+
+## 🗺️ Planned Roadmap
+
+Upcoming humanizers planned for future releases:
+
+* [ ] `bytes()` — human-readable byte sizes
+* [ ] `duration()` — compact duration formatting
+* [ ] `ago()` — relative time rendering
+* [ ] `ordinal()` — 1st / 2nd / 3rd style helpers
+* [ ] additional locale packs
+* [ ] zero-allocation optimization pass
+
+---
+
+## 📦 Installation
+
+Add dependency:
+
+```toml
+[dependencies]
+humfmt = "0.1"
+```
+
+(Currently unreleased — crates.io publication coming soon.)
+
+---
+
+## 🧪 Development Status
+
+`humfmt` is under active early-stage development.
+
+Public API is being shaped carefully before the first crates.io release.
+
+Expect rapid iteration, formatter additions, and locale improvements.
+
+---
+
+## 📚 Documentation
+
+* examples available in `/examples`
+* integration tests available in `/tests`
+* rustdoc examples available on all public number APIs
+
+---
+
+## 📄 License
+
+Licensed under MIT.
+
+---
+
+## ⭐ Philosophy
+
+This crate follows one simple rule:
+
+> Human formatting should feel stupidly easy.
+
+No giant config structs.
+No formatting gymnastics.
+No "why is this so annoying?" moments.
+
+Just:
+
+```rust
+println!("{}", 1500000.human_number());
+```
+
+and move on with your life.
