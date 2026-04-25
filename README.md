@@ -19,6 +19,7 @@ Designed to provide:
 - compact number rendering (`15320 -> 15.3K`)
 - ordinal rendering (`21 -> 21st`)
 - duration rendering (`3661s -> 1h 1m`)
+- relative time rendering (`90s -> 1m 30s ago`)
 - fluent builder-style customization
 - locale-ready suffix formatting
 - ergonomic extension trait API
@@ -39,6 +40,7 @@ fn main() {
     println!("{}", 1_500_000.human_number());      // 1.5M
     println!("{}", humfmt::ordinal(21));           // 21st
     println!("{}", humfmt::duration(core::time::Duration::from_secs(3661))); // 1h 1m
+    println!("{}", humfmt::ago(core::time::Duration::from_secs(90))); // 1m 30s ago
 }
 ```
 
@@ -64,6 +66,11 @@ fn main() {
         .human_duration_with(DurationOptions::new().long_units());
 
     println!("{elapsed}"); // 1 second 500 milliseconds
+
+    let relative = Duration::from_secs(3665)
+        .human_ago_with(DurationOptions::new().max_units(3));
+
+    println!("{relative}"); // 1h 1m 5s ago
 }
 ```
 
@@ -74,6 +81,7 @@ fn main() {
 * [x] Compact number formatter
 * [x] Ordinal formatter
 * [x] Duration formatter
+* [x] Relative time formatter
 * [x] Builder-style `NumberOptions`
 * [x] `Humanize` extension trait
 * [x] Long and short suffix units
@@ -87,7 +95,6 @@ fn main() {
 Upcoming humanizers planned for future releases:
 
 * [ ] `bytes()` — human-readable byte sizes
-* [ ] `ago()` — relative time rendering
 * [ ] additional locale packs
 * [ ] zero-allocation optimization pass
 

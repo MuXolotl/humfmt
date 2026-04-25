@@ -1,4 +1,18 @@
 pub trait Humanize: Sized {
+    fn human_ago(self) -> crate::ago::AgoDisplay
+    where
+        Self: crate::duration::DurationLike,
+    {
+        crate::ago::ago(self)
+    }
+
+    fn human_ago_with(self, options: crate::duration::DurationOptions) -> crate::ago::AgoDisplay
+    where
+        Self: crate::duration::DurationLike,
+    {
+        crate::ago::ago_with(self, options)
+    }
+
     fn human_duration(self) -> crate::duration::DurationDisplay
     where
         Self: crate::duration::DurationLike,
