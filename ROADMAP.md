@@ -30,7 +30,7 @@
 ## v0.5.0
 - [x] Russian locale
 - [ ] Polish locale
-- [ ] locale customization API
+- [x] locale customization API
 
 ## v1.0.0
 - [ ] Stable public API snapshot

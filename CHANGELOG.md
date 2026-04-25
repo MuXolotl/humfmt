@@ -19,6 +19,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `Humanize::human_ago()` and `human_ago_with(...)`
 - optional `chrono` and `time` integration layers for signed durations and timestamp-based relative formatting
 - optional `Russian` locale pack for compact numbers and ordinals
+- `CustomLocale` builder API for suffix, separator, and ordinal customization
 
 ### Changed
 - localized compact number separators now come from the active locale

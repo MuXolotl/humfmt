@@ -1,60 +1,59 @@
+pub(crate) const MAX_COMPACT_SUFFIX_INDEX: usize = 11;
+
+pub(crate) const SHORT_SUFFIXES: [&str; 12] = [
+    "",
+    " тыс.",
+    " млн",
+    " млрд",
+    " трлн",
+    " квадрлн",
+    " квинтлн",
+    " секстлн",
+    " септлн",
+    " октлн",
+    " нониллн",
+    " дециллн",
+];
+
+pub(crate) const LONG_SUFFIXES: [&str; 12] = [
+    "",
+    " тысяч",
+    " миллионов",
+    " миллиардов",
+    " триллионов",
+    " квадриллионов",
+    " квинтиллионов",
+    " секстиллионов",
+    " септиллионов",
+    " октиллионов",
+    " нониллионов",
+    " дециллионов",
+];
+
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Russian;
 
 impl super::Locale for Russian {
     fn compact_suffix(&self, idx: usize, long: bool) -> &'static str {
-        match (idx, long) {
-            (1, false) => " тыс.",
-            (2, false) => " млн",
-            (3, false) => " млрд",
-            (4, false) => " трлн",
-            (5, false) => " квадрлн",
-            (6, false) => " квинтлн",
-            (7, false) => " секстлн",
-            (8, false) => " септлн",
-            (9, false) => " октлн",
-            (10, false) => " нониллн",
-            (11, false) => " дециллн",
+        let suffixes = if long {
+            &LONG_SUFFIXES
+        } else {
+            &SHORT_SUFFIXES
+        };
 
-            (1, true) => " тысяч",
-            (2, true) => " миллионов",
-            (3, true) => " миллиардов",
-            (4, true) => " триллионов",
-            (5, true) => " квадриллионов",
-            (6, true) => " квинтиллионов",
-            (7, true) => " секстиллионов",
-            (8, true) => " септиллионов",
-            (9, true) => " октиллионов",
-            (10, true) => " нониллионов",
-            (11, true) => " дециллионов",
-
-            _ => "",
+        if idx < suffixes.len() {
+            suffixes[idx]
+        } else {
+            ""
         }
     }
 
     fn compact_suffix_for(&self, idx: usize, scaled: f64, long: bool) -> &'static str {
-        if !long {
-            return self.compact_suffix(idx, false);
-        }
-
-        match idx {
-            1 => plural_form(scaled, " тысяча", " тысячи", " тысяч"),
-            2 => plural_form(scaled, " миллион", " миллиона", " миллионов"),
-            3 => plural_form(scaled, " миллиард", " миллиарда", " миллиардов"),
-            4 => plural_form(scaled, " триллион", " триллиона", " триллионов"),
-            5 => plural_form(scaled, " квадриллион", " квадриллиона", " квадриллионов"),
-            6 => plural_form(scaled, " квинтиллион", " квинтиллиона", " квинтиллионов"),
-            7 => plural_form(scaled, " секстиллион", " секстиллиона", " секстиллионов"),
-            8 => plural_form(scaled, " септиллион", " септиллиона", " септиллионов"),
-            9 => plural_form(scaled, " октиллион", " октиллиона", " октиллионов"),
-            10 => plural_form(scaled, " нониллион", " нониллиона", " нониллионов"),
-            11 => plural_form(scaled, " дециллион", " дециллиона", " дециллионов"),
-            _ => "",
-        }
+        compact_suffix_for(idx, scaled, long)
     }
 
     fn max_compact_suffix_index(&self) -> usize {
-        11
+        MAX_COMPACT_SUFFIX_INDEX
     }
 
     fn decimal_separator(&self) -> char {
@@ -74,8 +73,37 @@ impl super::Locale for Russian {
     }
 
     fn ordinal_suffix(&self, _n: u128) -> &'static str {
-        "-й"
+        ordinal_suffix(0)
     }
+}
+
+pub(crate) fn compact_suffix_for(idx: usize, scaled: f64, long: bool) -> &'static str {
+    if !long {
+        if idx < SHORT_SUFFIXES.len() {
+            return SHORT_SUFFIXES[idx];
+        }
+
+        return "";
+    }
+
+    match idx {
+        1 => plural_form(scaled, " тысяча", " тысячи", " тысяч"),
+        2 => plural_form(scaled, " миллион", " миллиона", " миллионов"),
+        3 => plural_form(scaled, " миллиард", " миллиарда", " миллиардов"),
+        4 => plural_form(scaled, " триллион", " триллиона", " триллионов"),
+        5 => plural_form(scaled, " квадриллион", " квадриллиона", " квадриллионов"),
+        6 => plural_form(scaled, " квинтиллион", " квинтиллиона", " квинтиллионов"),
+        7 => plural_form(scaled, " секстиллион", " секстиллиона", " секстиллионов"),
+        8 => plural_form(scaled, " септиллион", " септиллиона", " септиллионов"),
+        9 => plural_form(scaled, " октиллион", " октиллиона", " октиллионов"),
+        10 => plural_form(scaled, " нониллион", " нониллиона", " нониллионов"),
+        11 => plural_form(scaled, " дециллион", " дециллиона", " дециллионов"),
+        _ => "",
+    }
+}
+
+pub(crate) fn ordinal_suffix(_n: u128) -> &'static str {
+    "-й"
 }
 
 fn plural_form(

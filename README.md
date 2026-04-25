@@ -24,6 +24,7 @@ Designed to provide:
 - relative time rendering (`90s -> 1m 30s ago`)
 - fluent builder-style customization
 - locale-ready suffix formatting
+- custom locale builder API
 - ergonomic extension trait API
 - `no_std`-friendly usage with `alloc`
 - zero-macro, zero-nonsense usage
@@ -94,6 +95,7 @@ fn main() {
 * [x] Long and short suffix units
 * [x] Locale abstraction foundation
 * [x] Russian locale pack for compact numbers and ordinals
+* [x] Custom locale builder for suffix and separator overrides
 * [x] Doctests and integration tests
 
 ---
@@ -142,6 +144,19 @@ use humfmt::{locale::Russian, number_with, NumberOptions};
 
 let out = number_with(15_320, NumberOptions::new().locale(Russian));
 assert_eq!(out.to_string(), "15,3 тыс.");
+```
+
+Example with `CustomLocale`:
+
+```rust
+use humfmt::{locale::CustomLocale, number_with, NumberOptions};
+
+let locale = CustomLocale::english()
+    .short_suffix(1, "k")
+    .separators(',', '.');
+
+let out = number_with(15_320, NumberOptions::new().locale(locale));
+assert_eq!(out.to_string(), "15,3k");
 ```
 
 Example with `chrono`:
