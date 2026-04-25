@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions};
+use humfmt::{locale::CustomLocale, BytesOptions, DurationOptions, Humanize, NumberOptions};
 
 fn main() {
     println!("{}", humfmt::number(15320));
@@ -38,6 +38,14 @@ fn main() {
     println!(
         "{}",
         15_320.human_number_with(NumberOptions::new().long_units())
+    );
+
+    let custom_locale = CustomLocale::english()
+        .short_suffix(1, "k")
+        .separators(',', '.');
+    println!(
+        "{}",
+        humfmt::number_with(15_320, NumberOptions::new().locale(custom_locale))
     );
 
     #[cfg(feature = "russian")]

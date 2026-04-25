@@ -42,6 +42,7 @@
 //! - configurable precision
 //! - locale-aware suffix system
 //! - optional Russian locale pack
+//! - custom locale builder
 //! - optional chrono/time integration
 //!
 //! More humanizers are planned.
