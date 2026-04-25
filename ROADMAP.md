@@ -15,5 +15,5 @@
 ## Next Up
 - [ ] Stable public API snapshot for the formatter surface
 - [ ] more locale packs and locale ergonomics
-- [ ] benchmark suite
+- [x] benchmark suite
 - [ ] docs.rs deep-dive examples and cookbook-style guides
