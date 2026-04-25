@@ -1,3 +1,5 @@
+use super::DurationUnit;
+
 pub(crate) const MAX_COMPACT_SUFFIX_INDEX: usize = 6;
 
 pub(crate) const SHORT_SUFFIXES: [&str; 12] = [
@@ -61,6 +63,10 @@ impl super::Locale for Polish {
         "temu"
     }
 
+    fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
+        duration_unit(unit, count, long)
+    }
+
     fn ordinal_suffix(&self, n: u128) -> &'static str {
         ordinal_suffix(n)
     }
@@ -88,6 +94,50 @@ pub(crate) fn compact_suffix_for(idx: usize, scaled: f64, long: bool) -> &'stati
 
 pub(crate) fn ordinal_suffix(_n: u128) -> &'static str {
     "."
+}
+
+pub(crate) fn duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'static str {
+    if !long {
+        return match unit {
+            DurationUnit::Day => "d",
+            DurationUnit::Hour => "godz.",
+            DurationUnit::Minute => "min",
+            DurationUnit::Second => "s",
+            DurationUnit::Millisecond => "ms",
+            DurationUnit::Microsecond => "us",
+            DurationUnit::Nanosecond => "ns",
+        };
+    }
+
+    match unit {
+        DurationUnit::Day => plural_form(count as f64, "dzień", "dni", "dni", "dnia"),
+        DurationUnit::Hour => plural_form(count as f64, "godzina", "godziny", "godzin", "godziny"),
+        DurationUnit::Minute => plural_form(count as f64, "minuta", "minuty", "minut", "minuty"),
+        DurationUnit::Second => {
+            plural_form(count as f64, "sekunda", "sekundy", "sekund", "sekundy")
+        }
+        DurationUnit::Millisecond => plural_form(
+            count as f64,
+            "milisekunda",
+            "milisekundy",
+            "milisekund",
+            "milisekundy",
+        ),
+        DurationUnit::Microsecond => plural_form(
+            count as f64,
+            "mikrosekunda",
+            "mikrosekundy",
+            "mikrosekund",
+            "mikrosekundy",
+        ),
+        DurationUnit::Nanosecond => plural_form(
+            count as f64,
+            "nanosekunda",
+            "nanosekundy",
+            "nanosekund",
+            "nanosekundy",
+        ),
+    }
 }
 
 fn plural_form(

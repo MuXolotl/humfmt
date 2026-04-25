@@ -16,6 +16,19 @@
 //! assert_eq!(humfmt::ordinal(21).to_string(), "21st");
 //! assert_eq!(humfmt::duration(core::time::Duration::from_secs(3661)).to_string(), "1h 1m");
 //! assert_eq!(humfmt::ago(core::time::Duration::from_secs(90)).to_string(), "1m 30s ago");
+//!
+//! #[cfg(feature = "russian")]
+//! assert_eq!(
+//!     humfmt::duration_with(
+//!         core::time::Duration::from_secs(3665),
+//!         humfmt::DurationOptions::new()
+//!             .locale(humfmt::locale::Russian)
+//!             .long_units()
+//!             .max_units(3),
+//!     )
+//!     .to_string(),
+//!     "1 час 1 минута 5 секунд"
+//! );
 //! ```
 //!
 //! ## Builder customization
@@ -40,7 +53,7 @@
 //! - duration formatting
 //! - relative time formatting
 //! - configurable precision
-//! - locale-aware suffix system
+//! - locale-aware numbers, ordinals, durations, and relative time
 //! - optional Russian and Polish locale packs
 //! - custom locale builder
 //! - optional chrono/time integration

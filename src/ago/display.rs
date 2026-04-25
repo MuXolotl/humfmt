@@ -1,18 +1,16 @@
 use core::fmt;
 
-use crate::{
-    duration::{duration_with, DurationLike, DurationOptions},
-    locale::{English, Locale},
-};
+use crate::duration::{duration_with, DurationLike, DurationOptions};
+use crate::locale::{English, Locale};
 
 #[derive(Copy, Clone, Debug)]
-pub struct AgoDisplay {
+pub struct AgoDisplay<L: Locale = English> {
     value: core::time::Duration,
-    options: DurationOptions,
+    options: DurationOptions<L>,
 }
 
-impl AgoDisplay {
-    pub(crate) fn new<T: DurationLike>(value: T, options: DurationOptions) -> Self {
+impl<L: Locale> AgoDisplay<L> {
+    pub(crate) fn new<T: DurationLike>(value: T, options: DurationOptions<L>) -> Self {
         Self {
             value: value.into_duration(),
             options,
@@ -20,14 +18,13 @@ impl AgoDisplay {
     }
 }
 
-impl fmt::Display for AgoDisplay {
+impl<L: Locale> fmt::Display for AgoDisplay<L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let locale = English;
         write!(
             f,
             "{} {}",
             duration_with(self.value, self.options),
-            locale.ago_word()
+            self.options.locale_ref().ago_word()
         )
     }
 }

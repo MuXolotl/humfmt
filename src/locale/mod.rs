@@ -12,4 +12,4 @@ pub use english::English;
 pub use polish::Polish;
 #[cfg(feature = "russian")]
 pub use russian::Russian;
-pub use traits::Locale;
+pub use traits::{DurationUnit, Locale};
