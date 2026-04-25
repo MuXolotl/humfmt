@@ -13,6 +13,8 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `Humanize::human_ordinal()` and `Humanize::human_ordinal_with(...)`
 - `duration()` and `duration_with(...)` helpers for compact human-readable durations
 - `DurationOptions` and `Humanize::human_duration()` / `human_duration_with(...)`
+- `ago()` and `ago_with(...)` helpers for relative time formatting
+- `Humanize::human_ago()` and `human_ago_with(...)`
 
 ---
 

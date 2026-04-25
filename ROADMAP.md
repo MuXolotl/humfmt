@@ -24,7 +24,7 @@
 - [ ] list()
 
 ## v0.4.0
-- [ ] ago()
+- [x] ago()
 - [ ] chrono/time integration
 
 ## v0.5.0

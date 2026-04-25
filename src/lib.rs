@@ -14,6 +14,7 @@
 //! assert_eq!(1_500_000.human_number().to_string(), "1.5M");
 //! assert_eq!(humfmt::ordinal(21).to_string(), "21st");
 //! assert_eq!(humfmt::duration(core::time::Duration::from_secs(3661)).to_string(), "1h 1m");
+//! assert_eq!(humfmt::ago(core::time::Duration::from_secs(90)).to_string(), "1m 30s ago");
 //! ```
 //!
 //! ## Builder customization
@@ -35,15 +36,17 @@
 //! - compact number formatting
 //! - ordinal formatting
 //! - duration formatting
+//! - relative time formatting
 //! - configurable precision
 //! - locale-ready suffix system
 //!
-//! More humanizers (`bytes`, `ago`) are planned.
+//! More humanizers (`bytes`) are planned.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 
+pub mod ago;
 pub mod duration;
 pub mod locale;
 pub mod number;
@@ -53,6 +56,7 @@ pub mod prelude;
 mod common;
 mod traits;
 
+pub use ago::{ago, ago_with, AgoDisplay};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};

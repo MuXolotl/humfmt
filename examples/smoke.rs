@@ -14,6 +14,11 @@ fn main() {
         "{}",
         Duration::from_millis(1500).human_duration_with(DurationOptions::new().long_units())
     );
+    println!("{}", humfmt::ago(Duration::from_secs(90)));
+    println!(
+        "{}",
+        Duration::from_secs(3665).human_ago_with(DurationOptions::new().max_units(3))
+    );
 
     println!("{}", humfmt::number(999_949));
     println!("{}", humfmt::number(999_950));
