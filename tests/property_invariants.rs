@@ -1,9 +1,7 @@
 use core::time::Duration;
 
-use humfmt::{
-    ago_with, bytes, duration_with, list_with, number, number_with, DurationOptions,
-    ListOptions, NumberOptions,
-};
+use humfmt::{ago_with, bytes, duration_with, list_with, number, number_with};
+use humfmt::{DurationOptions, ListOptions, NumberOptions};
 use proptest::prelude::*;
 
 fn count_rendered_units(rendered: &str) -> usize {
