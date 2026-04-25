@@ -21,12 +21,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - optional `Russian` locale pack for compact numbers and ordinals
 - optional `Polish` locale pack for compact numbers and ordinals
 - `CustomLocale` builder API for suffix, separator, and ordinal customization
+- `list()` and `list_with(...)` helpers for natural-language list formatting
+- `ListOptions` for locale-aware conjunction and serial-comma control
 - locale-aware duration and relative-time formatting
 - `chrono::ago_since_with(...)` and `time::ago_since_with(...)` helpers for localized timestamp comparisons
 
 ### Changed
 - localized compact number separators now come from the active locale
 - `DurationOptions` now carries locale selection for duration and relative-time output
+- `CustomLocale` can now override default list conjunction style
 
 ---
 

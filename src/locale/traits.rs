@@ -29,6 +29,10 @@ pub trait Locale: Copy + Clone + Default {
         ','
     }
 
+    fn serial_comma(&self) -> bool {
+        false
+    }
+
     fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
         match (unit, long) {
             (DurationUnit::Day, false) => "d",
