@@ -39,4 +39,10 @@ fn main() {
         "{}",
         15_320.human_number_with(NumberOptions::new().long_units())
     );
+
+    #[cfg(feature = "russian")]
+    println!(
+        "{}",
+        humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Russian))
+    );
 }

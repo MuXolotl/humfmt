@@ -28,7 +28,7 @@
 - [x] chrono/time integration
 
 ## v0.5.0
-- [ ] Russian locale
+- [x] Russian locale
 - [ ] Polish locale
 - [ ] locale customization API
 

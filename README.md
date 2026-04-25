@@ -18,6 +18,7 @@ Designed to provide:
 
 - byte-size rendering (`1536 -> 1.5KB`)
 - compact number rendering (`15320 -> 15.3K`)
+- locale-aware compact numbers (`15_320 -> 15,3 тыс.` with `Russian`)
 - ordinal rendering (`21 -> 21st`)
 - duration rendering (`3661s -> 1h 1m`)
 - relative time rendering (`90s -> 1m 30s ago`)
@@ -92,6 +93,7 @@ fn main() {
 * [x] `Humanize` extension trait
 * [x] Long and short suffix units
 * [x] Locale abstraction foundation
+* [x] Russian locale pack for compact numbers and ordinals
 * [x] Doctests and integration tests
 
 ---
@@ -127,10 +129,20 @@ humfmt = { version = "0.1", default-features = false }
 
 - `std` (default): enables the standard-library build.
 - `default-features = false`: builds the current formatter on `no_std` + `alloc`.
-- `english` stays in the default set for forward-compatible locale gating in `0.1.x`.
-- `alloc`, `russian`, and `polish` are reserved compatibility flags in `0.1.x`; they do not change runtime behavior yet.
+- `english` stays in the default set for the baseline locale.
+- `russian`: enables the `humfmt::locale::Russian` locale pack for compact numbers and ordinals.
+- `alloc` and `polish` remain reserved compatibility flags in `0.1.x`.
 - `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime` relative-time helpers.
 - `time`: enables adapters for `time::Duration` and `time::OffsetDateTime` relative-time helpers.
+
+Example with `russian`:
+
+```rust
+use humfmt::{locale::Russian, number_with, NumberOptions};
+
+let out = number_with(15_320, NumberOptions::new().locale(Russian));
+assert_eq!(out.to_string(), "15,3 тыс.");
+```
 
 Example with `chrono`:
 

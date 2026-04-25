@@ -40,7 +40,8 @@
 //! - duration formatting
 //! - relative time formatting
 //! - configurable precision
-//! - locale-ready suffix system
+//! - locale-aware suffix system
+//! - optional Russian locale pack
 //! - optional chrono/time integration
 //!
 //! More humanizers are planned.
