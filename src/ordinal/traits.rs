@@ -1,0 +1,38 @@
+use crate::common::sealed::Sealed;
+
+#[derive(Copy, Clone, Debug)]
+pub enum OrdinalValue {
+    Int(i128),
+    UInt(u128),
+}
+
+pub trait OrdinalLike: Sealed + Copy {
+    fn into_ordinal(self) -> OrdinalValue;
+}
+
+macro_rules! impl_signed {
+    ($($t:ty),*) => {
+        $(
+            impl OrdinalLike for $t {
+                fn into_ordinal(self) -> OrdinalValue {
+                    OrdinalValue::Int(self as i128)
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! impl_unsigned {
+    ($($t:ty),*) => {
+        $(
+            impl OrdinalLike for $t {
+                fn into_ordinal(self) -> OrdinalValue {
+                    OrdinalValue::UInt(self as u128)
+                }
+            }
+        )*
+    };
+}
+
+impl_signed!(i8, i16, i32, i64, i128, isize);
+impl_unsigned!(u8, u16, u32, u64, u128, usize);

@@ -8,6 +8,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- `ordinal()` and `ordinal_with(...)` helpers for human-readable ordinal formatting
+- `Humanize::human_ordinal()` and `Humanize::human_ordinal_with(...)`
+
 ---
 
 ## [0.1.1] - 2026-04-25
