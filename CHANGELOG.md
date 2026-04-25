@@ -6,6 +6,21 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- Restored the `no_std` / `default-features = false` build path
+- Normalized `-0.0` formatting to `0`
+- Preserved non-finite float rendering (`inf`, `-inf`, `NaN`)
+
+### Changed
+- Synced README and roadmap with the published crate state
+- Tightened CI to exercise `--all-features` and minimal-feature builds
+- Narrowed crate metadata to the features that actually exist today
+- Expanded compact number suffix coverage beyond trillion
+
+---
+
 ## [0.1.0] - 2026-04-25
 
 ### Added

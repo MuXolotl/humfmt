@@ -20,6 +20,7 @@ Designed to provide:
 - fluent builder-style customization
 - locale-ready suffix formatting
 - ergonomic extension trait API
+- `no_std`-friendly usage with `alloc`
 - zero-macro, zero-nonsense usage
 
 The crate aims to be tiny, intuitive, and pleasant enough that formatting stops feeling like work.
@@ -35,7 +36,7 @@ fn main() {
     println!("{}", humfmt::number(15320));          // 15.3K
     println!("{}", 1_500_000.human_number());      // 1.5M
 }
-````
+```
 
 ---
 
@@ -90,7 +91,12 @@ Add dependency:
 humfmt = "0.1"
 ```
 
-(Currently unreleased — crates.io publication coming soon.)
+For `no_std` targets with `alloc` available:
+
+```toml
+[dependencies]
+humfmt = { version = "0.1", default-features = false }
+```
 
 ---
 
@@ -98,7 +104,7 @@ humfmt = "0.1"
 
 `humfmt` is under active early-stage development.
 
-Public API is being shaped carefully before the first crates.io release.
+The current public surface is intentionally small and focused on compact number formatting first.
 
 Expect rapid iteration, formatter additions, and locale improvements.
 
@@ -109,6 +115,8 @@ Expect rapid iteration, formatter additions, and locale improvements.
 * examples available in `/examples`
 * integration tests available in `/tests`
 * rustdoc examples available on all public number APIs
+* published crate: <https://crates.io/crates/humfmt>
+* API docs: <https://docs.rs/humfmt>
 
 ---
 

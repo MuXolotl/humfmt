@@ -10,10 +10,19 @@ pub fn format_number<L: crate::locale::Locale>(
     options: &NumberOptions<L>,
 ) -> fmt::Result {
     let raw = to_f64(value);
-    let negative = raw.is_sign_negative();
+
+    if !raw.is_finite() {
+        return write!(f, "{raw}");
+    }
+
+    let negative = raw.is_sign_negative() && raw != 0.0;
     let abs = raw.abs();
 
-    let (scaled, idx) = normalize_scaled(abs, options.precision_value());
+    let (scaled, idx) = normalize_scaled(
+        abs,
+        options.precision_value(),
+        options.locale_ref().max_compact_suffix_index(),
+    );
 
     let rendered = render_scaled(
         scaled,
@@ -42,18 +51,18 @@ fn to_f64(value: NumericValue) -> f64 {
     }
 }
 
-fn normalize_scaled(value: f64, precision: u8) -> (f64, usize) {
+fn normalize_scaled(value: f64, precision: u8, max_idx: usize) -> (f64, usize) {
     let mut scaled = value;
     let mut idx = 0;
 
-    while scaled >= 1_000.0 && idx < 4 {
+    while scaled >= 1_000.0 && idx < max_idx {
         scaled /= 1_000.0;
         idx += 1;
     }
 
     scaled = round_to(scaled, precision);
 
-    if scaled >= 1_000.0 && idx < 4 {
+    if scaled >= 1_000.0 && idx < max_idx {
         scaled /= 1_000.0;
         idx += 1;
     }
@@ -62,12 +71,22 @@ fn normalize_scaled(value: f64, precision: u8) -> (f64, usize) {
 }
 
 fn round_to(value: f64, precision: u8) -> f64 {
-    let factor = 10_f64.powi(precision as i32);
-    (value * factor).round() / factor
+    let factor = pow10(precision);
+    (((value * factor) + 0.5) as u128 as f64) / factor
+}
+
+fn pow10(precision: u8) -> f64 {
+    let mut factor = 1.0;
+
+    for _ in 0..precision {
+        factor *= 10.0;
+    }
+
+    factor
 }
 
 fn render_scaled(value: f64, precision: u8, separators: bool) -> alloc::string::String {
-    let mut out = if value.fract() == 0.0 {
+    let mut out = if is_integer(value) {
         alloc::format!("{:.0}", value)
     } else {
         alloc::format!("{:.*}", precision as usize, value)
@@ -80,6 +99,10 @@ fn render_scaled(value: f64, precision: u8, separators: bool) -> alloc::string::
     }
 
     out
+}
+
+fn is_integer(value: f64) -> bool {
+    value == (value as u128) as f64
 }
 
 fn trim_trailing_zeroes(s: &mut alloc::string::String) {

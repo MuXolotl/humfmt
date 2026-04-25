@@ -3,12 +3,12 @@ name = "humfmt"
 version = "0.1.0"
 edition = "2021"
 authors = ["MuXolotl"]
-description = "Ergonomic human-readable formatting toolkit for Rust (numbers, bytes, duration, etc.)"
+description = "Ergonomic human-readable number formatting for Rust"
 license = "MIT"
 repository = "https://github.com/MuXolotl/humfmt"
 documentation = "https://docs.rs/humfmt"
 readme = "README.md"
-keywords = ["format", "humanize", "display", "duration", "bytes"]
+keywords = ["format", "humanize", "display", "number", "numeric"]
 categories = ["value-formatting", "text-processing"]
 
 [features]
