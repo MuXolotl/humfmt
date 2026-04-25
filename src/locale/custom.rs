@@ -1,5 +1,8 @@
 use super::{english, Locale};
 
+#[cfg(feature = "polish")]
+use super::polish;
+
 #[cfg(feature = "russian")]
 use super::russian;
 
@@ -24,7 +27,7 @@ const COMPACT_SUFFIX_CAPACITY: usize = 12;
 /// };
 ///
 /// fn ordinal_marker(_: u128) -> &'static str {
-///     "º"
+///     "o"
 /// }
 ///
 /// let locale = CustomLocale::english()
@@ -36,7 +39,7 @@ const COMPACT_SUFFIX_CAPACITY: usize = 12;
 ///     number_with(15_320, NumberOptions::new().locale(locale)).to_string(),
 ///     "15,3k"
 /// );
-/// assert_eq!(ordinal_with(7, locale).to_string(), "7º");
+/// assert_eq!(ordinal_with(7, locale).to_string(), "7o");
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct CustomLocale {
@@ -86,6 +89,24 @@ impl CustomLocale {
             group_separator: ' ',
             and_word: "и",
             ago_word: "назад",
+        }
+    }
+
+    /// Creates a customization-friendly locale initialized from Polish.
+    #[cfg(feature = "polish")]
+    pub fn polish() -> Self {
+        Self {
+            short_suffixes: polish::SHORT_SUFFIXES,
+            long_suffixes: polish::LONG_SUFFIXES,
+            short_overrides: [false; COMPACT_SUFFIX_CAPACITY],
+            long_overrides: [false; COMPACT_SUFFIX_CAPACITY],
+            compact_suffix_fn: Some(polish::compact_suffix_for),
+            ordinal_suffix_fn: polish::ordinal_suffix,
+            max_compact_suffix_index: polish::MAX_COMPACT_SUFFIX_INDEX,
+            decimal_separator: ',',
+            group_separator: ' ',
+            and_word: "i",
+            ago_word: "temu",
         }
     }
 

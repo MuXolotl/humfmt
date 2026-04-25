@@ -23,7 +23,7 @@ std = []
 # Placeholder for future finer-grained `alloc` gating.
 alloc = []
 
-# Locale flags. English and Russian are currently implemented.
+# Locale flags. English, Russian, and Polish are currently implemented.
 english = []
 russian = []
 polish = []

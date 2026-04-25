@@ -1,7 +1,7 @@
 use humfmt::{locale::CustomLocale, number_with, ordinal_with, NumberOptions};
 
 fn custom_ordinal(_: u128) -> &'static str {
-    "º"
+    "o"
 }
 
 fn shard_suffix(idx: usize, scaled: f64, long: bool) -> &'static str {
@@ -33,7 +33,7 @@ fn formats_numbers_with_custom_suffixes_and_separators() {
 #[test]
 fn supports_custom_ordinal_suffixes() {
     let locale = CustomLocale::english().ordinal_suffix_fn(custom_ordinal);
-    assert_eq!(ordinal_with(7, locale).to_string(), "7º");
+    assert_eq!(ordinal_with(7, locale).to_string(), "7o");
 }
 
 #[test]
@@ -65,4 +65,12 @@ fn can_customize_from_russian_preset() {
     let locale = CustomLocale::russian().short_suffix(1, " тыс");
     let opts = NumberOptions::new().locale(locale);
     assert_eq!(number_with(15_320, opts).to_string(), "15,3 тыс");
+}
+
+#[cfg(feature = "polish")]
+#[test]
+fn can_customize_from_polish_preset() {
+    let locale = CustomLocale::polish().short_suffix(1, " k");
+    let opts = NumberOptions::new().locale(locale);
+    assert_eq!(number_with(15_320, opts).to_string(), "15,3 k");
 }
