@@ -1,11 +1,18 @@
 # humfmt Roadmap
 
 ## v0.1.0
-- [ ] number() compact numeric formatter
+- [x] number() compact numeric formatter
 - [ ] ordinal()
-- [ ] Humanize trait (partial)
-- [ ] English locale pack
-- [ ] Full tests for number formatter
+- [x] Humanize trait (partial)
+- [x] English locale pack
+- [x] Full tests for number formatter
+
+## v0.1.x polish
+- [x] crates.io/docs.rs publication
+- [x] CI with fmt, clippy, tests
+- [x] no_std-compatible build check
+- [ ] README/API polish pass
+- [ ] larger compact unit coverage beyond trillion
 
 ## v0.2.0
 - [ ] bytes()

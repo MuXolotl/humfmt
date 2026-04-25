@@ -22,10 +22,23 @@ jobs:
           components: clippy
 
       - name: Run cargo check
-        run: cargo check --all-targets
+        run: cargo check --all-targets --all-features
 
       - name: Run tests
-        run: cargo test --all --verbose
+        run: cargo test --all-features --verbose
+
+  minimal:
+    name: Minimal feature check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check no_std-compatible build
+        run: cargo check --no-default-features
 
   fmt:
     name: Format check
@@ -55,4 +68,4 @@ jobs:
           components: clippy
 
       - name: Run clippy (strict mode)
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings

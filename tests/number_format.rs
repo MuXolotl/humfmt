@@ -48,3 +48,15 @@ fn supports_separator_rendering() {
     let opts = NumberOptions::new().separators(true).precision(2);
     assert_eq!(humfmt::number_with(123.45, opts).to_string(), "123.45");
 }
+
+#[test]
+fn avoids_negative_zero_output() {
+    assert_eq!(number(-0.0).to_string(), "0");
+}
+
+#[test]
+fn preserves_non_finite_values() {
+    assert_eq!(number(f64::INFINITY).to_string(), "inf");
+    assert_eq!(number(f64::NEG_INFINITY).to_string(), "-inf");
+    assert_eq!(number(f64::NAN).to_string(), "NaN");
+}
