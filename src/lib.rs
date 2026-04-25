@@ -16,6 +16,7 @@
 //! assert_eq!(humfmt::ordinal(21).to_string(), "21st");
 //! assert_eq!(humfmt::duration(core::time::Duration::from_secs(3661)).to_string(), "1h 1m");
 //! assert_eq!(humfmt::ago(core::time::Duration::from_secs(90)).to_string(), "1m 30s ago");
+//! assert_eq!(humfmt::list(&["red", "green", "blue"]).to_string(), "red, green, and blue");
 //!
 //! #[cfg(feature = "russian")]
 //! assert_eq!(
@@ -52,6 +53,7 @@
 //! - ordinal formatting
 //! - duration formatting
 //! - relative time formatting
+//! - natural-language list formatting
 //! - configurable precision
 //! - locale-aware numbers, ordinals, durations, and relative time
 //! - optional Russian and Polish locale packs
@@ -70,6 +72,7 @@ pub mod bytes;
 pub mod chrono;
 pub mod duration;
 mod error;
+pub mod list;
 pub mod locale;
 pub mod number;
 pub mod ordinal;
@@ -84,6 +87,7 @@ pub use ago::{ago, ago_with, AgoDisplay};
 pub use bytes::{bytes, bytes_with, BytesDisplay, BytesLike, BytesOptions};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
 pub use error::NegativeDurationError;
+pub use list::{list, list_with, ListDisplay, ListOptions};
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};
 pub use traits::Humanize;

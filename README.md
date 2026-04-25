@@ -22,6 +22,7 @@ It currently includes:
 - ordinals like `21 -> 21st`
 - durations like `3661s -> 1h 1m`
 - relative time like `90s -> 1m 30s ago`
+- natural-language lists like `["red", "green", "blue"] -> "red, green, and blue"`
 - locale-aware output for English, Russian, and Polish
 - custom locale overrides for suffixes, separators, ordinals, and duration units
 - optional `chrono` and `time` integration
@@ -44,6 +45,7 @@ fn main() {
     println!("{}", humfmt::ordinal(21)); // 21st
     println!("{}", humfmt::duration(core::time::Duration::from_secs(3661))); // 1h 1m
     println!("{}", humfmt::ago(core::time::Duration::from_secs(90))); // 1m 30s ago
+    println!("{}", humfmt::list(&["red", "green", "blue"])); // red, green, and blue
 }
 ```
 
@@ -79,12 +81,29 @@ fn main() {
 
 ---
 
+## List Examples
+
+```rust
+use humfmt::{list, list_with, ListOptions};
+
+let english = list(&["red", "green", "blue"]);
+assert_eq!(english.to_string(), "red, green, and blue");
+
+let plain = list_with(
+    &["red", "green", "blue"],
+    ListOptions::new().no_serial_comma(),
+);
+assert_eq!(plain.to_string(), "red, green and blue");
+```
+
+---
+
 ## Locale Examples
 
 ```rust
 use core::time::Duration;
 
-use humfmt::{duration_with, locale::Russian, number_with, DurationOptions, NumberOptions};
+use humfmt::{duration_with, list_with, locale::Russian, number_with, DurationOptions, ListOptions, NumberOptions};
 
 let number = number_with(15_320, NumberOptions::new().locale(Russian));
 assert_eq!(number.to_string(), "15,3 тыс.");
@@ -97,6 +116,12 @@ let elapsed = duration_with(
         .max_units(3),
 );
 assert_eq!(elapsed.to_string(), "1 час 1 минута 5 секунд");
+
+let items = list_with(
+    &["яблоки", "груши", "сливы"],
+    ListOptions::new().locale(Russian),
+);
+assert_eq!(items.to_string(), "яблоки, груши и сливы");
 ```
 
 ```rust
@@ -167,10 +192,11 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 - ordinal formatter
 - duration formatter
 - relative time formatter
+- list formatter
 - long and short units
 - English, Russian, and Polish locale packs
 - custom locale builder for suffix and separator overrides
-- custom duration-unit and relative-time wording hooks
+- custom duration-unit, list-style, and relative-time wording hooks
 - optional `chrono` and `time` integration
 - doctests and integration tests
 

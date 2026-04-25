@@ -47,6 +47,10 @@ impl super::Locale for English {
         "and"
     }
 
+    fn serial_comma(&self) -> bool {
+        true
+    }
+
     fn ago_word(&self) -> &'static str {
         "ago"
     }

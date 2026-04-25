@@ -55,6 +55,7 @@ pub struct CustomLocale {
     decimal_separator: char,
     group_separator: char,
     and_word: &'static str,
+    serial_comma: bool,
     ago_word: &'static str,
 }
 
@@ -73,6 +74,7 @@ impl CustomLocale {
             decimal_separator: '.',
             group_separator: ',',
             and_word: "and",
+            serial_comma: true,
             ago_word: "ago",
         }
     }
@@ -92,6 +94,7 @@ impl CustomLocale {
             decimal_separator: ',',
             group_separator: ' ',
             and_word: "и",
+            serial_comma: false,
             ago_word: "назад",
         }
     }
@@ -111,6 +114,7 @@ impl CustomLocale {
             decimal_separator: ',',
             group_separator: ' ',
             and_word: "i",
+            serial_comma: false,
             ago_word: "temu",
         }
     }
@@ -143,6 +147,12 @@ impl CustomLocale {
     /// Overrides the locale word used for conjunction-style output.
     pub fn and_word(mut self, word: &'static str) -> Self {
         self.and_word = word;
+        self
+    }
+
+    /// Overrides whether list formatting should use a serial comma by default.
+    pub fn serial_comma(mut self, enabled: bool) -> Self {
+        self.serial_comma = enabled;
         self
     }
 
@@ -245,6 +255,10 @@ impl Locale for CustomLocale {
 
     fn and_word(&self) -> &'static str {
         self.and_word
+    }
+
+    fn serial_comma(&self) -> bool {
+        self.serial_comma
     }
 
     fn ago_word(&self) -> &'static str {

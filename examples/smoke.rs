@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-use humfmt::{locale::CustomLocale, BytesOptions, DurationOptions, Humanize, NumberOptions};
+use humfmt::{
+    locale::CustomLocale, BytesOptions, DurationOptions, Humanize, ListOptions, NumberOptions,
+};
 
 fn main() {
     println!("{}", humfmt::number(15320));
@@ -24,6 +26,14 @@ fn main() {
         "{}",
         Duration::from_secs(3665).human_ago_with(DurationOptions::new().max_units(3))
     );
+    println!("{}", humfmt::list(&["red", "green", "blue"]));
+    println!(
+        "{}",
+        humfmt::list_with(
+            &["red", "green", "blue"],
+            ListOptions::new().no_serial_comma()
+        )
+    );
 
     println!("{}", humfmt::number(999_949));
     println!("{}", humfmt::number(999_950));
@@ -42,10 +52,19 @@ fn main() {
 
     let custom_locale = CustomLocale::english()
         .short_suffix(1, "k")
-        .separators(',', '.');
+        .separators(',', '.')
+        .and_word("plus")
+        .serial_comma(false);
     println!(
         "{}",
         humfmt::number_with(15_320, NumberOptions::new().locale(custom_locale))
+    );
+    println!(
+        "{}",
+        humfmt::list_with(
+            &["red", "green", "blue"],
+            ListOptions::new().locale(custom_locale)
+        )
     );
 
     #[cfg(feature = "russian")]

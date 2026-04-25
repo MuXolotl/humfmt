@@ -21,7 +21,7 @@
 
 ## v0.3.0
 - [x] duration()
-- [ ] list()
+- [x] list()
 
 ## v0.4.0
 - [x] ago()
