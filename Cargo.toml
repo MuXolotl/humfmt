@@ -1,6 +1,6 @@
 [package]
 name = "humfmt"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["MuXolotl"]
 description = "Ergonomic human-readable formatting toolkit for Rust"
@@ -12,9 +12,9 @@ keywords = ["format", "humanize", "display", "number", "numeric"]
 categories = ["value-formatting", "text-processing"]
 
 [features]
-# Keep the 0.1.x feature names stable even when some of them are still
-# compatibility placeholders. This lets downstream manifests stay valid while
-# the corresponding APIs land in later releases.
+# Keep the current feature names stable across pre-1.0 releases, even when some
+# of them are still compatibility placeholders. This lets downstream manifests
+# stay valid while corresponding APIs land incrementally.
 default = ["std", "english"]
 
 # `std` is the only behavior-changing flag today.

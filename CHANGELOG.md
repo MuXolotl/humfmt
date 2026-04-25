@@ -8,6 +8,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] - 2026-04-25
+
 ### Added
 - `bytes()` and `bytes_with(...)` helpers for human-readable byte sizes
 - `BytesOptions` and `Humanize::human_bytes()` / `human_bytes_with(...)`
