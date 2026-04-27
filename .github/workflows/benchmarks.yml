@@ -1,0 +1,39 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  bench:
+    name: Run Criterion benchmarks (comparison harness)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run benchmarks
+        run: cargo bench --manifest-path tools/benchmarks/Cargo.toml
+
+      - name: Generate benchmark summary and charts
+        run: cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
+
+      - name: Upload criterion reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: criterion-reports
+          path: tools/benchmarks/target/criterion
+
+      - name: Upload summary + charts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-summary
+          path: |
+            BENCHMARKS.md
+            assets/benchmarks

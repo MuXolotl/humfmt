@@ -16,6 +16,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)` for explicit list-style overrides
 - additional property tests for suffix monotonicity and locale decimal-separator invariants
 - benchmark coverage for list conjunction override options path
+- standalone comparison benchmark harness under `tools/benchmarks/`
+- benchmark report generator (`report` binary) that produces `BENCHMARKS.md` and dark-theme SVG charts under `assets/benchmarks/`
+- on-demand GitHub Actions workflow to run the comparison harness and upload artifacts
 
 ### Changed
 - Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)

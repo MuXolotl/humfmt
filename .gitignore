@@ -1,8 +1,8 @@
 # Local note files
 *.note.md
 
-# Rust
-/target/
+# Rust build artifacts (ignore in all subdirectories)
+target/
 **/*.rs.bk
 
 # IDE
@@ -18,7 +18,3 @@ Thumbs.db
 
 # Cargo local
 Cargo.lock
-
-# Optional (if you ever benchmark)
-*.svg
-*.png

@@ -1,0 +1,32 @@
+[package]
+name = "humfmt-benchmarks"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+humfmt = { path = "../..", default-features = true }
+
+bytesize = "2.3"
+byte-unit = "5.2"
+prettier-bytes = "0.2"
+human_format = "1.2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+walkdir = "2.5"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "compare_bytes"
+harness = false
+
+[[bench]]
+name = "compare_numbers"
+harness = false
+
+[[bin]]
+name = "report"
+path = "src/bin/report.rs"

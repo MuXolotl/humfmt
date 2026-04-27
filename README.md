@@ -266,6 +266,38 @@ Run:
 cargo bench
 ```
 
+### Comparison Benchmarks (tools/benchmarks)
+
+This repository also includes a standalone comparison benchmark harness under `tools/benchmarks/`.
+It can generate a repo-friendly report and charts:
+
+```bash
+cargo bench --manifest-path tools/benchmarks/Cargo.toml
+cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
+```
+
+This produces:
+
+- `BENCHMARKS.md`
+- `assets/benchmarks/*_dark.svg`
+
+<details>
+<summary>Charts</summary>
+
+<p align="center">
+  <img alt="Bytes allocating benchmark" src="assets/benchmarks/bytes_allocating_dark.svg">
+</p>
+
+<p align="center">
+  <img alt="Bytes reused-buffer benchmark" src="assets/benchmarks/bytes_reused_buffer_dark.svg">
+</p>
+
+<p align="center">
+  <img alt="Numbers allocating benchmark" src="assets/benchmarks/numbers_allocating_dark.svg">
+</p>
+
+</details>
+
 ---
 
 ## Development Status

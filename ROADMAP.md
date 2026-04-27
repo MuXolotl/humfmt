@@ -16,5 +16,7 @@
 - [ ] Stable public API snapshot for the formatter surface
 - [ ] more locale packs and locale ergonomics
 - [x] benchmark suite
+- [x] standalone comparison benchmarks (tools/benchmarks)
+- [x] generated benchmark report + charts (BENCHMARKS.md + assets/benchmarks)
 - [ ] docs.rs deep-dive examples and cookbook-style guides
 - [ ] publish benchmark methodology and results comparison (reproducible and semantics-aligned)
