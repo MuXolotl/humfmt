@@ -15,9 +15,8 @@ struct Estimates {
 
 #[derive(Debug, Deserialize)]
 struct Estimate {
-    // Criterion stores the median point estimate. In practice, the unit used in `estimates.json`
-    // may differ across Criterion versions. We treat it as "seconds" if it looks like seconds,
-    // otherwise we treat it as "nanoseconds".
+    // For Criterion's default WallTime measurement, values are in nanoseconds:
+    // Measurement::to_f64 returns val.as_nanos() as f64 and the machine unit is "ns".
     point_estimate: f64,
 }
 
@@ -177,7 +176,6 @@ fn main() -> io::Result<()> {
 }
 
 fn repo_root() -> io::Result<PathBuf> {
-    // CARGO_MANIFEST_DIR points to tools/benchmarks.
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repo = manifest_dir
         .parent()
@@ -209,8 +207,6 @@ fn load_medians(criterion_root: &Path) -> io::Result<BTreeMap<String, f64>> {
         }
 
         let path = entry.path();
-
-        // Only accept ".../<bench-id>/new/estimates.json".
         let id = match bench_id_from_estimates_path(criterion_root, path) {
             Some(id) => id,
             None => continue,
@@ -247,7 +243,6 @@ fn bench_id_from_estimates_path(criterion_root: &Path, path: &Path) -> Option<St
         return None;
     }
 
-    // Drop "/new/estimates.json".
     parts.truncate(parts.len() - 2);
     Some(parts.join("/"))
 }
@@ -273,10 +268,16 @@ impl BenchKey {
         self
     }
 
-    fn expected_criterion_id(&self) -> String {
-        let group = sanitize_for_criterion(self.group);
-        let bench = sanitize_for_criterion(self.bench);
+    fn expected_ids(&self) -> [String; 2] {
+        [
+            self.expected_id_with_case(CaseMode::Preserve),
+            self.expected_id_with_case(CaseMode::Lower),
+        ]
+    }
 
+    fn expected_id_with_case(&self, mode: CaseMode) -> String {
+        let group = sanitize_for_criterion(self.group, mode);
+        let bench = sanitize_for_criterion(self.bench, mode);
         match self.param {
             Some(p) => format!("{group}/{bench}/{p}"),
             None => format!("{group}/{bench}"),
@@ -284,10 +285,20 @@ impl BenchKey {
     }
 }
 
-fn sanitize_for_criterion(input: &str) -> String {
+#[derive(Copy, Clone)]
+enum CaseMode {
+    Preserve,
+    Lower,
+}
+
+fn sanitize_for_criterion(input: &str, mode: CaseMode) -> String {
     let mut out = String::with_capacity(input.len());
-    for ch in input.chars() {
-        let ch = ch.to_ascii_lowercase();
+
+    for mut ch in input.chars() {
+        if matches!(mode, CaseMode::Lower) {
+            ch = ch.to_ascii_lowercase();
+        }
+
         let keep = ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.' || ch == '#';
         if keep {
             out.push(ch);
@@ -295,6 +306,7 @@ fn sanitize_for_criterion(input: &str) -> String {
             out.push('_');
         }
     }
+
     out
 }
 
@@ -331,25 +343,28 @@ impl BenchEntry {
 }
 
 fn resolve_point_estimate(medians: &BTreeMap<String, f64>, key: BenchKey) -> Option<(String, f64)> {
-    let expected = key.expected_criterion_id();
-    if let Some(v) = medians.get(&expected).copied() {
-        return Some((expected, v));
+    let candidates = key.expected_ids();
+
+    // 1) Exact match.
+    for expected in &candidates {
+        if let Some(v) = medians.get(expected).copied() {
+            return Some((expected.clone(), v));
+        }
     }
 
-    let needle = format!("/{expected}");
-    medians
-        .iter()
-        .filter(|(k, _)| k.ends_with(&needle))
-        .min_by_key(|(k, _)| k.len())
-        .map(|(k, v)| (k.clone(), *v))
-}
-
-fn estimate_to_ns(point_estimate: f64) -> f64 {
-    if point_estimate < 1.0 {
-        point_estimate * 1_000_000_000.0
-    } else {
-        point_estimate
+    // 2) Suffix match (if Criterion adds extra prefixes).
+    for expected in &candidates {
+        let needle = format!("/{expected}");
+        if let Some((k, v)) = medians
+            .iter()
+            .filter(|(k, _)| k.ends_with(&needle))
+            .min_by_key(|(k, _)| k.len())
+        {
+            return Some((k.clone(), *v));
+        }
     }
+
+    None
 }
 
 fn env_true(name: &str) -> bool {
@@ -405,10 +420,7 @@ fn render_markdown(medians: &BTreeMap<String, f64>, groups: &[BenchGroup]) -> St
 
         let hum_entry = g.entries.iter().find(|e| e.label == "humfmt");
         let hum_ns_value = hum_entry.and_then(|e| {
-            resolve_point_estimate(medians, e.key).map(|(_, raw)| {
-                let ns_iter = estimate_to_ns(raw);
-                ns_iter / e.per_iter_values
-            })
+            resolve_point_estimate(medians, e.key).map(|(_, ns_iter)| ns_iter / e.per_iter_values)
         });
 
         for e in &g.entries {
@@ -417,7 +429,7 @@ fn render_markdown(medians: &BTreeMap<String, f64>, groups: &[BenchGroup]) -> St
                 had_missing = true;
             }
 
-            let median_ns_iter = resolved.as_ref().map(|(_, raw)| estimate_to_ns(*raw));
+            let median_ns_iter = resolved.as_ref().map(|(_, ns)| *ns);
             let median_ns_value = median_ns_iter.map(|ns| ns / e.per_iter_values);
 
             let rel = match (median_ns_value, hum_ns_value) {
@@ -472,7 +484,11 @@ fn write_svg_dark(
     Ok(())
 }
 
-fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str, BenchKey, f64)]) -> String {
+fn render_svg_dark(
+    title: &str,
+    medians: &BTreeMap<String, f64>,
+    items: &[(&str, BenchKey, f64)],
+) -> String {
     let bg = "#0d1117";
     let fg = "#c9d1d9";
     let grid = "#30363d";
@@ -484,15 +500,11 @@ fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str,
 
     for (label, key, per_iter_values) in items {
         let resolved = resolve_point_estimate(medians, *key);
-        let ns_per_value = resolved.map(|(_, raw)| {
-            let ns_iter = estimate_to_ns(raw);
-            ns_iter / *per_iter_values
-        });
+        let ns_per_value = resolved.map(|(_, ns_iter)| ns_iter / *per_iter_values);
 
         if let Some(v) = ns_per_value {
             max_ns = max_ns.max(v);
         }
-
         rows.push((*label, ns_per_value));
     }
 
@@ -502,7 +514,6 @@ fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str,
     let top: i32 = 54;
     let bar_w: i32 = 560;
     let row_h: i32 = 36;
-
     let value_x: i32 = width - 20;
 
     let mut svg = String::new();
@@ -514,7 +525,6 @@ fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str,
         r#"<text x="20" y="30" fill="{fg}" font-family="ui-sans-serif, system-ui" font-size="18" font-weight="600">{}</text>"#,
         escape(title)
     ));
-
     svg.push_str(&format!(
         r#"<line x1="{left}" y1="{top}" x2="{left}" y2="{y2}" stroke="{grid}" stroke-width="1"/>"#,
         y2 = top + row_h * (rows.len() as i32) + 10
@@ -524,10 +534,7 @@ fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str,
         let y = top + (i as i32) * row_h;
 
         let w = match ns_opt {
-            Some(ns) if max_ns > 0.0 => {
-                let frac = ns / max_ns;
-                (bar_w as f64 * frac).round() as i32
-            }
+            Some(ns) if max_ns > 0.0 => ((bar_w as f64) * (ns / max_ns)).round() as i32,
             _ => 0,
         };
 
@@ -538,7 +545,6 @@ fn render_svg_dark(title: &str, medians: &BTreeMap<String, f64>, items: &[(&str,
             ytext = y + 22,
             label = escape(label),
         ));
-
         svg.push_str(&format!(
             r#"<rect x="{left}" y="{ybar}" width="{w}" height="18" fill="{color}" rx="4"/>"#,
             ybar = y + 8,
