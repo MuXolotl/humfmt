@@ -17,3 +17,4 @@
 - [ ] more locale packs and locale ergonomics
 - [x] benchmark suite
 - [ ] docs.rs deep-dive examples and cookbook-style guides
+- [ ] publish benchmark methodology and results comparison (reproducible and semantics-aligned)

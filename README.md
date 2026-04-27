@@ -26,7 +26,6 @@ It currently includes:
 - locale-aware output for English, Russian, and Polish
 - custom locale overrides for suffixes, separators, ordinals, and duration units
 - optional `chrono` and `time` integration
-- `no_std`-friendly usage with `alloc`
 
 The goal is still the same: keep the crate small, predictable, and pleasant to
 reach for.
@@ -48,6 +47,19 @@ fn main() {
     println!("{}", humfmt::list(&["red", "green", "blue"])); // red, green, and blue
 }
 ```
+
+---
+
+## Performance Notes
+
+`humfmt` is designed to be cheap to call from hot paths:
+
+- The formatters implement `Display` and write directly to the provided `fmt::Formatter`.
+- The formatting path avoids building intermediate heap strings.
+- Allocation is an explicit choice of the caller (e.g. calling `.to_string()` allocates because it must own a `String`).
+
+In other words: formatting itself is meant to be lightweight; if you need owned output,
+you can allocate it explicitly.
 
 ---
 
@@ -105,7 +117,11 @@ assert_eq!(plain.to_string(), "red, green plus blue");
 ```rust
 use core::time::Duration;
 
-use humfmt::{duration_with, list_with, locale::Russian, number_with, DurationOptions, ListOptions, NumberOptions};
+use humfmt::{
+    duration_with, list_with, number_with,
+    locale::Russian,
+    DurationOptions, ListOptions, NumberOptions
+};
 
 let number = number_with(15_320, NumberOptions::new().locale(Russian));
 assert_eq!(number.to_string(), "15,3 тыс.");
@@ -129,7 +145,11 @@ assert_eq!(items.to_string(), "яблоки, груши и сливы");
 ```rust
 use core::time::Duration;
 
-use humfmt::{ago_with, locale::Polish, number_with, ordinal_with, DurationOptions, NumberOptions};
+use humfmt::{
+    ago_with, number_with, ordinal_with,
+    locale::Polish,
+    DurationOptions, NumberOptions
+};
 
 let number = number_with(15_320, NumberOptions::new().locale(Polish));
 assert_eq!(number.to_string(), "15,3 tys.");
@@ -144,11 +164,11 @@ assert_eq!(relative.to_string(), "1 minuta 30 sekund temu");
 
 ```rust
 use humfmt::{
-    locale::{CustomLocale, DurationUnit},
     ago_with,
     number_with,
     DurationOptions,
     NumberOptions,
+    locale::{CustomLocale, DurationUnit},
 };
 
 fn custom_duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'static str {
@@ -214,7 +234,7 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 humfmt = "0.2"
 ```
 
-For `no_std` targets with `alloc` available:
+For `no_std` targets:
 
 ```toml
 [dependencies]
@@ -226,13 +246,25 @@ humfmt = { version = "0.2", default-features = false }
 ## Feature Flags
 
 - `std` (default): enables the standard-library build
-- `default-features = false`: builds the current formatter on `no_std` + `alloc`
+- `default-features = false`: builds for `no_std`
 - `english`: baseline locale included in the default feature set
 - `russian`: enables the `humfmt::locale::Russian` locale pack
 - `polish`: enables the `humfmt::locale::Polish` locale pack
 - `alloc`: reserved compatibility flag in `0.2.x`
 - `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime`
 - `time`: enables adapters for `time::Duration` and `time::OffsetDateTime`
+
+---
+
+## Benchmarks
+
+This repository includes a Criterion benchmark suite.
+
+Run:
+
+```bash
+cargo bench
+```
 
 ---
 

@@ -18,6 +18,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - benchmark coverage for list conjunction override options path
 
 ### Changed
+- Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)
 - README documentation now points to the local benchmark workflow
 - Small negative floating-point values that round to zero no longer render as `-0`
 
@@ -29,7 +30,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `bytes()` and `bytes_with(...)` helpers for human-readable byte sizes
 - `BytesOptions` and `Humanize::human_bytes()` / `human_bytes_with(...)`
 - `ordinal()` and `ordinal_with(...)` helpers for human-readable ordinal formatting
-- `Humanize::human_ordinal()` and `Humanize::human_ordinal_with(...)`
+- `Humanize::human_ordinal()` and `human_ordinal_with(...)`
 - `duration()` and `duration_with(...)` helpers for compact human-readable durations
 - `DurationOptions` and `Humanize::human_duration()` / `human_duration_with(...)`
 - `ago()` and `ago_with(...)` helpers for relative time formatting

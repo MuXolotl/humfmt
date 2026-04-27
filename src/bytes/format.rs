@@ -1,9 +1,12 @@
 use core::fmt;
+use core::fmt::Write;
 
 use super::{traits::BytesValue, BytesOptions};
+use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
 
 const DECIMAL_SHORT: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
 const BINARY_SHORT: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
+
 const DECIMAL_LONG_SINGULAR: [&str; 7] = [
     "byte", "kilobyte", "megabyte", "gigabyte", "terabyte", "petabyte", "exabyte",
 ];
@@ -16,6 +19,7 @@ const DECIMAL_LONG_PLURAL: [&str; 7] = [
     "petabytes",
     "exabytes",
 ];
+
 const BINARY_LONG_SINGULAR: [&str; 7] = [
     "byte", "kibibyte", "mebibyte", "gibibyte", "tebibyte", "pebibyte", "exbibyte",
 ];
@@ -34,100 +38,60 @@ pub fn format_bytes(
     value: BytesValue,
     options: &BytesOptions,
 ) -> fmt::Result {
-    let raw = to_f64(value);
-    let negative = raw.is_sign_negative();
-    let abs = raw.abs();
-    let base = if options.binary_value() {
-        1024.0
-    } else {
-        1000.0
+    let (negative, magnitude) = match value {
+        BytesValue::Int(v) if v < 0 => (true, v.unsigned_abs()),
+        BytesValue::Int(v) => (false, v as u128),
+        BytesValue::UInt(v) => (false, v),
     };
 
-    let (scaled, idx) = normalize_scaled(abs, base, options.precision_value());
-    let rendered = render_scaled(scaled, options.precision_value());
+    let base: u128 = if options.binary_value() { 1024 } else { 1000 };
+    let max_idx = DECIMAL_SHORT.len() - 1;
+    let precision = options.precision_value();
 
-    if negative {
-        write!(f, "-")?;
+    let (mut idx, mut unit) = compute_unit(magnitude, base, max_idx);
+    let mut parts = decimal_parts_rounded(magnitude, unit, precision);
+
+    // Rescale if rounding pushes us over the unit boundary (e.g. 999.95KB -> 1MB).
+    if parts.integer >= base && idx < max_idx {
+        idx += 1;
+        unit *= base;
+        parts = decimal_parts_rounded(magnitude, unit, precision);
+    }
+
+    if negative && magnitude != 0 {
+        f.write_str("-")?;
+    }
+
+    // Bytes formatting is not locale-aware, and historically this crate did not add grouping
+    // separators, so we keep it that way for determinism.
+    write_u128(f, parts.integer, false, ',')?;
+
+    if parts.frac_len != 0 {
+        f.write_char('.')?;
+        write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 
     if options.long_units_value() {
-        let label = long_label(options.binary_value(), idx, scaled == 1.0);
-        write!(f, "{rendered} {label}")
+        let label = long_label(options.binary_value(), idx, parts.is_exactly_one());
+        write!(f, " {label}")
     } else {
         let suffix = short_label(options.binary_value(), idx);
-        write!(f, "{rendered}{suffix}")
+        f.write_str(suffix)
     }
 }
 
-fn to_f64(value: BytesValue) -> f64 {
-    match value {
-        BytesValue::Int(v) => v as f64,
-        BytesValue::UInt(v) => v as f64,
-    }
-}
+fn compute_unit(magnitude: u128, base: u128, max_idx: usize) -> (usize, u128) {
+    let mut idx = 0usize;
+    let mut unit = 1u128;
+    let mut tmp = magnitude;
 
-fn normalize_scaled(value: f64, base: f64, precision: u8) -> (f64, usize) {
-    let mut scaled = value;
-    let mut idx = 0;
-    let max_idx = DECIMAL_SHORT.len() - 1;
-
-    while scaled >= base && idx < max_idx {
-        scaled /= base;
+    while tmp >= base && idx < max_idx {
+        tmp /= base;
         idx += 1;
+        unit *= base;
     }
 
-    scaled = round_to(scaled, precision);
-
-    if scaled >= base && idx < max_idx {
-        scaled /= base;
-        idx += 1;
-    }
-
-    (scaled, idx)
-}
-
-fn round_to(value: f64, precision: u8) -> f64 {
-    let factor = pow10(precision);
-    (((value * factor) + 0.5) as u128 as f64) / factor
-}
-
-fn pow10(precision: u8) -> f64 {
-    let mut factor = 1.0;
-
-    for _ in 0..precision {
-        factor *= 10.0;
-    }
-
-    factor
-}
-
-fn render_scaled(value: f64, precision: u8) -> alloc::string::String {
-    let mut out = if is_integer(value) {
-        alloc::format!("{:.0}", value)
-    } else {
-        alloc::format!("{:.*}", precision as usize, value)
-    };
-
-    trim_trailing_zeroes(&mut out);
-    out
-}
-
-fn is_integer(value: f64) -> bool {
-    value == (value as u128) as f64
-}
-
-fn trim_trailing_zeroes(s: &mut alloc::string::String) {
-    if !s.contains('.') {
-        return;
-    }
-
-    while s.ends_with('0') {
-        s.pop();
-    }
-
-    if s.ends_with('.') {
-        s.pop();
-    }
+    (idx, unit)
 }
 
 fn short_label(binary: bool, idx: usize) -> &'static str {

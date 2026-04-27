@@ -1,5 +1,10 @@
 use core::fmt;
+use core::fmt::Write;
 
+use crate::common::fmt::{
+    decimal_parts_rounded, trim_ascii_trailing_zeros_and_dot, write_frac_digits, write_u128,
+    StackString,
+};
 use crate::common::numeric::NumericValue;
 
 use super::NumberOptions;
@@ -9,66 +14,153 @@ pub fn format_number<L: crate::locale::Locale>(
     value: NumericValue,
     options: &NumberOptions<L>,
 ) -> fmt::Result {
-    let raw = to_f64(value);
+    match value {
+        NumericValue::Int(v) => format_int(f, v, options),
+        NumericValue::UInt(v) => format_uint(f, v, options),
+        NumericValue::Float(v) => format_float(f, v, options),
+    }
+}
 
+fn format_int<L: crate::locale::Locale>(
+    f: &mut fmt::Formatter<'_>,
+    value: i128,
+    options: &NumberOptions<L>,
+) -> fmt::Result {
+    let negative = value.is_negative();
+    let magnitude = if negative {
+        value.unsigned_abs()
+    } else {
+        value as u128
+    };
+
+    format_u128_magnitude(f, negative && magnitude != 0, magnitude, options)
+}
+
+fn format_uint<L: crate::locale::Locale>(
+    f: &mut fmt::Formatter<'_>,
+    value: u128,
+    options: &NumberOptions<L>,
+) -> fmt::Result {
+    format_u128_magnitude(f, false, value, options)
+}
+
+fn format_u128_magnitude<L: crate::locale::Locale>(
+    f: &mut fmt::Formatter<'_>,
+    negative: bool,
+    magnitude: u128,
+    options: &NumberOptions<L>,
+) -> fmt::Result {
+    let locale = options.locale_ref();
+    let precision = options.precision_value();
+    let max_idx = locale.max_compact_suffix_index();
+
+    let (mut idx, mut unit) = compute_compact_unit(magnitude, max_idx);
+    let mut parts = decimal_parts_rounded(magnitude, unit, precision);
+
+    // Rescale if rounding pushes us over the compact boundary (e.g. 999.95K -> 1M).
+    if parts.integer >= 1_000 && idx < max_idx {
+        idx += 1;
+        unit *= 1_000;
+        parts = decimal_parts_rounded(magnitude, unit, precision);
+    }
+
+    if negative {
+        f.write_str("-")?;
+    }
+
+    // For idx > 0, the integer part is < 1000, so grouping separators won't matter.
+    // For idx == 0, grouping can be useful if enabled.
+    write_u128(
+        f,
+        parts.integer,
+        options.separators_value() && idx == 0,
+        locale.group_separator(),
+    )?;
+
+    if parts.frac_len != 0 {
+        f.write_char(locale.decimal_separator())?;
+        write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
+    }
+
+    let suffix = locale.compact_suffix_for(idx, parts.as_f64(), options.long_units_value());
+    f.write_str(suffix)
+}
+
+fn compute_compact_unit(magnitude: u128, max_idx: usize) -> (usize, u128) {
+    let mut idx = 0usize;
+    let mut unit = 1u128;
+    let mut tmp = magnitude;
+
+    while tmp >= 1_000 && idx < max_idx {
+        tmp /= 1_000;
+        idx += 1;
+        unit *= 1_000;
+    }
+
+    (idx, unit)
+}
+
+fn format_float<L: crate::locale::Locale>(
+    f: &mut fmt::Formatter<'_>,
+    raw: f64,
+    options: &NumberOptions<L>,
+) -> fmt::Result {
     if !raw.is_finite() {
         return write!(f, "{raw}");
     }
 
-    let abs = raw.abs();
-
-    let (scaled, idx) = normalize_scaled(
-        abs,
-        options.precision_value(),
-        options.locale_ref().max_compact_suffix_index(),
-    );
-    let negative = raw.is_sign_negative() && scaled != 0.0;
     let locale = options.locale_ref();
+    let precision = options.precision_value();
+    let max_idx = locale.max_compact_suffix_index();
 
-    let rendered = render_scaled(
-        scaled,
-        options.precision_value(),
+    let abs = raw.abs();
+    let (scaled, idx) = normalize_scaled(abs, precision, max_idx);
+
+    // Avoid "-0" after rounding tiny negatives.
+    let negative = raw.is_sign_negative() && scaled != 0.0;
+
+    if negative {
+        f.write_str("-")?;
+    }
+
+    // Render the scaled number to a small stack buffer first, then localize it.
+    // Buffer size is intentionally generous to avoid fmt::Error for extreme floats.
+    let mut tmp = StackString::<512>::new();
+    if is_integer(scaled) {
+        write!(&mut tmp, "{scaled:.0}")?;
+    } else {
+        write!(&mut tmp, "{:.*}", precision as usize, scaled)?;
+    }
+    trim_ascii_trailing_zeros_and_dot(&mut tmp);
+
+    write_localized_numeric_str(
+        f,
+        tmp.as_str(),
         options.separators_value(),
         locale.decimal_separator(),
         locale.group_separator(),
-    );
-
-    if negative {
-        write!(f, "-")?;
-    }
-
-    write!(f, "{rendered}")?;
+    )?;
 
     let suffix = locale.compact_suffix_for(idx, scaled, options.long_units_value());
-
-    write!(f, "{suffix}")
-}
-
-fn to_f64(value: NumericValue) -> f64 {
-    match value {
-        NumericValue::Int(v) => v as f64,
-        NumericValue::UInt(v) => v as f64,
-        NumericValue::Float(v) => v,
-    }
+    f.write_str(suffix)
 }
 
 fn normalize_scaled(value: f64, precision: u8, max_idx: usize) -> (f64, usize) {
     let mut scaled = value;
-    let mut idx = 0;
+    let mut idx = 0usize;
 
     while scaled >= 1_000.0 && idx < max_idx {
         scaled /= 1_000.0;
         idx += 1;
     }
 
-    scaled = round_to(scaled, precision);
+    let scaled = round_to(scaled, precision);
 
     if scaled >= 1_000.0 && idx < max_idx {
-        scaled /= 1_000.0;
-        idx += 1;
+        (scaled / 1_000.0, idx + 1)
+    } else {
+        (scaled, idx)
     }
-
-    (scaled, idx)
 }
 
 fn round_to(value: f64, precision: u8) -> f64 {
@@ -78,83 +170,39 @@ fn round_to(value: f64, precision: u8) -> f64 {
 
 fn pow10(precision: u8) -> f64 {
     let mut factor = 1.0;
-
     for _ in 0..precision {
         factor *= 10.0;
     }
-
     factor
-}
-
-fn render_scaled(
-    value: f64,
-    precision: u8,
-    separators: bool,
-    decimal_separator: char,
-    group_separator: char,
-) -> alloc::string::String {
-    let mut out = if is_integer(value) {
-        alloc::format!("{:.0}", value)
-    } else {
-        alloc::format!("{:.*}", precision as usize, value)
-    };
-
-    trim_trailing_zeroes(&mut out);
-
-    localize_numeric_string(&out, separators, decimal_separator, group_separator)
 }
 
 fn is_integer(value: f64) -> bool {
     value == (value as u128) as f64
 }
 
-fn trim_trailing_zeroes(s: &mut alloc::string::String) {
-    if !s.contains('.') {
-        return;
-    }
-
-    while s.ends_with('0') {
-        s.pop();
-    }
-
-    if s.ends_with('.') {
-        s.pop();
-    }
-}
-
-fn localize_numeric_string(
+fn write_localized_numeric_str(
+    f: &mut fmt::Formatter<'_>,
     input: &str,
     separators: bool,
     decimal_separator: char,
     group_separator: char,
-) -> alloc::string::String {
-    let mut split = input.split('.');
-    let int_part = split.next().unwrap_or("");
-    let frac_part = split.next();
-    let mut int_done = if separators {
-        add_separators(int_part, group_separator)
-    } else {
-        alloc::string::String::from(int_part)
+) -> fmt::Result {
+    // `input` is expected to be ASCII output from float formatting ("1234.5", "0", etc).
+    let (int_part, frac_part) = match input.split_once('.') {
+        Some((a, b)) => (a, Some(b)),
+        None => (input, None),
     };
 
+    if separators {
+        crate::common::fmt::write_grouped_ascii_digits(f, int_part, group_separator)?;
+    } else {
+        f.write_str(int_part)?;
+    }
+
     if let Some(frac) = frac_part {
-        int_done.push(decimal_separator);
-        int_done.push_str(frac);
+        f.write_char(decimal_separator)?;
+        f.write_str(frac)?;
     }
 
-    int_done
-}
-
-fn add_separators(int_part: &str, separator: char) -> alloc::string::String {
-    let mut out = alloc::string::String::new();
-    let chars: alloc::vec::Vec<char> = int_part.chars().rev().collect();
-
-    for (i, ch) in chars.iter().enumerate() {
-        if i != 0 && i % 3 == 0 {
-            out.push(separator);
-        }
-        out.push(*ch);
-    }
-
-    out.chars().rev().collect()
+    Ok(())
 }
