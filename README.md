@@ -278,22 +278,22 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 This produces:
 
-- `BENCHMARKS.md`
+- `BENCHMARKS.md` (capability matrix + comparisons + notes)
 - `assets/benchmarks/*_dark.svg`
 
 <details>
 <summary>Charts</summary>
 
 <p align="center">
-  <img alt="Bytes allocating benchmark" src="assets/benchmarks/bytes_allocating_dark.svg">
+  <img alt="Bytes comparison benchmarks" src="assets/benchmarks/bytes_comparison_dark.svg">
 </p>
 
 <p align="center">
-  <img alt="Bytes reused-buffer benchmark" src="assets/benchmarks/bytes_reused_buffer_dark.svg">
+  <img alt="Duration and relative-time benchmarks" src="assets/benchmarks/time_comparison_dark.svg">
 </p>
 
 <p align="center">
-  <img alt="Numbers allocating benchmark" src="assets/benchmarks/numbers_allocating_dark.svg">
+  <img alt="Numbers comparison benchmarks" src="assets/benchmarks/numbers_dark.svg">
 </p>
 
 </details>

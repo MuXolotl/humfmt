@@ -17,12 +17,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - additional property tests for suffix monotonicity and locale decimal-separator invariants
 - benchmark coverage for list conjunction override options path
 - standalone comparison benchmark harness under `tools/benchmarks/`
-- benchmark report generator (`report` binary) that produces `BENCHMARKS.md` and dark-theme SVG charts under `assets/benchmarks/`
+- comparison harness coverage for bytes, numbers, durations, and relative-time ("ago")
+- benchmark report generator (`report` binary) that produces `BENCHMARKS.md`
+- capability matrix in `BENCHMARKS.md` to make comparisons interpretable and fair
+- combined dark-theme SVG charts under `assets/benchmarks/` (bytes, time, numbers)
 - on-demand GitHub Actions workflow to run the comparison harness and upload artifacts
 
 ### Changed
 - Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)
-- README documentation now points to the local benchmark workflow
+- Benchmark charts were consolidated into fewer SVG files to keep the repository tidy
+- README documentation now points to the updated comparison harness workflow and charts
 - Small negative floating-point values that round to zero no longer render as `-0`
 
 ---

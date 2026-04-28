@@ -5,13 +5,23 @@ edition = "2021"
 publish = false
 
 [dependencies]
-humfmt = { path = "../..", default-features = true }
+humfmt = { path = "../..", default-features = true, features = ["russian"] }
 
+# Bytes comparison crates
 bytesize = "2.3"
 byte-unit = "5.2"
 prettier-bytes = "0.2"
+
+# Numbers comparison crates
 human_format = "1.2"
 
+# Duration comparison crates
+humantime = "2"
+
+# Relative-time comparison crates
+timeago = "0.6"
+
+# Report generator dependencies
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 walkdir = "2.5"
@@ -25,6 +35,14 @@ harness = false
 
 [[bench]]
 name = "compare_numbers"
+harness = false
+
+[[bench]]
+name = "compare_duration"
+harness = false
+
+[[bench]]
+name = "compare_ago"
 harness = false
 
 [[bin]]

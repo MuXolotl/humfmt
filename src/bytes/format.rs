@@ -33,6 +33,29 @@ const BINARY_LONG_PLURAL: [&str; 7] = [
     "exbibytes",
 ];
 
+// Powers-of-1000 table for decimal units, indexed by magnitude (0..=6).
+// Avoids repeated multiplication in the hot path.
+const DECIMAL_UNITS: [u128; 7] = [
+    1,
+    1_000,
+    1_000_000,
+    1_000_000_000,
+    1_000_000_000_000,
+    1_000_000_000_000_000,
+    1_000_000_000_000_000_000,
+];
+
+// Powers-of-1024 table for binary units, indexed by magnitude (0..=6).
+const BINARY_UNITS: [u128; 7] = [
+    1,
+    1_024,
+    1_048_576,
+    1_073_741_824,
+    1_099_511_627_776,
+    1_125_899_906_842_624,
+    1_152_921_504_606_846_976,
+];
+
 pub fn format_bytes(
     f: &mut fmt::Formatter<'_>,
     value: BytesValue,
@@ -44,17 +67,36 @@ pub fn format_bytes(
         BytesValue::UInt(v) => (false, v),
     };
 
-    let base: u128 = if options.binary_value() { 1024 } else { 1000 };
-    let max_idx = DECIMAL_SHORT.len() - 1;
+    let max_idx: usize = 6; // EB / EiB is the ceiling for both standards
     let precision = options.precision_value();
 
-    let (mut idx, mut unit) = compute_unit(magnitude, base, max_idx);
+    // O(1) magnitude detection using integer logarithms, replacing the old
+    // linear loop. Both ilog10 and ilog2 are stable since Rust 1.67.
+    let (mut idx, table) = if options.binary_value() {
+        let idx = if magnitude == 0 {
+            0
+        } else {
+            ((magnitude.ilog2() / 10) as usize).min(max_idx)
+        };
+        (idx, &BINARY_UNITS)
+    } else {
+        let idx = if magnitude == 0 {
+            0
+        } else {
+            ((magnitude.ilog10() / 3) as usize).min(max_idx)
+        };
+        (idx, &DECIMAL_UNITS)
+    };
+
+    let mut unit = table[idx];
     let mut parts = decimal_parts_rounded(magnitude, unit, precision);
 
-    // Rescale if rounding pushes us over the unit boundary (e.g. 999.95KB -> 1MB).
-    if parts.integer >= base && idx < max_idx {
+    // If rounding pushes the integer part to the next boundary (e.g. 999.95KB -> 1MB),
+    // rescale once. A single rescale is always sufficient.
+    let boundary = if options.binary_value() { 1_024 } else { 1_000 };
+    if parts.integer >= boundary && idx < max_idx {
         idx += 1;
-        unit *= base;
+        unit = table[idx];
         parts = decimal_parts_rounded(magnitude, unit, precision);
     }
 
@@ -62,8 +104,6 @@ pub fn format_bytes(
         f.write_str("-")?;
     }
 
-    // Bytes formatting is not locale-aware, and historically this crate did not add grouping
-    // separators, so we keep it that way for determinism.
     write_u128(f, parts.integer, false, ',')?;
 
     if parts.frac_len != 0 {
@@ -80,20 +120,7 @@ pub fn format_bytes(
     }
 }
 
-fn compute_unit(magnitude: u128, base: u128, max_idx: usize) -> (usize, u128) {
-    let mut idx = 0usize;
-    let mut unit = 1u128;
-    let mut tmp = magnitude;
-
-    while tmp >= base && idx < max_idx {
-        tmp /= base;
-        idx += 1;
-        unit *= base;
-    }
-
-    (idx, unit)
-}
-
+#[inline]
 fn short_label(binary: bool, idx: usize) -> &'static str {
     if binary {
         BINARY_SHORT[idx]
@@ -102,6 +129,7 @@ fn short_label(binary: bool, idx: usize) -> &'static str {
     }
 }
 
+#[inline]
 fn long_label(binary: bool, idx: usize, singular: bool) -> &'static str {
     match (binary, singular) {
         (false, true) => DECIMAL_LONG_SINGULAR[idx],
