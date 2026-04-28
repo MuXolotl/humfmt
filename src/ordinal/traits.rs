@@ -6,7 +6,12 @@ pub enum OrdinalValue {
     UInt(u128),
 }
 
+/// Trait for inputs accepted by [`crate::ordinal`] / [`crate::ordinal_with`].
+///
+/// Implemented for all integer primitives (`i*`, `u*`, `isize`, `usize`).
+/// This trait is sealed and cannot be implemented outside this crate.
 pub trait OrdinalLike: Sealed + Copy {
+    /// Converts the input value into the internal ordinal representation.
     fn into_ordinal(self) -> OrdinalValue;
 }
 

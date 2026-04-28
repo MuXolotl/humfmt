@@ -1,11 +1,24 @@
 use core::fmt;
 
+/// Error returned when a duration-like value is negative.
+///
+/// This is primarily used by optional ecosystem adapters (`chrono` / `time`)
+/// when converting into `core::time::Duration` (which is always non-negative).
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct NegativeDurationError;
 
+/// Conversion error for duration adapters.
+///
+/// This error provides more explicit semantics than [`NegativeDurationError`]
+/// by distinguishing between:
+///
+/// - negative inputs
+/// - values that cannot be represented as `core::time::Duration`
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DurationConversionError {
+    /// The provided duration is negative.
     NegativeDuration,
+    /// The provided duration is out of the supported range.
     OutOfRange,
 }
 

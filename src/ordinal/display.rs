@@ -4,6 +4,9 @@ use crate::locale::{English, Locale};
 
 use super::traits::OrdinalValue;
 
+/// `Display` wrapper for ordinal formatting (e.g. `"21st"`, `"21."`, `"21-й"`).
+///
+/// Instances of this type are created via [`crate::ordinal`] and [`crate::ordinal_with`].
 #[derive(Copy, Clone, Debug)]
 pub struct OrdinalDisplay<L: Locale = English> {
     value: OrdinalValue,

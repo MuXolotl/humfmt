@@ -1,5 +1,9 @@
 //! Common imports for ergonomic `humfmt` usage.
 //!
+//! The prelude is intentionally small and only re-exports extension traits.
+//! This lets you opt into the ergonomic `.human_*()` methods without pulling
+//! in lots of names.
+//!
 //! # Examples
 //!
 //! ```rust

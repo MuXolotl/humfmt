@@ -4,6 +4,17 @@ use crate::locale::{English, Locale};
 
 use super::{format::format_list, ListOptions};
 
+/// `Display` wrapper for natural-language list formatting.
+///
+/// Instances of this type are created via [`crate::list`] and [`crate::list_with`].
+///
+/// Example:
+///
+/// ```rust
+/// use humfmt::list;
+///
+/// assert_eq!(list(&["red", "green", "blue"]).to_string(), "red, green, and blue");
+/// ```
 #[derive(Copy, Clone)]
 pub struct ListDisplay<'a, T, L: Locale = English> {
     items: &'a [T],

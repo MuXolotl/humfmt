@@ -18,13 +18,14 @@
 - [x] generated benchmark report + charts (BENCHMARKS.md + assets/benchmarks)
 - [x] publish benchmark methodology and results comparison (reproducible and semantics-aligned)
 - [x] internal maintainability cleanup (centralized sealing + O(1) compact integer scaling)
+- [x] public API documentation push + compile-time docs enforcement (`deny(missing_docs)`)
 
 ## Next Up
 - [ ] Stable public API snapshot for the formatter surface
-- [ ] docs.rs deep-dive examples and cookbook-style guides
+- [ ] docs.rs cookbook-style guides and edge-case tables (kept concise, low-noise)
 - [ ] more locale packs and locale ergonomics
 - [ ] semantics-aligned comparison expansions (more crates, more scenarios, clearer limitations)
 
-## Longer-Term Ideas
+## Longer-Term Ideas (Optional)
 - [ ] optional ICU-backed integrations for high-fidelity locale behavior
 - [ ] additional formatters (percentages, ratios, rates)

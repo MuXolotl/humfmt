@@ -21,6 +21,13 @@ pub(crate) const LONG_SUFFIXES: [&str; 12] = [
     " decillion",
 ];
 
+/// Built-in English locale pack (default).
+///
+/// This locale uses:
+/// - decimal separator `.`
+/// - grouping separator `,`
+/// - list conjunction `"and"`
+/// - serial comma enabled by default
 #[derive(Copy, Clone, Debug, Default)]
 pub struct English;
 

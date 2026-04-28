@@ -6,7 +6,12 @@ pub enum BytesValue {
     UInt(u128),
 }
 
+/// Trait for inputs accepted by [`crate::bytes`] / [`crate::bytes_with`].
+///
+/// Implemented for all integer primitives (`i*`, `u*`, `isize`, `usize`).
+/// This trait is sealed and cannot be implemented outside this crate.
 pub trait BytesLike: Sealed + Copy {
+    /// Converts the input value into the internal byte representation.
     fn into_bytes(self) -> BytesValue;
 }
 

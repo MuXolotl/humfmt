@@ -3,6 +3,14 @@ use core::fmt;
 use crate::duration::{duration_with, DurationLike, DurationOptions};
 use crate::locale::{English, Locale};
 
+/// `Display` wrapper for relative time output (e.g. `"1m 30s ago"`).
+///
+/// Instances of this type are created via [`crate::ago`] and [`crate::ago_with`].
+/// It builds on the duration formatter and appends the locale-specific "ago"
+/// word.
+///
+/// This type does not allocate on its own; allocation only happens if the caller
+/// requests an owned `String` via `.to_string()` / `format!(...)`.
 #[derive(Copy, Clone, Debug)]
 pub struct AgoDisplay<L: Locale = English> {
     value: core::time::Duration,

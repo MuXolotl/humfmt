@@ -1,69 +1,7 @@
-//! # humfmt
-//!
-//! Ergonomic human-readable formatting toolkit for Rust.
-//!
-//! `humfmt` provides lightweight, fluent utilities for rendering machine values
-//! into readable strings designed for humans.
-//!
-//! ## Quick examples
-//!
-//! ```rust
-//! use humfmt::Humanize;
-//!
-//! assert_eq!(humfmt::bytes(1536).to_string(), "1.5KB");
-//! assert_eq!(humfmt::number(15320).to_string(), "15.3K");
-//! assert_eq!(1_500_000.human_number().to_string(), "1.5M");
-//! assert_eq!(humfmt::ordinal(21).to_string(), "21st");
-//! assert_eq!(humfmt::duration(core::time::Duration::from_secs(3661)).to_string(), "1h 1m");
-//! assert_eq!(humfmt::ago(core::time::Duration::from_secs(90)).to_string(), "1m 30s ago");
-//! assert_eq!(humfmt::list(&["red", "green", "blue"]).to_string(), "red, green, and blue");
-//!
-//! #[cfg(feature = "russian")]
-//! assert_eq!(
-//!     humfmt::duration_with(
-//!         core::time::Duration::from_secs(3665),
-//!         humfmt::DurationOptions::new()
-//!             .locale(humfmt::locale::Russian)
-//!             .long_units()
-//!             .max_units(3),
-//!     )
-//!     .to_string(),
-//!     "1 час 1 минута 5 секунд"
-//! );
-//! ```
-//!
-//! ## Builder customization
-//!
-//! ```rust
-//! use humfmt::{Humanize, NumberOptions};
-//!
-//! let out = 15_320.human_number_with(
-//!     NumberOptions::new()
-//!         .precision(2)
-//!         .long_units()
-//! );
-//!
-//! assert_eq!(out.to_string(), "15.32 thousand");
-//! ```
-//!
-//! ## Current modules
-//!
-//! - byte-size formatting
-//! - compact number formatting
-//! - ordinal formatting
-//! - duration formatting
-//! - relative time formatting
-//! - natural-language list formatting
-//! - configurable precision
-//! - locale-aware numbers, ordinals, durations, and relative time
-//! - optional Russian and Polish locale packs
-//! - custom locale builder
-//! - optional chrono/time integration
-//!
-//! More humanizers are planned.
-
+#![doc = include_str!("../docs/CRATE.md")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![deny(missing_docs)]
 
 pub mod ago;
 pub mod bytes;

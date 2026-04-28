@@ -6,13 +6,41 @@ use super::polish;
 #[cfg(feature = "russian")]
 use super::russian;
 
+/// Function pointer type used to resolve compact suffixes.
+///
+/// This hook is value-aware and can be used for locale-specific inflection rules.
+///
+/// Arguments:
+/// - `idx`: suffix index (0 = none, 1 = thousand, 2 = million, ...).
+/// - `scaled`: the rendered scaled value (e.g. `1.0`, `2.5`).
+/// - `long`: whether long-form labels are requested.
+///
+/// Returned strings must be `'static` and are written directly into the output.
 pub type CompactSuffixFn = fn(idx: usize, scaled: f64, long: bool) -> &'static str;
+
+/// Function pointer type used to resolve duration unit labels.
+///
+/// Arguments:
+/// - `unit`: unit kind.
+/// - `count`: quantity of units.
+/// - `long`: long-form vs short-form labels.
+///
+/// Returned strings must be `'static` and are written directly into the output.
 pub type DurationUnitFn = fn(unit: DurationUnit, count: u128, long: bool) -> &'static str;
+
+/// Function pointer type used to resolve ordinal suffixes.
+///
+/// Returned strings must be `'static` and are written directly into the output.
 pub type OrdinalSuffixFn = fn(n: u128) -> &'static str;
 
 const COMPACT_SUFFIX_CAPACITY: usize = 12;
 
 /// Builder-style locale for ad hoc compact-number and ordinal customization.
+///
+/// `CustomLocale` is designed for:
+/// - minimal allocation (returns `'static` labels),
+/// - cheap copying (the type is `Copy`),
+/// - easy customization without implementing [`Locale`] manually.
 ///
 /// Suffix strings are rendered as-is. Long-form suffixes should include any
 /// leading whitespace you want in the final output.

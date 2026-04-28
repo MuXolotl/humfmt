@@ -32,6 +32,16 @@ pub(crate) const LONG_SUFFIXES: [&str; 12] = [
     " дециллионов",
 ];
 
+/// Built-in Russian locale pack.
+///
+/// Enabled with the `russian` feature flag.
+///
+/// This locale uses:
+/// - decimal separator `,`
+/// - grouping separator space (`' '`)
+/// - list conjunction `"и"`
+/// - serial comma disabled by default
+/// - relative-time word `"назад"`
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Russian;
 
@@ -78,8 +88,8 @@ impl super::Locale for Russian {
         duration_unit(unit, count, long)
     }
 
-    fn ordinal_suffix(&self, _n: u128) -> &'static str {
-        ordinal_suffix(0)
+    fn ordinal_suffix(&self, n: u128) -> &'static str {
+        ordinal_suffix(n)
     }
 }
 

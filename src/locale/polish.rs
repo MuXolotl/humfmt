@@ -21,6 +21,16 @@ pub(crate) const LONG_SUFFIXES: [&str; 12] = [
     "",
 ];
 
+/// Built-in Polish locale pack.
+///
+/// Enabled with the `polish` feature flag.
+///
+/// This locale uses:
+/// - decimal separator `,`
+/// - grouping separator space (`' '`)
+/// - list conjunction `"i"`
+/// - serial comma disabled by default
+/// - relative-time word `"temu"`
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Polish;
 

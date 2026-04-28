@@ -1,6 +1,14 @@
 use crate::common::{numeric::NumericValue, sealed::Sealed};
 
+/// Trait for inputs accepted by [`crate::number`] / [`crate::number_with`].
+///
+/// Implemented for:
+/// - all integer primitives (`i*`, `u*`, `isize`, `usize`)
+/// - floats (`f32`, `f64`)
+///
+/// This trait is sealed and cannot be implemented outside this crate.
 pub trait NumberLike: Sealed + Copy {
+    /// Converts the input value into the internal numeric representation.
     fn into_numeric(self) -> NumericValue;
 }
 

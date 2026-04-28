@@ -8,6 +8,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+---
+
+## [0.3.0] - 2026-04-28
+
 ### Added
 - Criterion-based benchmark suite covering the core formatter paths
 - Proptest-based invariant coverage for number, bytes, duration, relative-time, and list formatting
@@ -15,13 +19,14 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - locale-aware list item separator hook via `Locale::list_separator()` and `CustomLocale::list_separator(...)`
 - `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)` for explicit list-style overrides
 - additional property tests for suffix monotonicity and locale decimal-separator invariants
-- benchmark coverage for list conjunction override options path
 - standalone comparison benchmark harness under `tools/benchmarks/`
 - comparison harness coverage for bytes, numbers, durations, and relative-time ("ago")
 - benchmark report generator (`report` binary) that produces `BENCHMARKS.md`
 - capability matrix in `BENCHMARKS.md` to make comparisons interpretable and fair
 - combined dark-theme SVG charts under `assets/benchmarks/` (bytes, time, numbers)
 - on-demand GitHub Actions workflow to run the comparison harness and upload artifacts
+- extensive rustdoc coverage across the public API (options, locale surface, integrations, and display wrappers)
+- compile-time API documentation enforcement via `#![deny(missing_docs)]`
 
 ### Changed
 - Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)
