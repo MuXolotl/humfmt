@@ -9,6 +9,21 @@ use crate::common::numeric::NumericValue;
 
 use super::NumberOptions;
 
+const POW1000: [u128; 12] = [
+    1,
+    1_000,
+    1_000_000,
+    1_000_000_000,
+    1_000_000_000_000,
+    1_000_000_000_000_000,
+    1_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000_000_000_000_000,
+];
+
 pub fn format_number<L: crate::locale::Locale>(
     f: &mut fmt::Formatter<'_>,
     value: NumericValue,
@@ -52,16 +67,15 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
 ) -> fmt::Result {
     let locale = options.locale_ref();
     let precision = options.precision_value();
-    let max_idx = locale.max_compact_suffix_index();
+    let max_idx = locale.max_compact_suffix_index().min(POW1000.len() - 1);
 
-    let (mut idx, mut unit) = compute_compact_unit(magnitude, max_idx);
+    let (mut idx, unit) = compute_compact_unit(magnitude, max_idx);
     let mut parts = decimal_parts_rounded(magnitude, unit, precision);
 
     // Rescale if rounding pushes us over the compact boundary (e.g. 999.95K -> 1M).
     if parts.integer >= 1_000 && idx < max_idx {
         idx += 1;
-        unit *= 1_000;
-        parts = decimal_parts_rounded(magnitude, unit, precision);
+        parts = decimal_parts_rounded(magnitude, POW1000[idx], precision);
     }
 
     if negative {
@@ -86,18 +100,17 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
     f.write_str(suffix)
 }
 
+#[inline]
 fn compute_compact_unit(magnitude: u128, max_idx: usize) -> (usize, u128) {
-    let mut idx = 0usize;
-    let mut unit = 1u128;
-    let mut tmp = magnitude;
-
-    while tmp >= 1_000 && idx < max_idx {
-        tmp /= 1_000;
-        idx += 1;
-        unit *= 1_000;
+    if magnitude < 1_000 || max_idx == 0 {
+        return (0, 1);
     }
 
-    (idx, unit)
+    // O(1) magnitude detection using base-10 integer logarithms.
+    // Note: `ilog10` is stable and fast, but is undefined for zero. We already
+    // handled magnitude < 1000, which includes zero.
+    let idx = ((magnitude.ilog10() / 3) as usize).min(max_idx);
+    (idx, POW1000[idx])
 }
 
 fn format_float<L: crate::locale::Locale>(

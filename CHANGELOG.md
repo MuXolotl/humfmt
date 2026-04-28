@@ -25,6 +25,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Changed
 - Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)
+- Compact integer number scaling now uses O(1) unit selection (`ilog10` + power-of-1000 lookup) instead of a division loop
+- Primitive `Sealed` implementations were centralized in `common::sealed` to remove hidden cross-module coupling
+- `StackString::as_str()` is now infallible based on an internal UTF-8 invariant
 - Benchmark charts were consolidated into fewer SVG files to keep the repository tidy
 - README documentation now points to the updated comparison harness workflow and charts
 - Small negative floating-point values that round to zero no longer render as `-0`

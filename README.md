@@ -57,6 +57,7 @@ fn main() {
 - The formatters implement `Display` and write directly to the provided `fmt::Formatter`.
 - The formatting path avoids building intermediate heap strings.
 - Allocation is an explicit choice of the caller (e.g. calling `.to_string()` allocates because it must own a `String`).
+- Integer compact-number scaling uses O(1) unit selection (log10-based) rather than repeated division.
 
 In other words: formatting itself is meant to be lightweight; if you need owned output,
 you can allocate it explicitly.
@@ -240,6 +241,12 @@ For `no_std` targets:
 [dependencies]
 humfmt = { version = "0.2", default-features = false }
 ```
+
+---
+
+## MSRV
+
+`humfmt` targets Rust **1.67** (see `rust-version` in `Cargo.toml`).
 
 ---
 

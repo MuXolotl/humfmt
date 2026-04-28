@@ -18,9 +18,12 @@ impl<const N: usize> StackString<N> {
         }
     }
 
+    #[inline]
     pub(crate) fn as_str(&self) -> &str {
-        // The buffer only ever receives valid UTF-8 via `fmt::Write` (`&str` input).
-        core::str::from_utf8(&self.buf[..self.len]).unwrap_or("")
+        // Safety: the buffer is only written via `fmt::Write::write_str`, which
+        // only accepts valid UTF-8 `&str` input. Therefore the resulting bytes
+        // are always valid UTF-8.
+        unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
     }
 
     fn truncate(&mut self, new_len: usize) {

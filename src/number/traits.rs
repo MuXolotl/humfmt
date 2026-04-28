@@ -5,10 +5,8 @@ pub trait NumberLike: Sealed + Copy {
 }
 
 macro_rules! impl_signed {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
-            impl Sealed for $t {}
-
             impl NumberLike for $t {
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::Int(self as i128)
@@ -19,10 +17,8 @@ macro_rules! impl_signed {
 }
 
 macro_rules! impl_unsigned {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
-            impl Sealed for $t {}
-
             impl NumberLike for $t {
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::UInt(self as u128)
@@ -33,10 +29,8 @@ macro_rules! impl_unsigned {
 }
 
 macro_rules! impl_float {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
-            impl Sealed for $t {}
-
             impl NumberLike for $t {
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::Float(self as f64)
