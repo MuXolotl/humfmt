@@ -52,19 +52,19 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Implementation | Median per-iteration | time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **301 ns** | **38 ns** | 0.53x |
-| humfmt  i8-u128, any precision | 574 ns | 72 ns | 1.00x |
-| bytesize  u64 only | 956 ns | 120 ns | 1.67x |
-| byte-unit  u64/u128 | 4.26 us | 532 ns | 7.42x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **357 ns** | **45 ns** | 0.59x |
+| humfmt  i8-u128, any precision | 605 ns | 76 ns | 1.00x |
+| bytesize  u64 only | 1.02 us | 127 ns | 1.68x |
+| byte-unit  u64/u128 | 4.80 us | 600 ns | 7.94x |
 
 ## Bytes — reused buffer (`write!` into `String`), u64 inputs
 
 | Implementation | Median per-iteration | time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **180 ns** | **23 ns** | 0.37x |
-| humfmt  i8-u128, any precision | 487 ns | 61 ns | 1.00x |
-| bytesize  u64 only | 880 ns | 110 ns | 1.81x |
-| byte-unit  u64/u128 | 3.99 us | 499 ns | 8.20x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **186 ns** | **23 ns** | 0.37x |
+| humfmt  i8-u128, any precision | 503 ns | 63 ns | 1.00x |
+| bytesize  u64 only | 918 ns | 115 ns | 1.83x |
+| byte-unit  u64/u128 | 4.61 us | 576 ns | 9.16x |
 
 ## Bytes — extended range (u128 > u64::MAX) — humfmt only
 
@@ -72,7 +72,7 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/u128_extended | 664 ns | 166 ns |
+| humfmt/u128_extended | 662 ns | 166 ns |
 
 ## Bytes — negative values (i64) — humfmt only
 
@@ -80,7 +80,7 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/negative_i64 | 267 ns | 67 ns |
+| humfmt/negative_i64 | 281 ns | 70 ns |
 
 ## Numbers — allocating (`to_string`)
 
@@ -88,8 +88,8 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Implementation | Median per-iteration | time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  i8-u128 + f32/f64, locale-aware | **2.09 us** | **209 ns** | 1.00x |
-| human_format  f64 only, EN only, returns String | 2.20 us | 220 ns | 1.05x |
+| humfmt  i8-u128 + f32/f64, locale-aware | **2.12 us** | **212 ns** | 1.00x |
+| human_format  f64 only, EN only, returns String | 2.22 us | 222 ns | 1.05x |
 
 ## Duration formatting — allocating
 
@@ -97,10 +97,10 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Implementation | Median per-iteration | time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (default) | **714 ns** | **89 ns** | 1.00x |
-| humantime  EN only, all non-zero units | 731 ns | 91 ns | 1.02x |
-| humfmt  short, 3 units | 856 ns | 107 ns | 1.20x |
-| humfmt  long labels, 2 units | 972 ns | 121 ns | 1.36x |
+| humfmt  short, 2 units (default) | **749 ns** | **94 ns** | 1.00x |
+| humantime  EN only, all non-zero units | 824 ns | 103 ns | 1.10x |
+| humfmt  short, 3 units | 908 ns | 114 ns | 1.21x |
+| humfmt  long labels, 2 units | 998 ns | 125 ns | 1.33x |
 
 ## Relative time — allocating
 
@@ -108,9 +108,9 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 | Implementation | Median per-iteration | time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (explicit) | **785 ns** | **98 ns** | 1.00x |
-| humfmt  short, 2 units (default) | 791 ns | 99 ns | 1.01x |
-| timeago  EN, 1 unit (default), returns String | 947 ns | 118 ns | 1.21x |
-| humfmt  long, 2 units | 1.00 us | 125 ns | 1.27x |
-| timeago  EN, 2 units, returns String | 1.54 us | 192 ns | 1.96x |
+| humfmt  short, 2 units (default) | **861 ns** | **108 ns** | 1.00x |
+| humfmt  short, 2 units (explicit) | 861 ns | 108 ns | 1.00x |
+| timeago  EN, 1 unit (default), returns String | 1.04 us | 130 ns | 1.21x |
+| humfmt  long, 2 units | 1.12 us | 140 ns | 1.30x |
+| timeago  EN, 2 units, returns String | 1.58 us | 198 ns | 1.84x |
 
