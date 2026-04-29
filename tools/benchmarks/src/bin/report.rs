@@ -4,6 +4,9 @@
 //! (capability matrix + sorted, bold-best tables) and SVG chart files under
 //! `assets/benchmarks/`.
 //!
+//! This report also includes small output example tables so semantic differences
+//! (SI vs IEC, spacing, fixed decimals vs trimmed zeros) are explicit.
+//!
 //! SVG design:
 //!   - Horizontal bar chart, fastest (lowest ns) at the top.
 //!   - X-axis with 5 tick marks (0 / 25 / 50 / 75 / 100 % of max).
@@ -75,7 +78,7 @@ fn main() -> io::Result<()> {
                 items: bytes_alloc_items(),
             },
             SvgSection {
-                title: "Bytes — allocating (aligned: IEC + space) — lower is better",
+                title: "Bytes — allocating (aligned: IEC + space + precision=2) — lower is better",
                 items: bytes_alloc_aligned_items(),
             },
             SvgSection {
@@ -83,7 +86,7 @@ fn main() -> io::Result<()> {
                 items: bytes_reuse_items(),
             },
             SvgSection {
-                title: "Bytes — reused buffer (aligned: IEC + space) — lower is better",
+                title: "Bytes — reused buffer (aligned: IEC + space + precision=2) — lower is better",
                 items: bytes_reuse_aligned_items(),
             },
         ],
@@ -126,24 +129,24 @@ fn main() -> io::Result<()> {
 
 fn bytes_alloc_items() -> Vec<SvgItem> {
     vec![
+        SvgItem::other(
+            "prettier-bytes  u64 only, fixed 2dp, no negatives",
+            BenchKey::new("bytes/allocating", "prettier_bytes/u64/to_string"),
+            BYTES_U64_PER_ITER,
+        ),
         SvgItem::humfmt(
             "humfmt  i8-u128, any precision",
             BenchKey::new("bytes/allocating", "humfmt/u64/to_string"),
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
-            "bytesize  u64 only",
+            "bytesize  u64 only (SI), default 1dp, space",
             BenchKey::new("bytes/allocating", "bytesize/u64/display_si/to_string"),
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
-            "byte-unit  u64/u128",
+            "byte-unit  u64 (auto unit), format! uses String",
             BenchKey::new("bytes/allocating", "byte_unit/u64/alt_format/#.2"),
-            BYTES_U64_PER_ITER,
-        ),
-        SvgItem::other(
-            "prettier-bytes  u64 only, fixed 2dp, no negatives",
-            BenchKey::new("bytes/allocating", "prettier_bytes/u64/to_string"),
             BYTES_U64_PER_ITER,
         ),
     ]
@@ -152,7 +155,7 @@ fn bytes_alloc_items() -> Vec<SvgItem> {
 fn bytes_alloc_aligned_items() -> Vec<SvgItem> {
     vec![
         SvgItem::humfmt(
-            "humfmt  u64, IEC, 2dp, space",
+            "humfmt  u64, IEC, precision=2, space (trims zeros)",
             BenchKey::new("bytes/allocating_aligned", "humfmt/u64/iec_space/to_string"),
             BYTES_U64_ALIGNED_PER_ITER,
         ),
@@ -161,30 +164,45 @@ fn bytes_alloc_aligned_items() -> Vec<SvgItem> {
             BenchKey::new("bytes/allocating_aligned", "indicatif/u64/HumanBytes/to_string"),
             BYTES_U64_ALIGNED_PER_ITER,
         ),
+        SvgItem::other(
+            "bytesize  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/allocating_aligned", "bytesize/u64/iec_precision2/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "byte-unit  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/allocating_aligned", "byte_unit/u64/binary_precision2/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "human-repr  u64, IEC+space (feature), decimals are algorithmic",
+            BenchKey::new("bytes/allocating_aligned", "human_repr/u64/iec_space/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
     ]
 }
 
 fn bytes_reuse_items() -> Vec<SvgItem> {
     vec![
+        SvgItem::other(
+            "prettier-bytes  u64 only, fixed 2dp, no negatives",
+            BenchKey::new("bytes/reused_buffer", "prettier_bytes/u64/write").with_param("32"),
+            BYTES_U64_PER_ITER,
+        ),
         SvgItem::humfmt(
             "humfmt  i8-u128, any precision",
             BenchKey::new("bytes/reused_buffer", "humfmt/u64/write").with_param("32"),
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
-            "bytesize  u64 only",
+            "bytesize  u64 only (SI), default 1dp, space",
             BenchKey::new("bytes/reused_buffer", "bytesize/u64/write_display_si").with_param("32"),
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
-            "byte-unit  u64/u128",
+            "byte-unit  u64 (auto unit), write! + Display",
             BenchKey::new("bytes/reused_buffer", "byte_unit/u64/write_alt_format/#.2")
                 .with_param("32"),
-            BYTES_U64_PER_ITER,
-        ),
-        SvgItem::other(
-            "prettier-bytes  u64 only, fixed 2dp, no negatives",
-            BenchKey::new("bytes/reused_buffer", "prettier_bytes/u64/write").with_param("32"),
             BYTES_U64_PER_ITER,
         ),
     ]
@@ -193,7 +211,7 @@ fn bytes_reuse_items() -> Vec<SvgItem> {
 fn bytes_reuse_aligned_items() -> Vec<SvgItem> {
     vec![
         SvgItem::humfmt(
-            "humfmt  u64, IEC, 2dp, space",
+            "humfmt  u64, IEC, precision=2, space (trims zeros)",
             BenchKey::new("bytes/reused_buffer_aligned", "humfmt/u64/iec_space/write")
                 .with_param("32"),
             BYTES_U64_ALIGNED_PER_ITER,
@@ -201,6 +219,24 @@ fn bytes_reuse_aligned_items() -> Vec<SvgItem> {
         SvgItem::other(
             "indicatif HumanBytes  u64 only, IEC, fixed 2dp, space",
             BenchKey::new("bytes/reused_buffer_aligned", "indicatif/u64/HumanBytes/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "bytesize  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/reused_buffer_aligned", "bytesize/u64/iec_precision2/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "byte-unit  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/reused_buffer_aligned", "byte_unit/u64/binary_precision2/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "human-repr  u64, IEC+space (feature), decimals are algorithmic",
+            BenchKey::new("bytes/reused_buffer_aligned", "human_repr/u64/iec_space/write")
                 .with_param("32"),
             BYTES_U64_ALIGNED_PER_ITER,
         ),
@@ -308,8 +344,15 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         "- Some crates return an owned `String` by design; `humfmt` formatters implement `Display`.\n",
     );
     out.push_str(
-        "- Some groups are explicitly \"aligned\" to match a common output style (IEC + space, etc.).\n\n",
+        "- Some groups are explicitly \"aligned\" to match a common output style (IEC + space, etc.).\n",
     );
+    out.push_str(
+        "- Precision semantics differ: some crates keep fixed digits (e.g. `1.50`), while humfmt trims trailing zeros by design.\n\n",
+    );
+    out.push_str("---\n\n");
+
+    push_bytes_semantics_examples(&mut out);
+
     out.push_str("---\n\n");
 
     // Bytes (u64 comparison)
@@ -326,9 +369,9 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — allocating (`to_string`) — aligned (IEC + space), u64 inputs",
+        "Bytes — allocating (`to_string`) — aligned (IEC + space + precision=2), u64 inputs",
         Some(
-            "> This group aligns formatting style (IEC units + space + 2dp) to compare against indicatif::HumanBytes.",
+            "> This group aligns unit system and spacing. Decimal digit policy can still differ (fixed digits vs trimmed zeros).",
         ),
         "time per value",
         &bytes_alloc_aligned_items(),
@@ -346,7 +389,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space), u64 inputs",
+        "Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space + precision=2), u64 inputs",
         None,
         "time per value",
         &bytes_reuse_aligned_items(),
@@ -431,6 +474,87 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
     }
 
     out
+}
+
+fn push_bytes_semantics_examples(out: &mut String) {
+    use byte_unit::{Byte, UnitType};
+    use bytesize::ByteSize;
+    use human_repr::HumanCount;
+    use indicatif::HumanBytes;
+    use prettier_bytes::{ByteFormatter, Standard, Unit};
+
+    out.push_str("## Byte formatting semantics (examples)\n\n");
+    out.push_str(
+        "These tables show representative outputs for a few byte values using the same configurations as the benchmarks.\n\n",
+    );
+
+    // --- Default-style examples (close to humfmt defaults) ---
+
+    let prettier = ByteFormatter::new()
+        .standard(Standard::SI)
+        .unit(Unit::Bytes)
+        .space(false);
+
+    let default_values: [u64; 2] = [1_536, 9_876_543_210];
+
+    out.push_str("### Default-style configuration\n\n");
+    out.push_str("| Bytes | humfmt (SI, precision=2) | bytesize (SI, default) | byte-unit (`{:#.2}`) | prettier-bytes |\n");
+    out.push_str("|---:|---|---|---|---|\n");
+
+    for &v in &default_values {
+        let hum = humfmt::bytes_with(v, humfmt::BytesOptions::new().precision(2)).to_string();
+        let bsz = ByteSize::b(v).display().si().to_string();
+        let bu = format!("{:#.2}", Byte::from_u64(v));
+        let pb = prettier.format(v).to_string();
+
+        out.push_str(&format!(
+            "| {v} | `{}` | `{}` | `{}` | `{}` |\n",
+            escape_md(&hum),
+            escape_md(&bsz),
+            escape_md(&bu),
+            escape_md(&pb),
+        ));
+    }
+
+    out.push('\n');
+
+    // --- Aligned examples (IEC + space + precision=2 where supported) ---
+
+    let aligned_values: [u64; 3] = [1_536, 1_500, 1_514_000_000];
+
+    out.push_str("### Aligned configuration (IEC + space + precision=2)\n\n");
+    out.push_str("| Bytes | humfmt (IEC, precision=2, trims) | indicatif HumanBytes | bytesize (`iec`, `:.2`) | byte-unit (binary, `:.2`) | human-repr (iec+space) |\n");
+    out.push_str("|---:|---|---|---|---|---|\n");
+
+    for &v in &aligned_values {
+        let hum = humfmt::bytes_with(
+            v,
+            humfmt::BytesOptions::new().binary().precision(2).space(true),
+        )
+        .to_string();
+        let ind = HumanBytes(v).to_string();
+        let bsz = format!("{:.2}", ByteSize::b(v).display().iec());
+        let bu = format!(
+            "{:.2}",
+            Byte::from_u64(v).get_appropriate_unit(UnitType::Binary)
+        );
+        let hr = v.human_count_bytes().to_string();
+
+        out.push_str(&format!(
+            "| {v} | `{}` | `{}` | `{}` | `{}` | `{}` |\n",
+            escape_md(&hum),
+            escape_md(&ind),
+            escape_md(&bsz),
+            escape_md(&bu),
+            escape_md(&hr),
+        ));
+    }
+
+    out.push('\n');
+}
+
+fn escape_md(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('`', "\\`")
 }
 
 /// Appends one benchmark group table to `out`, sorted fastest-first.
@@ -537,25 +661,25 @@ fn format_md_row_single(
 // ---------------------------------------------------------------------------
 
 const CAPABILITY_MATRIX: &str = "\
-| Feature | humfmt | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | humantime | timeago | human_format |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Byte sizes | yes | yes | yes | yes | yes | no | no | no |
-| Compact numbers | yes | no | no | no | no | no | no | yes |
-| Duration formatting | yes | no | no | no | no | yes | yes | no |
-| Relative time (ago) | yes | no | no | no | no | no | yes | no |
-| Ordinals | yes | no | no | no | no | no | no | no |
-| List formatting | yes | no | no | no | no | no | no | no |
-| Signed input (negatives) | yes | no | no | no | no | — | — | no |
-| u128 / i128 range | yes | no | partial | no | no | — | — | no |
-| Float input | yes | no | no | no | no | — | — | yes |
-| Long-form labels | yes | no | yes | no | no | yes | yes | yes |
-| Max-units cap | yes | — | — | — | — | no | yes | — |
-| Binary (IEC) units | yes | yes | yes | yes | yes | — | — | — |
-| Configurable precision | yes | no | yes | no | no | — | — | yes |
-| Locale-aware | yes | no | no | no | no | no | yes | no |
-| Custom locale builder | yes | no | no | no | no | no | no | no |
-| no_std compatible | yes | no | no | yes | no | no | no | no |
-| Zero-alloc Display | yes | yes | no | yes | yes | yes | no | no |";
+| Feature | humfmt | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Byte sizes | yes | yes | yes | yes | yes | yes | no | no | no |
+| Compact numbers | yes | no | no | no | no | yes | no | no | yes |
+| Duration formatting | yes | no | no | no | no | yes | yes | yes | no |
+| Relative time (ago) | yes | no | no | no | no | no | no | yes | no |
+| Ordinals | yes | no | no | no | no | no | no | no | no |
+| List formatting | yes | no | no | no | no | no | no | no | no |
+| Signed input (negatives) | yes | no | no | no | no | yes | — | — | no |
+| u128 / i128 range | yes | no | partial | no | no | yes | — | — | no |
+| Float input | yes | no | no | no | no | yes | — | — | yes |
+| Long-form labels | yes | no | yes | no | no | no | yes | yes | yes |
+| Max-units cap | yes | — | — | — | — | — | no | yes | — |
+| Binary (IEC) units | yes | yes | yes | yes | yes | yes | — | — | — |
+| Configurable precision | yes | no | yes | no | no | no | — | — | yes |
+| Locale-aware | yes | no | no | no | no | no | no | yes | no |
+| Custom locale builder | yes | no | no | no | no | no | no | no | no |
+| no_std compatible | yes | no | no | yes | no | no | no | no | no |
+| Zero-alloc Display | yes | yes | no | yes | yes | yes | yes | no | no |";
 
 // ---------------------------------------------------------------------------
 // BenchKey

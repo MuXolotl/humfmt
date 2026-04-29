@@ -6,24 +6,21 @@
 //!
 //! We keep two comparison groups for honesty:
 //! - `bytes/allocating` + `bytes/reused_buffer`:
-//!     SI/decimal, no space, close to humfmt's default output style.
+//!     SI/decimal, close to humfmt's default output style.
 //! - `bytes/allocating_aligned` + `bytes/reused_buffer_aligned`:
-//!     IEC/binary + space + 2dp, aligned to indicatif::HumanBytes output style.
+//!     IEC/binary + space + "precision 2" where supported, aligned to common CLI output styles.
 //!
-//! Crate notes / limitations:
-//! - prettier-bytes: u64 only, fixed precision, no negatives.
-//! - bytesize:       u64 only, no negatives.
-//! - byte-unit:      heavier runtime cost; formatting configuration differs.
-//! - indicatif:      u64 only, IEC only, fixed 2dp, includes a space.
-//! - humfmt:         i128/u128 range, supports negatives, configurable precision,
-//!                   optional spacing, SI/IEC switch.
+//! IMPORTANT: Some crates keep a fixed number of decimal digits when precision is set,
+//! while humfmt trims trailing zeros by design. The report generator includes output
+//! examples to make these differences explicit.
 
 use std::fmt::Write as _;
 
-use byte_unit::Byte;
+use byte_unit::{Byte, UnitType};
 use bytesize::ByteSize;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use humfmt::{bytes, bytes_with, BytesOptions};
+use human_repr::HumanCount;
 use indicatif::HumanBytes;
 use prettier_bytes::{ByteFormatter, Standard, Unit};
 
@@ -39,9 +36,8 @@ const VALUES_U64: [u64; 8] = [
     u32::MAX as u64,
 ];
 
-// Values aligned with indicatif::HumanBytes examples (IEC + space + 2dp).
-// We intentionally pick a GiB-range value that rounds to `1.41 GiB` (not `1.40`)
-// to avoid giving humfmt an unfair advantage from trimming trailing zeros.
+// Values used for the aligned group (IEC + space + "precision 2").
+// Chosen to avoid always producing trailing zero fractional digits.
 const VALUES_U64_ALIGNED: [u64; 6] = [
     15,
     1_500,
@@ -52,7 +48,6 @@ const VALUES_U64_ALIGNED: [u64; 6] = [
 ];
 
 // Extended values that exceed u64::MAX — only humfmt can handle these.
-// prettier-bytes and bytesize are excluded from this group.
 const VALUES_U128_EXTENDED: [u128; 4] = [
     u64::MAX as u128 + 1,
     1_000_000_000_000_000_000_000_u128, // ~1 ZB (zettabyte range)
@@ -139,9 +134,9 @@ fn bench_bytes_allocating(c: &mut Criterion) {
 fn bench_bytes_allocating_aligned(c: &mut Criterion) {
     let mut group = c.benchmark_group("bytes/allocating_aligned");
 
-    // Align humfmt to indicatif's typical output style:
+    // Align humfmt to common CLI output style:
     // - IEC (binary)
-    // - precision 2
+    // - precision 2 (note: trailing zeros are trimmed by humfmt)
     // - space before suffix
     let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
 
@@ -157,6 +152,34 @@ fn bench_bytes_allocating_aligned(c: &mut Criterion) {
         b.iter(|| {
             for &v in &VALUES_U64_ALIGNED {
                 black_box(HumanBytes(black_box(v)).to_string());
+            }
+        })
+    });
+
+    group.bench_function("bytesize/u64/iec_precision2/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                let disp = ByteSize::b(black_box(v)).display().iec();
+                let s = format!("{disp:.2}");
+                black_box(s);
+            }
+        })
+    });
+
+    group.bench_function("byte_unit/u64/binary_precision2/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                let adjusted = Byte::from_u64(black_box(v)).get_appropriate_unit(UnitType::Binary);
+                let s = format!("{adjusted:.2}");
+                black_box(s);
+            }
+        })
+    });
+
+    group.bench_function("human_repr/u64/iec_space/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                black_box(black_box(v).human_count_bytes().to_string());
             }
         })
     });
@@ -267,6 +290,53 @@ fn bench_bytes_reused_buffer_aligned(c: &mut Criterion) {
                 for &v in &VALUES_U64_ALIGNED {
                     out.clear();
                     write!(&mut out, "{}", HumanBytes(black_box(v))).unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("bytesize/u64/iec_precision2/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    let disp = ByteSize::b(black_box(v)).display().iec();
+                    write!(&mut out, "{disp:.2}").unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("byte_unit/u64/binary_precision2/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    let adjusted = Byte::from_u64(black_box(v)).get_appropriate_unit(UnitType::Binary);
+                    write!(&mut out, "{adjusted:.2}").unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("human_repr/u64/iec_space/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    write!(&mut out, "{}", black_box(v).human_count_bytes()).unwrap();
                     black_box(&out);
                 }
             })

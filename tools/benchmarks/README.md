@@ -1,7 +1,7 @@
 # humfmt Benchmarks (Comparison Harness)
 
 This directory contains a standalone benchmark harness used to compare `humfmt`
-against other popular crates with overlapping functionality.
+against other crates with overlapping functionality.
 
 The harness is kept out of the main crate to avoid pulling extra dependencies
 into `humfmt` itself.
@@ -42,7 +42,9 @@ outside the timed loops.
 ## Notes on semantic alignment
 
 Not all crates share the same output semantics (SI vs IEC, fixed decimals vs trimmed, spacing).
-To keep comparisons interpretable, some benchmarks are split into:
+To keep comparisons interpretable, some byte benchmarks are split into:
 
 - A default-style group (close to humfmt defaults)
-- An aligned group (configured to match a popular output style, such as indicatif::HumanBytes)
+- An aligned group (IEC + space + precision=2 where supported)
+
+The generated report also includes small output example tables so differences are explicit.
