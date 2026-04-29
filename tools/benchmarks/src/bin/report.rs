@@ -22,6 +22,7 @@ use walkdir::WalkDir;
 // ---------------------------------------------------------------------------
 
 const BYTES_U64_PER_ITER: f64 = 8.0;
+const BYTES_U64_ALIGNED_PER_ITER: f64 = 6.0;
 const BYTES_U128_PER_ITER: f64 = 4.0;
 const BYTES_NEG_I64_PER_ITER: f64 = 4.0;
 
@@ -64,7 +65,7 @@ fn main() -> io::Result<()> {
     let assets = repo_root.join("assets/benchmarks");
     fs::create_dir_all(&assets)?;
 
-    // Combined SVG for bytes (allocating + reused buffer sections).
+    // Combined SVG for bytes (allocating + aligned + reused buffer + aligned).
     write_combined_svg(
         &assets,
         "bytes_comparison_dark.svg",
@@ -74,8 +75,16 @@ fn main() -> io::Result<()> {
                 items: bytes_alloc_items(),
             },
             SvgSection {
+                title: "Bytes — allocating (aligned: IEC + space) — lower is better",
+                items: bytes_alloc_aligned_items(),
+            },
+            SvgSection {
                 title: "Bytes — reused buffer (write!) — lower is better",
                 items: bytes_reuse_items(),
+            },
+            SvgSection {
+                title: "Bytes — reused buffer (aligned: IEC + space) — lower is better",
+                items: bytes_reuse_aligned_items(),
             },
         ],
         &medians,
@@ -140,6 +149,21 @@ fn bytes_alloc_items() -> Vec<SvgItem> {
     ]
 }
 
+fn bytes_alloc_aligned_items() -> Vec<SvgItem> {
+    vec![
+        SvgItem::humfmt(
+            "humfmt  u64, IEC, 2dp, space",
+            BenchKey::new("bytes/allocating_aligned", "humfmt/u64/iec_space/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "indicatif HumanBytes  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/allocating_aligned", "indicatif/u64/HumanBytes/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+    ]
+}
+
 fn bytes_reuse_items() -> Vec<SvgItem> {
     vec![
         SvgItem::humfmt(
@@ -162,6 +186,23 @@ fn bytes_reuse_items() -> Vec<SvgItem> {
             "prettier-bytes  u64 only, fixed 2dp, no negatives",
             BenchKey::new("bytes/reused_buffer", "prettier_bytes/u64/write").with_param("32"),
             BYTES_U64_PER_ITER,
+        ),
+    ]
+}
+
+fn bytes_reuse_aligned_items() -> Vec<SvgItem> {
+    vec![
+        SvgItem::humfmt(
+            "humfmt  u64, IEC, 2dp, space",
+            BenchKey::new("bytes/reused_buffer_aligned", "humfmt/u64/iec_space/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "indicatif HumanBytes  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/reused_buffer_aligned", "indicatif/u64/HumanBytes/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
         ),
     ]
 }
@@ -264,7 +305,10 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         "- Duration semantics can differ between crates (e.g. full-unit rendering vs capped output).\n",
     );
     out.push_str(
-        "- Some crates return an owned `String` by design; `humfmt` formatters implement `Display`.\n\n",
+        "- Some crates return an owned `String` by design; `humfmt` formatters implement `Display`.\n",
+    );
+    out.push_str(
+        "- Some groups are explicitly \"aligned\" to match a common output style (IEC + space, etc.).\n\n",
     );
     out.push_str("---\n\n");
 
@@ -282,10 +326,30 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     push_md_group(
         &mut out,
+        "Bytes — allocating (`to_string`) — aligned (IEC + space), u64 inputs",
+        Some(
+            "> This group aligns formatting style (IEC units + space + 2dp) to compare against indicatif::HumanBytes.",
+        ),
+        "time per value",
+        &bytes_alloc_aligned_items(),
+        medians,
+    );
+
+    push_md_group(
+        &mut out,
         "Bytes — reused buffer (`write!` into `String`), u64 inputs",
         None,
         "time per value",
         &bytes_reuse_items(),
+        medians,
+    );
+
+    push_md_group(
+        &mut out,
+        "Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space), u64 inputs",
+        None,
+        "time per value",
+        &bytes_reuse_aligned_items(),
         medians,
     );
 
@@ -473,25 +537,25 @@ fn format_md_row_single(
 // ---------------------------------------------------------------------------
 
 const CAPABILITY_MATRIX: &str = "\
-| Feature | humfmt | bytesize | byte-unit | prettier-bytes | humantime | timeago | human_format |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Byte sizes | yes | yes | yes | yes | no | no | no |
-| Compact numbers | yes | no | no | no | no | no | yes |
-| Duration formatting | yes | no | no | no | yes | yes | no |
-| Relative time (ago) | yes | no | no | no | no | yes | no |
-| Ordinals | yes | no | no | no | no | no | no |
-| List formatting | yes | no | no | no | no | no | no |
-| Signed input (negatives) | yes | no | no | no | — | — | no |
-| u128 / i128 range | yes | no | partial | no | — | — | no |
-| Float input | yes | no | no | no | — | — | yes |
-| Long-form labels | yes | no | yes | no | yes | yes | yes |
-| Max-units cap | yes | — | — | — | no | yes | — |
-| Binary (IEC) units | yes | yes | yes | yes | — | — | — |
-| Configurable precision | yes | no | yes | no | — | — | yes |
-| Locale-aware | yes | no | no | no | no | yes | no |
-| Custom locale builder | yes | no | no | no | no | no | no |
-| no_std compatible | yes | no | no | yes | no | no | no |
-| Zero-alloc Display | yes | yes | no | yes | yes | no | no |";
+| Feature | humfmt | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | humantime | timeago | human_format |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Byte sizes | yes | yes | yes | yes | yes | no | no | no |
+| Compact numbers | yes | no | no | no | no | no | no | yes |
+| Duration formatting | yes | no | no | no | no | yes | yes | no |
+| Relative time (ago) | yes | no | no | no | no | no | yes | no |
+| Ordinals | yes | no | no | no | no | no | no | no |
+| List formatting | yes | no | no | no | no | no | no | no |
+| Signed input (negatives) | yes | no | no | no | no | — | — | no |
+| u128 / i128 range | yes | no | partial | no | no | — | — | no |
+| Float input | yes | no | no | no | no | — | — | yes |
+| Long-form labels | yes | no | yes | no | no | yes | yes | yes |
+| Max-units cap | yes | — | — | — | — | no | yes | — |
+| Binary (IEC) units | yes | yes | yes | yes | yes | — | — | — |
+| Configurable precision | yes | no | yes | no | no | — | — | yes |
+| Locale-aware | yes | no | no | no | no | no | yes | no |
+| Custom locale builder | yes | no | no | no | no | no | no | no |
+| no_std compatible | yes | no | no | yes | no | no | no | no |
+| Zero-alloc Display | yes | yes | no | yes | yes | yes | no | no |";
 
 // ---------------------------------------------------------------------------
 // BenchKey

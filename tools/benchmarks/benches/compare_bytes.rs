@@ -1,15 +1,22 @@
 //! Byte-formatting comparison benchmarks.
 //!
-//! Each crate is benchmarked against the same input values where possible.
-//! Crate-level limitations are called out explicitly in comments so the
-//! results can be interpreted fairly:
+//! This harness intentionally measures two patterns:
+//! 1) Allocating: `.to_string()`
+//! 2) Reused buffer: writing Display output into a pre-allocated `String`
 //!
-//!   - prettier-bytes: u64 only, fixed 2-decimal precision, no negatives,
-//!                     no long units, no locale, no binary/SI toggle at format-time.
-//!   - bytesize:       u64 only, no negative values.
-//!   - byte-unit:      u64 / u128 depending on feature flags; heavier runtime cost.
-//!   - humfmt:         i128 / u128 full range, configurable precision, long units,
-//!                     locale-aware, binary and decimal standards.
+//! We keep two comparison groups for honesty:
+//! - `bytes/allocating` + `bytes/reused_buffer`:
+//!     SI/decimal, no space, close to humfmt's default output style.
+//! - `bytes/allocating_aligned` + `bytes/reused_buffer_aligned`:
+//!     IEC/binary + space + 2dp, aligned to indicatif::HumanBytes output style.
+//!
+//! Crate notes / limitations:
+//! - prettier-bytes: u64 only, fixed precision, no negatives.
+//! - bytesize:       u64 only, no negatives.
+//! - byte-unit:      heavier runtime cost; formatting configuration differs.
+//! - indicatif:      u64 only, IEC only, fixed 2dp, includes a space.
+//! - humfmt:         i128/u128 range, supports negatives, configurable precision,
+//!                   optional spacing, SI/IEC switch.
 
 use std::fmt::Write as _;
 
@@ -17,6 +24,7 @@ use byte_unit::Byte;
 use bytesize::ByteSize;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use humfmt::{bytes, bytes_with, BytesOptions};
+use indicatif::HumanBytes;
 use prettier_bytes::{ByteFormatter, Standard, Unit};
 
 // Shared values that fit within u64 — used for all-crate fair comparisons.
@@ -31,11 +39,23 @@ const VALUES_U64: [u64; 8] = [
     u32::MAX as u64,
 ];
 
+// Values aligned with indicatif::HumanBytes examples (IEC + space + 2dp).
+// We intentionally pick a GiB-range value that rounds to `1.41 GiB` (not `1.40`)
+// to avoid giving humfmt an unfair advantage from trimming trailing zeros.
+const VALUES_U64_ALIGNED: [u64; 6] = [
+    15,
+    1_500,
+    1_500_000,
+    1_514_000_000,
+    1_500_000_000_000,
+    1_500_000_000_000_000,
+];
+
 // Extended values that exceed u64::MAX — only humfmt can handle these.
 // prettier-bytes and bytesize are excluded from this group.
 const VALUES_U128_EXTENDED: [u128; 4] = [
     u64::MAX as u128 + 1,
-    1_000_000_000_000_000_000_000_u128,    // ~1 ZB (zettabyte range)
+    1_000_000_000_000_000_000_000_u128, // ~1 ZB (zettabyte range)
     u128::MAX / 2,
     u128::MAX,
 ];
@@ -48,8 +68,8 @@ fn bench_bytes_allocating(c: &mut Criterion) {
 
     let humfmt_opts = BytesOptions::new().precision(2);
 
-    // prettier-bytes is configured to match humfmt defaults as closely as possible:
-    // SI standard, Bytes unit, no space (humfmt also has no space in short mode).
+    // prettier-bytes configured to match humfmt defaults as closely as possible:
+    // SI standard, Bytes unit, no space.
     let prettier = ByteFormatter::new()
         .standard(Standard::SI)
         .unit(Unit::Bytes)
@@ -84,7 +104,6 @@ fn bench_bytes_allocating(c: &mut Criterion) {
         })
     });
 
-    // prettier-bytes: u64 ONLY — cannot be used with u128 or negative values.
     group.bench_function("prettier_bytes/u64/to_string", |b| {
         b.iter(|| {
             for &v in &VALUES_U64 {
@@ -95,7 +114,6 @@ fn bench_bytes_allocating(c: &mut Criterion) {
     });
 
     // --- humfmt-only extended range (u128 > u64::MAX) ---
-    // prettier-bytes, bytesize, and byte-unit (default config) cannot participate.
 
     group.bench_function("humfmt/u128_extended/to_string", |b| {
         b.iter(|| {
@@ -106,12 +124,39 @@ fn bench_bytes_allocating(c: &mut Criterion) {
     });
 
     // --- humfmt-only negative values ---
-    // No other benchmarked crate supports signed byte values.
 
     group.bench_function("humfmt/negative_i64/to_string", |b| {
         b.iter(|| {
             for &v in &VALUES_NEGATIVE {
                 black_box(bytes(black_box(v)).to_string());
+            }
+        })
+    });
+
+    group.finish();
+}
+
+fn bench_bytes_allocating_aligned(c: &mut Criterion) {
+    let mut group = c.benchmark_group("bytes/allocating_aligned");
+
+    // Align humfmt to indicatif's typical output style:
+    // - IEC (binary)
+    // - precision 2
+    // - space before suffix
+    let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
+
+    group.bench_function("humfmt/u64/iec_space/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                black_box(bytes_with(black_box(v), humfmt_aligned).to_string());
+            }
+        })
+    });
+
+    group.bench_function("indicatif/u64/HumanBytes/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                black_box(HumanBytes(black_box(v)).to_string());
             }
         })
     });
@@ -128,9 +173,6 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
         .unit(Unit::Bytes)
         .space(false);
 
-    // We benchmark a single representative buffer capacity (32 bytes) to keep
-    // the report concise. The capacity has negligible effect on measured time
-    // because all crates write well under 32 bytes per value.
     let cap = 32usize;
 
     group.bench_with_input(BenchmarkId::new("humfmt/u64/write", cap), &cap, |b, &cap| {
@@ -176,7 +218,6 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
         },
     );
 
-    // prettier-bytes: u64 ONLY.
     group.bench_with_input(
         BenchmarkId::new("prettier_bytes/u64/write", cap),
         &cap,
@@ -196,5 +237,50 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_bytes_allocating, bench_bytes_reused_buffer);
+fn bench_bytes_reused_buffer_aligned(c: &mut Criterion) {
+    let mut group = c.benchmark_group("bytes/reused_buffer_aligned");
+
+    let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
+    let cap = 32usize;
+
+    group.bench_with_input(
+        BenchmarkId::new("humfmt/u64/iec_space/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    write!(&mut out, "{}", bytes_with(black_box(v), humfmt_aligned)).unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("indicatif/u64/HumanBytes/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    write!(&mut out, "{}", HumanBytes(black_box(v))).unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    bench_bytes_allocating,
+    bench_bytes_allocating_aligned,
+    bench_bytes_reused_buffer,
+    bench_bytes_reused_buffer_aligned
+);
 criterion_main!(benches);

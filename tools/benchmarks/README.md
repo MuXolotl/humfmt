@@ -38,3 +38,11 @@ This harness tries to measure two common usage patterns:
 
 For honest comparisons, benchmark inputs are fixed and formatter setup is done
 outside the timed loops.
+
+## Notes on semantic alignment
+
+Not all crates share the same output semantics (SI vs IEC, fixed decimals vs trimmed, spacing).
+To keep comparisons interpretable, some benchmarks are split into:
+
+- A default-style group (close to humfmt defaults)
+- An aligned group (configured to match a popular output style, such as indicatif::HumanBytes)

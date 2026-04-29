@@ -67,3 +67,4 @@ If you want to work on something, open an issue or a draft PR first so we don't 
 - [x] Float compact-number formatting remains stable `no_std` on MSRV by avoiding std-only or unstable core float math methods.
 - [x] Byte formatter locale-awareness — the decimal separator in byte output can respect the active locale like numbers do.
 - [x] Optional spacing in short byte output via `BytesOptions::space(bool)` (e.g. `1.5 KB`).
+- [x] Comparison harness includes indicatif::HumanBytes and aligned byte benchmark groups (IEC + space).
