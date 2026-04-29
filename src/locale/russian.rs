@@ -98,22 +98,21 @@ pub(crate) fn compact_suffix_for(idx: usize, scaled: f64, long: bool) -> &'stati
         if idx < SHORT_SUFFIXES.len() {
             return SHORT_SUFFIXES[idx];
         }
-
         return "";
     }
 
     match idx {
-        1 => plural_form(scaled, " тысяча", " тысячи", " тысяч"),
-        2 => plural_form(scaled, " миллион", " миллиона", " миллионов"),
-        3 => plural_form(scaled, " миллиард", " миллиарда", " миллиардов"),
-        4 => plural_form(scaled, " триллион", " триллиона", " триллионов"),
-        5 => plural_form(scaled, " квадриллион", " квадриллиона", " квадриллионов"),
-        6 => plural_form(scaled, " квинтиллион", " квинтиллиона", " квинтиллионов"),
-        7 => plural_form(scaled, " секстиллион", " секстиллиона", " секстиллионов"),
-        8 => plural_form(scaled, " септиллион", " септиллиона", " септиллионов"),
-        9 => plural_form(scaled, " октиллион", " октиллиона", " октиллионов"),
-        10 => plural_form(scaled, " нониллион", " нониллиона", " нониллионов"),
-        11 => plural_form(scaled, " дециллион", " дециллиона", " дециллионов"),
+        1 => plural_form_scaled(scaled, " тысяча", " тысячи", " тысяч"),
+        2 => plural_form_scaled(scaled, " миллион", " миллиона", " миллионов"),
+        3 => plural_form_scaled(scaled, " миллиард", " миллиарда", " миллиардов"),
+        4 => plural_form_scaled(scaled, " триллион", " триллиона", " триллионов"),
+        5 => plural_form_scaled(scaled, " квадриллион", " квадриллиона", " квадриллионов"),
+        6 => plural_form_scaled(scaled, " квинтиллион", " квинтиллиона", " квинтиллионов"),
+        7 => plural_form_scaled(scaled, " секстиллион", " секстиллиона", " секстиллионов"),
+        8 => plural_form_scaled(scaled, " септиллион", " септиллиона", " септиллионов"),
+        9 => plural_form_scaled(scaled, " октиллион", " октиллиона", " октиллионов"),
+        10 => plural_form_scaled(scaled, " нониллион", " нониллиона", " нониллионов"),
+        11 => plural_form_scaled(scaled, " дециллион", " дециллиона", " дециллионов"),
         _ => "",
     }
 }
@@ -136,46 +135,63 @@ pub(crate) fn duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'st
     }
 
     match unit {
-        DurationUnit::Day => plural_form(count as f64, "день", "дня", "дней"),
-        DurationUnit::Hour => plural_form(count as f64, "час", "часа", "часов"),
-        DurationUnit::Minute => plural_form(count as f64, "минута", "минуты", "минут"),
-        DurationUnit::Second => plural_form(count as f64, "секунда", "секунды", "секунд"),
+        DurationUnit::Day => plural_form_int(count, "день", "дня", "дней"),
+        DurationUnit::Hour => plural_form_int(count, "час", "часа", "часов"),
+        DurationUnit::Minute => plural_form_int(count, "минута", "минуты", "минут"),
+        DurationUnit::Second => plural_form_int(count, "секунда", "секунды", "секунд"),
         DurationUnit::Millisecond => {
-            plural_form(count as f64, "миллисекунда", "миллисекунды", "миллисекунд")
+            plural_form_int(count, "миллисекунда", "миллисекунды", "миллисекунд")
         }
         DurationUnit::Microsecond => {
-            plural_form(count as f64, "микросекунда", "микросекунды", "микросекунд")
+            plural_form_int(count, "микросекунда", "микросекунды", "микросекунд")
         }
         DurationUnit::Nanosecond => {
-            plural_form(count as f64, "наносекунда", "наносекунды", "наносекунд")
+            plural_form_int(count, "наносекунда", "наносекунды", "наносекунд")
         }
     }
 }
 
-fn plural_form(
+#[inline]
+fn plural_form_scaled(
     value: f64,
     one: &'static str,
     few: &'static str,
     many: &'static str,
 ) -> &'static str {
     if !is_integer(value) {
+        // In this simplified model, fractional values use the "few" form:
+        // e.g. "1,5 миллиона".
         return few;
     }
 
-    let value = value as u128;
-    let last_two = value % 100;
+    if value < 0.0 || value > (u128::MAX as f64) {
+        return many;
+    }
+
+    plural_form_int(value as u128, one, few, many)
+}
+
+#[inline]
+fn plural_form_int(
+    n: u128,
+    one: &'static str,
+    few: &'static str,
+    many: &'static str,
+) -> &'static str {
+    let last_two = n % 100;
 
     if (11..=14).contains(&last_two) {
         return many;
     }
 
-    match value % 10 {
+    match n % 10 {
         1 => one,
         2..=4 => few,
         _ => many,
     }
 }
 
+#[inline]
 fn is_integer(value: f64) -> bool {
     value == (value as u128) as f64
 }

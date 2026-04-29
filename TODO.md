@@ -1,10 +1,8 @@
 # TODO
 
-A running list of things to do, things being worked on, and things that are done.
-Feel free to pick something up — contributions are welcome!
+A running list of things to do, things being worked on, and things that are done. Feel free to pick something up — contributions are welcome!
 
-If you want to work on something, open an issue or a draft PR first so we don't
-step on each other's toes.
+If you want to work on something, open an issue or a draft PR first so we don't step on each other's toes.
 
 ---
 
@@ -17,7 +15,6 @@ step on each other's toes.
 - [ ] Expand `max_units` clamp from `1..=4` to `1..=7` so all duration units can be rendered when the caller explicitly asks for it
 - [ ] Extract the shared `is_integer` helper out of `russian.rs` / `polish.rs` into `common` — it's the same function copy-pasted in two places right now
 - [ ] Fix `is_integer` in `number/format.rs` to use `value.fract() == 0.0` instead of the `as u128` cast, which saturates for negative inputs
-- [ ] Shrink `StackString<512>` to `StackString<64>` — 512 bytes on the stack for a float that will never exceed ~50 characters is overkill
 - [ ] Expand comparison benchmarks — add more crates and more realistic scenarios so the capability matrix stays honest and up to date
 - [ ] More MSRV CI coverage — test against 1.67 explicitly, not just stable
 - [ ] Stable public API snapshot — lock down the formatter surface before 1.0 so downstream users can depend on it without surprises
@@ -64,3 +61,6 @@ step on each other's toes.
 - [x] ~~On-demand GitHub Actions benchmark workflow~~
 - [x] ~~`locale::CustomLocale` list separator hook (`list_separator`)~~
 - [x] ~~`ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction`~~
+- [x] Shrink `StackString<512>` to `StackString<64>` — 512 bytes on the stack for a float that will never exceed ~50 characters is overkill
+- [x] Polish plural rules for long-form output are CLDR-aligned (compact-number long suffixes and duration units).
+- [x] Float compact-number formatting remains stable `no_std` on MSRV by avoiding std-only or unstable core float math methods.

@@ -3,8 +3,10 @@ use core::fmt::Write;
 
 /// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
 ///
-/// This is intentionally minimal and only supports ASCII output reliably.
-/// It's used internally for float formatting and small intermediate renderings.
+/// This is intentionally minimal. It is written to only via `fmt::Write::write_str`,
+/// which guarantees UTF-8 input, so the buffer content is always valid UTF-8.
+///
+/// Internally this is used for float formatting and other small intermediate renderings.
 pub(crate) struct StackString<const N: usize> {
     buf: [u8; N],
     len: usize,

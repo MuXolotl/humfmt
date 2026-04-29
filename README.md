@@ -24,7 +24,7 @@ It currently includes:
 - relative time like `90s -> 1m 30s ago`
 - natural-language lists like `["red", "green", "blue"] -> "red, green, and blue"`
 - locale-aware output for English, Russian, and Polish
-- custom locale overrides for suffixes, separators, ordinals, and duration units
+- custom locale overrides for suffixes, separators, ordinals, duration units, and list style
 - optional `chrono` and `time` integration
 
 The goal is still the same: keep the crate small, predictable, and pleasant to
@@ -58,6 +58,7 @@ fn main() {
 - The formatting path avoids building intermediate heap strings.
 - Allocation is an explicit choice of the caller (e.g. calling `.to_string()` allocates because it must own a `String`).
 - Integer compact-number scaling uses O(1) unit selection (log10-based) rather than repeated division.
+- The float compact-number path uses a small stack buffer and stays compatible with stable `no_std`.
 
 In other words: formatting itself is meant to be lightweight; if you need owned output,
 you can allocate it explicitly.
@@ -232,14 +233,14 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 
 ```toml
 [dependencies]
-humfmt = "0.2"
+humfmt = "0.3"
 ```
 
 For `no_std` targets:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.2", default-features = false }
+humfmt = { version = "0.3", default-features = false }
 ```
 
 ---
@@ -257,7 +258,7 @@ humfmt = { version = "0.2", default-features = false }
 - `english`: baseline locale included in the default feature set
 - `russian`: enables the `humfmt::locale::Russian` locale pack
 - `polish`: enables the `humfmt::locale::Polish` locale pack
-- `alloc`: reserved compatibility flag in `0.2.x`
+- `alloc`: reserved compatibility flag for future alloc-gating work
 - `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime`
 - `time`: enables adapters for `time::Duration` and `time::OffsetDateTime`
 

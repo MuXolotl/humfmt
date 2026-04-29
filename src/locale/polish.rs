@@ -87,17 +87,16 @@ pub(crate) fn compact_suffix_for(idx: usize, scaled: f64, long: bool) -> &'stati
         if idx < SHORT_SUFFIXES.len() {
             return SHORT_SUFFIXES[idx];
         }
-
         return "";
     }
 
     match idx {
-        1 => plural_form(scaled, " tysiąc", " tysiące", " tysięcy", " tysiąca"),
-        2 => plural_form(scaled, " milion", " miliony", " milionów", " miliona"),
-        3 => plural_form(scaled, " miliard", " miliardy", " miliardów", " miliarda"),
-        4 => plural_form(scaled, " bilion", " biliony", " bilionów", " biliona"),
-        5 => plural_form(scaled, " biliard", " biliardy", " biliardów", " biliarda"),
-        6 => plural_form(scaled, " trylion", " tryliony", " trylionów", " tryliona"),
+        1 => plural_form_scaled(scaled, " tysiąc", " tysiące", " tysięcy", " tysiąca"),
+        2 => plural_form_scaled(scaled, " milion", " miliony", " milionów", " miliona"),
+        3 => plural_form_scaled(scaled, " miliard", " miliardy", " miliardów", " miliarda"),
+        4 => plural_form_scaled(scaled, " bilion", " biliony", " bilionów", " biliona"),
+        5 => plural_form_scaled(scaled, " biliard", " biliardy", " biliardów", " biliarda"),
+        6 => plural_form_scaled(scaled, " trylion", " tryliony", " trylionów", " tryliona"),
         _ => "",
     }
 }
@@ -119,38 +118,29 @@ pub(crate) fn duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'st
         };
     }
 
+    // Polish plural rules (CLDR-style):
+    // - "one": only 1
+    // - "few": integers ending in 2..4, excluding 12..14
+    // - "many": all other integers
     match unit {
-        DurationUnit::Day => plural_form(count as f64, "dzień", "dni", "dni", "dnia"),
-        DurationUnit::Hour => plural_form(count as f64, "godzina", "godziny", "godzin", "godziny"),
-        DurationUnit::Minute => plural_form(count as f64, "minuta", "minuty", "minut", "minuty"),
-        DurationUnit::Second => {
-            plural_form(count as f64, "sekunda", "sekundy", "sekund", "sekundy")
+        DurationUnit::Day => plural_form_int(count, "dzień", "dni", "dni"),
+        DurationUnit::Hour => plural_form_int(count, "godzina", "godziny", "godzin"),
+        DurationUnit::Minute => plural_form_int(count, "minuta", "minuty", "minut"),
+        DurationUnit::Second => plural_form_int(count, "sekunda", "sekundy", "sekund"),
+        DurationUnit::Millisecond => {
+            plural_form_int(count, "milisekunda", "milisekundy", "milisekund")
         }
-        DurationUnit::Millisecond => plural_form(
-            count as f64,
-            "milisekunda",
-            "milisekundy",
-            "milisekund",
-            "milisekundy",
-        ),
-        DurationUnit::Microsecond => plural_form(
-            count as f64,
-            "mikrosekunda",
-            "mikrosekundy",
-            "mikrosekund",
-            "mikrosekundy",
-        ),
-        DurationUnit::Nanosecond => plural_form(
-            count as f64,
-            "nanosekunda",
-            "nanosekundy",
-            "nanosekund",
-            "nanosekundy",
-        ),
+        DurationUnit::Microsecond => {
+            plural_form_int(count, "mikrosekunda", "mikrosekundy", "mikrosekund")
+        }
+        DurationUnit::Nanosecond => {
+            plural_form_int(count, "nanosekunda", "nanosekundy", "nanosekund")
+        }
     }
 }
 
-fn plural_form(
+#[inline]
+fn plural_form_scaled(
     value: f64,
     one: &'static str,
     few: &'static str,
@@ -161,20 +151,35 @@ fn plural_form(
         return fraction;
     }
 
-    let value = value as u128;
-    let last_two = value % 100;
-
-    if (12..=14).contains(&last_two) {
+    if value < 0.0 || value > (u128::MAX as f64) {
         return many;
     }
 
-    match value % 10 {
-        1 if last_two != 11 => one,
-        2..=4 => few,
-        _ => many,
+    plural_form_int(value as u128, one, few, many)
+}
+
+#[inline]
+fn plural_form_int(
+    n: u128,
+    one: &'static str,
+    few: &'static str,
+    many: &'static str,
+) -> &'static str {
+    if n == 1 {
+        return one;
+    }
+
+    let last_two = n % 100;
+    let last = n % 10;
+
+    if (2..=4).contains(&last) && !(12..=14).contains(&last_two) {
+        few
+    } else {
+        many
     }
 }
 
+#[inline]
 fn is_integer(value: f64) -> bool {
     value == (value as u128) as f64
 }

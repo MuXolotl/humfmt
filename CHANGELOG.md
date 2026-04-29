@@ -8,6 +8,18 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Fixed
+- Polish long-form plural selection is now CLDR-aligned:
+  - `one` is used only for `1`
+  - `few` is used for integers ending with `2..=4` excluding `12..=14`
+  - all other integers use the `many` form This affects both long compact-number suffixes and long-form duration unit labels.
+- Restored `polish::ordinal_suffix` and `russian::ordinal_suffix` helpers used by `CustomLocale::{polish,russian}()` presets.
+- Russian and Polish duration unit selection now uses integer counts directly (no `u128 -> f64` casts), preserving correctness for very large durations.
+
+### Changed
+- Float compact-number rounding no longer relies on std-only float math APIs, preserving stable `no_std` builds.
+- Float formatting now uses a smaller fixed stack buffer (64 bytes) with a safe fallback, and localized numeric rendering preserves any exponent suffix if it appears.
+
 ---
 
 ## [0.3.0] - 2026-04-28
