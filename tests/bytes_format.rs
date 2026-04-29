@@ -61,6 +61,16 @@ fn supports_locale_decimal_separator_polish() {
 }
 
 #[test]
+fn supports_optional_space_before_short_units() {
+    let opts = BytesOptions::new().space(true);
+    assert_eq!(humfmt::bytes_with(999_u64, opts).to_string(), "999 B");
+    assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KB");
+
+    let bin = BytesOptions::new().binary().precision(2).space(true);
+    assert_eq!(humfmt::bytes_with(1536_u64, bin).to_string(), "1.5 KiB");
+}
+
+#[test]
 fn supports_negative_values() {
     assert_eq!(bytes(-1536).to_string(), "-1.5KB");
 }

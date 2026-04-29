@@ -12,6 +12,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Byte-size formatting now supports a locale-aware decimal separator:
   - `BytesOptions::decimal_separator(char)` overrides the separator for scaled output (e.g. `1,5KB`).
   - `BytesOptions::locale(locale)` copies the decimal separator from any `Locale`.
+- `BytesOptions::space(bool)` to optionally insert a space before short unit labels (e.g. `1.5 KB`).
 
 ### Fixed
 - Polish long-form plural selection is now CLDR-aligned:

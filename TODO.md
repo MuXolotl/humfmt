@@ -20,6 +20,8 @@ If you want to work on something, open an issue or a draft PR first so we don't 
 - [ ] Stable public API snapshot — lock down the formatter surface before 1.0 so downstream users can depend on it without surprises
 - [ ] Cookbook-style docs — short, practical guides on the docs.rs page: "how do I format bytes?", "how do I add a custom locale?", edge-case tables, that sort of thing. No walls of text.
 - [ ] More locale packs — German, French, Spanish are the obvious next ones. Looking for native speakers to help get pluralization right.
+- [ ] Fixed-precision mode (preserve trailing zeros) for bytes and numbers — e.g. `1.50 KiB` instead of `1.5 KiB` when `precision(2)` is set
+- [ ] Benchmark alignment presets — add explicit comparison scenarios that match common output styles (e.g. binary + `precision(2)` + `space(true)`) to keep tables fair
 
 ---
 
@@ -64,3 +66,4 @@ If you want to work on something, open an issue or a draft PR first so we don't 
 - [x] Polish plural rules for long-form output are CLDR-aligned (compact-number long suffixes and duration units).
 - [x] Float compact-number formatting remains stable `no_std` on MSRV by avoiding std-only or unstable core float math methods.
 - [x] Byte formatter locale-awareness — the decimal separator in byte output can respect the active locale like numbers do.
+- [x] Optional spacing in short byte output via `BytesOptions::space(bool)` (e.g. `1.5 KB`).

@@ -24,8 +24,8 @@ use crate::locale::Locale;
 /// ```rust
 /// use humfmt::BytesOptions;
 ///
-/// let opts = BytesOptions::new().decimal_separator(',');
-/// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
+/// let opts = BytesOptions::new().decimal_separator(',').space(true);
+/// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5 KB");
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct BytesOptions {
@@ -33,6 +33,7 @@ pub struct BytesOptions {
     binary: bool,
     long_units: bool,
     decimal_separator: char,
+    space: bool,
 }
 
 impl BytesOptions {
@@ -43,6 +44,7 @@ impl BytesOptions {
     /// - standard: decimal (SI, 1000-based)
     /// - unit labels: short (`KB`, `MB`, ...)
     /// - decimal separator: `'.'`
+    /// - short-unit spacing: disabled (no space between number and suffix)
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -50,6 +52,7 @@ impl BytesOptions {
             binary: false,
             long_units: false,
             decimal_separator: '.',
+            space: false,
         }
     }
 
@@ -90,6 +93,7 @@ impl BytesOptions {
     /// Uses long unit labels like `kilobytes` instead of `KB`.
     ///
     /// Long labels include a separating space (e.g. `"1.5 kilobytes"`).
+    /// When `long_units` is enabled, the `space(...)` option has no effect.
     ///
     /// # Examples
     ///
@@ -102,6 +106,29 @@ impl BytesOptions {
     #[inline]
     pub fn long_units(mut self) -> Self {
         self.long_units = true;
+        self
+    }
+
+    /// Controls whether short unit labels are separated from the number by a space.
+    ///
+    /// This affects output like:
+    /// - `false` (default): `1.5KB`, `1.5KiB`, `999B`
+    /// - `true`: `1.5 KB`, `1.5 KiB`, `999 B`
+    ///
+    /// This option applies only to short unit labels. Long labels always include a space.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let opts = BytesOptions::new().space(true);
+    /// assert_eq!(humfmt::bytes_with(999_u64, opts).to_string(), "999 B");
+    /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KB");
+    /// ```
+    #[inline]
+    pub fn space(mut self, enabled: bool) -> Self {
+        self.space = enabled;
         self
     }
 
@@ -158,6 +185,10 @@ impl BytesOptions {
 
     pub(crate) fn decimal_separator_value(&self) -> char {
         self.decimal_separator
+    }
+
+    pub(crate) fn space_value(&self) -> bool {
+        self.space
     }
 }
 

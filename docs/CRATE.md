@@ -87,6 +87,7 @@ assert_eq!(bytes_with(1536_u64, BytesOptions::new().binary()).to_string(), "1.5K
 | binary | false | SI (1000) vs IEC (1024) |
 | long_units | false | `KB` vs ` kilobytes` |
 | decimal_separator | `.` | decimal separator for scaled output |
+| space | `false` | add a space before short unit labels |
 
 #### Locale-aware decimal separator
 Byte unit labels are currently English-only, but the decimal separator is configurable:
@@ -101,13 +102,24 @@ assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
 You can also copy the decimal separator from any `Locale`:
 
 ```rust
-use humfmt::{BytesOptions, bytes_with};
+use humfmt::{bytes_with, BytesOptions};
 use humfmt::locale::CustomLocale;
 
 let locale = CustomLocale::english().decimal_separator(',');
 let opts = BytesOptions::new().locale(locale);
 
 assert_eq!(bytes_with(1536_u64, opts).to_string(), "1,5KB");
+```
+
+#### Optional space before short units
+If you prefer `1.5 KB` instead of `1.5KB`, enable spacing:
+
+```rust
+use humfmt::BytesOptions;
+
+let opts = BytesOptions::new().space(true);
+assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KB");
+assert_eq!(humfmt::bytes_with(999_u64, opts).to_string(), "999 B");
 ```
 
 #### Notes / edge cases

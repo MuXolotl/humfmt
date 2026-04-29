@@ -34,7 +34,6 @@ const BINARY_LONG_PLURAL: [&str; 7] = [
 ];
 
 // Powers-of-1000 table for decimal units, indexed by magnitude (0..=6).
-// Avoids repeated multiplication in the hot path.
 const DECIMAL_UNITS: [u128; 7] = [
     1,
     1_000,
@@ -114,6 +113,9 @@ pub fn format_bytes(
         let label = long_label(options.binary_value(), idx, parts.is_exactly_one());
         write!(f, " {label}")
     } else {
+        if options.space_value() {
+            f.write_char(' ')?;
+        }
         let suffix = short_label(options.binary_value(), idx);
         f.write_str(suffix)
     }
