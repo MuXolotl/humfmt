@@ -5,7 +5,7 @@
 //! `assets/benchmarks/`.
 //!
 //! This report also includes small output example tables so semantic differences
-//! (SI vs IEC, spacing, fixed decimals vs trimmed zeros) are explicit.
+//! (SI vs IEC, spacing, fixed decimals vs trimmed zeros, signed behavior) are explicit.
 //!
 //! SVG design:
 //!   - Horizontal bar chart, fastest (lowest ns) at the top.
@@ -140,6 +140,11 @@ fn bytes_alloc_items() -> Vec<SvgItem> {
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
+            "humansize  u64 only, SI, precision=2, no space",
+            BenchKey::new("bytes/allocating", "humansize/u64/decimal_precision2/to_string"),
+            BYTES_U64_PER_ITER,
+        ),
+        SvgItem::other(
             "bytesize  u64 only (SI), default 1dp, space",
             BenchKey::new("bytes/allocating", "bytesize/u64/display_si/to_string"),
             BYTES_U64_PER_ITER,
@@ -162,6 +167,11 @@ fn bytes_alloc_aligned_items() -> Vec<SvgItem> {
         SvgItem::other(
             "indicatif HumanBytes  u64 only, IEC, fixed 2dp, space",
             BenchKey::new("bytes/allocating_aligned", "indicatif/u64/HumanBytes/to_string"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "humansize  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/allocating_aligned", "humansize/u64/iec_fixed2/to_string"),
             BYTES_U64_ALIGNED_PER_ITER,
         ),
         SvgItem::other(
@@ -195,6 +205,12 @@ fn bytes_reuse_items() -> Vec<SvgItem> {
             BYTES_U64_PER_ITER,
         ),
         SvgItem::other(
+            "humansize  u64 only, SI, precision=2, no space",
+            BenchKey::new("bytes/reused_buffer", "humansize/u64/write_decimal_precision2")
+                .with_param("32"),
+            BYTES_U64_PER_ITER,
+        ),
+        SvgItem::other(
             "bytesize  u64 only (SI), default 1dp, space",
             BenchKey::new("bytes/reused_buffer", "bytesize/u64/write_display_si").with_param("32"),
             BYTES_U64_PER_ITER,
@@ -219,6 +235,12 @@ fn bytes_reuse_aligned_items() -> Vec<SvgItem> {
         SvgItem::other(
             "indicatif HumanBytes  u64 only, IEC, fixed 2dp, space",
             BenchKey::new("bytes/reused_buffer_aligned", "indicatif/u64/HumanBytes/write")
+                .with_param("32"),
+            BYTES_U64_ALIGNED_PER_ITER,
+        ),
+        SvgItem::other(
+            "humansize  u64 only, IEC, fixed 2dp, space",
+            BenchKey::new("bytes/reused_buffer_aligned", "humansize/u64/iec_fixed2/write")
                 .with_param("32"),
             BYTES_U64_ALIGNED_PER_ITER,
         ),
@@ -355,12 +377,11 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     out.push_str("---\n\n");
 
-    // Bytes (u64 comparison)
     push_md_group(
         &mut out,
         "Bytes — allocating (`to_string`), u64 inputs",
         Some(
-            "> prettier-bytes and bytesize are **u64-only**. humfmt accepts i8-i128 and u8-u128.",
+            "> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** in this harness. humfmt accepts i8-i128 and u8-u128.",
         ),
         "time per value",
         &bytes_alloc_items(),
@@ -396,7 +417,6 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         medians,
     );
 
-    // Extended range (humfmt-only)
     out.push_str("## Bytes — extended range (u128 > u64::MAX) — humfmt only\n\n");
     out.push_str("> No other benchmarked crate handles values above `u64::MAX`.\n\n");
     out.push_str("| Scenario | Median per-iteration | Time per value |\n");
@@ -412,9 +432,8 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
     }
     out.push('\n');
 
-    // Negative bytes (humfmt-only)
-    out.push_str("## Bytes — negative values (i64) — humfmt only\n\n");
-    out.push_str("> No other benchmarked crate in this harness supports signed byte inputs.\n\n");
+    out.push_str("## Bytes — negative values (i64)\n\n");
+    out.push_str("> bytesize and prettier-bytes do not participate (unsigned-only). This harness includes humfmt and humansize.\n\n");
     out.push_str("| Scenario | Median per-iteration | Time per value |\n");
     out.push_str("|---|---:|---:|\n");
     {
@@ -426,9 +445,17 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
             medians,
         ));
     }
+    {
+        let key = BenchKey::new("bytes/allocating", "humansize/negative_i64/to_string");
+        out.push_str(&format_md_row_single(
+            "humansize/negative_i64",
+            key,
+            BYTES_NEG_I64_PER_ITER,
+            medians,
+        ));
+    }
     out.push('\n');
 
-    // Numbers
     push_md_group(
         &mut out,
         "Numbers — allocating (`to_string`)",
@@ -440,7 +467,6 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         medians,
     );
 
-    // Duration
     push_md_group(
         &mut out,
         "Duration formatting — allocating",
@@ -452,7 +478,6 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         medians,
     );
 
-    // Ago
     push_md_group(
         &mut out,
         "Relative time — allocating",
@@ -480,6 +505,7 @@ fn push_bytes_semantics_examples(out: &mut String) {
     use byte_unit::{Byte, UnitType};
     use bytesize::ByteSize;
     use human_repr::HumanCount;
+    use humansize::{format_size, FormatSizeOptions, BINARY, DECIMAL};
     use indicatif::HumanBytes;
     use prettier_bytes::{ByteFormatter, Standard, Unit};
 
@@ -488,28 +514,33 @@ fn push_bytes_semantics_examples(out: &mut String) {
         "These tables show representative outputs for a few byte values using the same configurations as the benchmarks.\n\n",
     );
 
-    // --- Default-style examples (close to humfmt defaults) ---
+    let default_values: [u64; 2] = [1_536, 9_876_543_210];
+
+    out.push_str("### Default-style configuration\n\n");
+    out.push_str("| Bytes | humfmt (SI, precision=2) | humansize (SI, precision=2, no space) | bytesize (SI, default) | byte-unit (`{:#.2}`) | prettier-bytes |\n");
+    out.push_str("|---:|---|---|---|---|---|\n");
 
     let prettier = ByteFormatter::new()
         .standard(Standard::SI)
         .unit(Unit::Bytes)
         .space(false);
 
-    let default_values: [u64; 2] = [1_536, 9_876_543_210];
-
-    out.push_str("### Default-style configuration\n\n");
-    out.push_str("| Bytes | humfmt (SI, precision=2) | bytesize (SI, default) | byte-unit (`{:#.2}`) | prettier-bytes |\n");
-    out.push_str("|---:|---|---|---|---|\n");
+    let humansize_default = FormatSizeOptions::from(DECIMAL)
+        .decimal_places(2)
+        .decimal_zeroes(0)
+        .space_after_value(false);
 
     for &v in &default_values {
         let hum = humfmt::bytes_with(v, humfmt::BytesOptions::new().precision(2)).to_string();
+        let hsz = format_size(v, humansize_default);
         let bsz = ByteSize::b(v).display().si().to_string();
         let bu = format!("{:#.2}", Byte::from_u64(v));
         let pb = prettier.format(v).to_string();
 
         out.push_str(&format!(
-            "| {v} | `{}` | `{}` | `{}` | `{}` |\n",
+            "| {v} | `{}` | `{}` | `{}` | `{}` | `{}` |\n",
             escape_md(&hum),
+            escape_md(&hsz),
             escape_md(&bsz),
             escape_md(&bu),
             escape_md(&pb),
@@ -518,21 +549,22 @@ fn push_bytes_semantics_examples(out: &mut String) {
 
     out.push('\n');
 
-    // --- Aligned examples (IEC + space + precision=2 where supported) ---
-
     let aligned_values: [u64; 3] = [1_536, 1_500, 1_514_000_000];
 
     out.push_str("### Aligned configuration (IEC + space + precision=2)\n\n");
-    out.push_str("| Bytes | humfmt (IEC, precision=2, trims) | indicatif HumanBytes | bytesize (`iec`, `:.2`) | byte-unit (binary, `:.2`) | human-repr (iec+space) |\n");
-    out.push_str("|---:|---|---|---|---|---|\n");
+    out.push_str("| Bytes | humfmt (IEC, precision=2, trims) | indicatif HumanBytes | humansize (IEC, fixed 2dp, space) | bytesize (`iec`, `:.2`) | byte-unit (binary, `:.2`) | human-repr (iec+space) |\n");
+    out.push_str("|---:|---|---|---|---|---|---|\n");
+
+    let humansize_aligned = FormatSizeOptions::from(BINARY)
+        .decimal_places(2)
+        .decimal_zeroes(2)
+        .space_after_value(true);
 
     for &v in &aligned_values {
-        let hum = humfmt::bytes_with(
-            v,
-            humfmt::BytesOptions::new().binary().precision(2).space(true),
-        )
-        .to_string();
+        let hum = humfmt::bytes_with(v, humfmt::BytesOptions::new().binary().precision(2).space(true))
+            .to_string();
         let ind = HumanBytes(v).to_string();
+        let hsz = format_size(v, humansize_aligned);
         let bsz = format!("{:.2}", ByteSize::b(v).display().iec());
         let bu = format!(
             "{:.2}",
@@ -541,9 +573,10 @@ fn push_bytes_semantics_examples(out: &mut String) {
         let hr = v.human_count_bytes().to_string();
 
         out.push_str(&format!(
-            "| {v} | `{}` | `{}` | `{}` | `{}` | `{}` |\n",
+            "| {v} | `{}` | `{}` | `{}` | `{}` | `{}` | `{}` |\n",
             escape_md(&hum),
             escape_md(&ind),
+            escape_md(&hsz),
             escape_md(&bsz),
             escape_md(&bu),
             escape_md(&hr),
@@ -582,7 +615,6 @@ fn push_md_group(
     out.push_str(" | Relative vs humfmt |\n");
     out.push_str("|---|---:|---:|---:|\n");
 
-    // Resolve values.
     let mut rows: Vec<(&SvgItem, Option<f64>, Option<f64>)> = items
         .iter()
         .map(|item| {
@@ -592,16 +624,13 @@ fn push_md_group(
         })
         .collect();
 
-    // Sort fastest-first; missing data goes last.
     rows.sort_by(|(_, _, a), (_, _, b)| cmp_opt_f64(*a, *b));
 
-    // Find humfmt baseline for relative column.
     let hum_ns_value = rows
         .iter()
         .find(|(item, _, _)| item.is_humfmt)
         .and_then(|(_, _, v)| *v);
 
-    // Find column-wise minimums for bold.
     let best_iter = min_idx(&rows.iter().map(|(_, a, _)| *a).collect::<Vec<_>>());
     let best_value = min_idx(&rows.iter().map(|(_, _, b)| *b).collect::<Vec<_>>());
 
@@ -661,25 +690,25 @@ fn format_md_row_single(
 // ---------------------------------------------------------------------------
 
 const CAPABILITY_MATRIX: &str = "\
-| Feature | humfmt | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Byte sizes | yes | yes | yes | yes | yes | yes | no | no | no |
-| Compact numbers | yes | no | no | no | no | yes | no | no | yes |
-| Duration formatting | yes | no | no | no | no | yes | yes | yes | no |
-| Relative time (ago) | yes | no | no | no | no | no | no | yes | no |
-| Ordinals | yes | no | no | no | no | no | no | no | no |
-| List formatting | yes | no | no | no | no | no | no | no | no |
-| Signed input (negatives) | yes | no | no | no | no | yes | — | — | no |
-| u128 / i128 range | yes | no | partial | no | no | yes | — | — | no |
-| Float input | yes | no | no | no | no | yes | — | — | yes |
-| Long-form labels | yes | no | yes | no | no | no | yes | yes | yes |
-| Max-units cap | yes | — | — | — | — | — | no | yes | — |
-| Binary (IEC) units | yes | yes | yes | yes | yes | yes | — | — | — |
-| Configurable precision | yes | no | yes | no | no | no | — | — | yes |
-| Locale-aware | yes | no | no | no | no | no | no | yes | no |
-| Custom locale builder | yes | no | no | no | no | no | no | no | no |
-| no_std compatible | yes | no | no | yes | no | no | no | no | no |
-| Zero-alloc Display | yes | yes | no | yes | yes | yes | yes | no | no |";
+| Feature | humfmt | humansize | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Byte sizes | yes | yes | yes | yes | yes | yes | yes | no | no | no |
+| Compact numbers | yes | no | no | no | no | no | yes | no | no | yes |
+| Duration formatting | yes | no | no | no | no | no | yes | yes | yes | no |
+| Relative time (ago) | yes | no | no | no | no | no | no | no | yes | no |
+| Ordinals | yes | no | no | no | no | no | no | no | no | no |
+| List formatting | yes | no | no | no | no | no | no | no | no | no |
+| Signed input (negatives) | yes | yes | no | no | no | no | yes | — | — | no |
+| u128 / i128 range | yes | no | no | partial | no | no | yes | — | — | no |
+| Float input | yes | no | no | no | no | no | yes | — | — | yes |
+| Long-form labels | yes | yes | no | yes | no | no | no | yes | yes | yes |
+| Max-units cap | yes | — | — | — | — | — | — | no | yes | — |
+| Binary (IEC) units | yes | yes | yes | yes | yes | yes | yes | — | — | — |
+| Configurable precision | yes | yes | no | yes | no | no | no | — | — | yes |
+| Locale-aware | yes | no | no | no | no | no | no | no | yes | no |
+| Custom locale builder | yes | no | no | no | no | no | no | no | no | no |
+| no_std compatible | yes | yes | no | no | yes | no | no | no | no | no |
+| Zero-alloc Display | yes | yes | yes | no | yes | yes | yes | yes | no | no |";
 
 // ---------------------------------------------------------------------------
 // BenchKey
@@ -748,7 +777,6 @@ fn resolve(medians: &BTreeMap<String, f64>, key: BenchKey) -> Option<(String, f6
         }
     }
 
-    // Suffix fallback when Criterion prefixes the group path differently.
     for id in key.candidates() {
         let needle = format!("/{id}");
         if let Some((k, &v)) = medians
@@ -768,11 +796,9 @@ fn resolve(medians: &BTreeMap<String, f64>, key: BenchKey) -> Option<(String, f6
 // ---------------------------------------------------------------------------
 
 struct SvgItem {
-    /// Label shown to the left of the bar (may contain limitation notes).
     label: &'static str,
     key: BenchKey,
     per_iter_values: f64,
-    /// Determines bar color: accent for humfmt, neutral for others.
     is_humfmt: bool,
 }
 
@@ -805,7 +831,6 @@ struct SvgSection {
     items: Vec<SvgItem>,
 }
 
-/// Writes a multi-section SVG (one section per benchmark sub-group).
 fn write_combined_svg(
     assets: &Path,
     filename: &str,
@@ -854,7 +879,6 @@ fn write_combined_svg(
     fs::write(assets.join(filename), svg)
 }
 
-/// Writes a single-section standalone SVG.
 fn write_standalone_svg(
     assets: &Path,
     filename: &str,
@@ -882,9 +906,6 @@ fn write_standalone_svg(
     fs::write(assets.join(filename), svg)
 }
 
-/// Renders one chart section at the given vertical offset.
-///
-/// Items are sorted fastest-first automatically.
 fn push_svg_section(
     svg: &mut String,
     title: &str,
@@ -906,7 +927,6 @@ fn push_svg_section(
     let bar_other = "#388bfd";
     let bar_missing = "#30363d";
 
-    // Resolve and sort fastest-first.
     let mut rows: Vec<(&SvgItem, Option<f64>)> = items
         .iter()
         .map(|item| {
@@ -925,24 +945,20 @@ fn push_svg_section(
     let axis_y = content_y + (rows.len() as i32) * row_h;
     let bar_right = left + bar_max_w;
 
-    // Section title
     let title_y = y_offset + 28;
     svg.push_str(&format!(
         r#"<text x="20" y="{title_y}" fill="{fg}" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600">{}</text>"#,
         escape(title)
     ));
 
-    // Vertical axis line
     svg.push_str(&format!(
         r#"<line x1="{left}" y1="{content_y}" x2="{left}" y2="{axis_y}" stroke="{axis_color}" stroke-width="1"/>"#
     ));
 
-    // Horizontal axis line
     svg.push_str(&format!(
         r#"<line x1="{left}" y1="{axis_y}" x2="{bar_right}" y2="{axis_y}" stroke="{axis_color}" stroke-width="1"/>"#
     ));
 
-    // Grid lines + tick labels at 0, 25, 50, 75, 100 %
     for pct in [0u32, 25, 50, 75, 100] {
         let x = left + (bar_max_w as f64 * pct as f64 / 100.0).round() as i32;
         let ns_at_tick = max_ns * pct as f64 / 100.0;
@@ -971,7 +987,6 @@ fn push_svg_section(
         ));
     }
 
-    // Bars
     for (i, (item, ns_opt)) in rows.iter().enumerate() {
         let y = content_y + (i as i32) * row_h;
         let bar_y = y + 7;

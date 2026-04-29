@@ -21,6 +21,7 @@ use bytesize::ByteSize;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use humfmt::{bytes, bytes_with, BytesOptions};
 use human_repr::HumanCount;
+use humansize::{format_size, format_size_i, FormatSizeOptions, SizeFormatter, BINARY, DECIMAL};
 use indicatif::HumanBytes;
 use prettier_bytes::{ByteFormatter, Standard, Unit};
 
@@ -55,13 +56,19 @@ const VALUES_U128_EXTENDED: [u128; 4] = [
     u128::MAX,
 ];
 
-// Negative values — only humfmt supports these natively.
+// Negative values — humfmt supports these natively; humansize supports signed values via `format_size_i`.
 const VALUES_NEGATIVE: [i64; 4] = [-512, -1_536, -1_048_576, -9_876_543_210];
 
 fn bench_bytes_allocating(c: &mut Criterion) {
     let mut group = c.benchmark_group("bytes/allocating");
 
     let humfmt_opts = BytesOptions::new().precision(2);
+
+    // humansize default-style: SI + precision=2, no forced trailing zeros, no space.
+    let humansize_opts = FormatSizeOptions::from(DECIMAL)
+        .decimal_places(2)
+        .decimal_zeroes(0)
+        .space_after_value(false);
 
     // prettier-bytes configured to match humfmt defaults as closely as possible:
     // SI standard, Bytes unit, no space.
@@ -76,6 +83,14 @@ fn bench_bytes_allocating(c: &mut Criterion) {
         b.iter(|| {
             for &v in &VALUES_U64 {
                 black_box(bytes_with(black_box(v), humfmt_opts).to_string());
+            }
+        })
+    });
+
+    group.bench_function("humansize/u64/decimal_precision2/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64 {
+                black_box(format_size(black_box(v), humansize_opts));
             }
         })
     });
@@ -118,12 +133,20 @@ fn bench_bytes_allocating(c: &mut Criterion) {
         })
     });
 
-    // --- humfmt-only negative values ---
+    // --- signed negative values (humfmt + humansize) ---
 
     group.bench_function("humfmt/negative_i64/to_string", |b| {
         b.iter(|| {
             for &v in &VALUES_NEGATIVE {
                 black_box(bytes(black_box(v)).to_string());
+            }
+        })
+    });
+
+    group.bench_function("humansize/negative_i64/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_NEGATIVE {
+                black_box(format_size_i(black_box(v), humansize_opts));
             }
         })
     });
@@ -140,6 +163,12 @@ fn bench_bytes_allocating_aligned(c: &mut Criterion) {
     // - space before suffix
     let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
 
+    // humansize aligned: IEC + fixed 2dp + space
+    let humansize_aligned = FormatSizeOptions::from(BINARY)
+        .decimal_places(2)
+        .decimal_zeroes(2)
+        .space_after_value(true);
+
     group.bench_function("humfmt/u64/iec_space/to_string", |b| {
         b.iter(|| {
             for &v in &VALUES_U64_ALIGNED {
@@ -152,6 +181,14 @@ fn bench_bytes_allocating_aligned(c: &mut Criterion) {
         b.iter(|| {
             for &v in &VALUES_U64_ALIGNED {
                 black_box(HumanBytes(black_box(v)).to_string());
+            }
+        })
+    });
+
+    group.bench_function("humansize/u64/iec_fixed2/to_string", |b| {
+        b.iter(|| {
+            for &v in &VALUES_U64_ALIGNED {
+                black_box(format_size(black_box(v), humansize_aligned));
             }
         })
     });
@@ -191,6 +228,12 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
     let mut group = c.benchmark_group("bytes/reused_buffer");
 
     let humfmt_opts = BytesOptions::new().precision(2);
+
+    let humansize_opts = FormatSizeOptions::from(DECIMAL)
+        .decimal_places(2)
+        .decimal_zeroes(0)
+        .space_after_value(false);
+
     let prettier = ByteFormatter::new()
         .standard(Standard::SI)
         .unit(Unit::Bytes)
@@ -208,6 +251,26 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
             }
         })
     });
+
+    group.bench_with_input(
+        BenchmarkId::new("humansize/u64/write_decimal_precision2", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64 {
+                    out.clear();
+                    write!(
+                        &mut out,
+                        "{}",
+                        SizeFormatter::new(black_box(v), humansize_opts)
+                    )
+                    .unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
 
     group.bench_with_input(
         BenchmarkId::new("bytesize/u64/write_display_si", cap),
@@ -264,6 +327,12 @@ fn bench_bytes_reused_buffer_aligned(c: &mut Criterion) {
     let mut group = c.benchmark_group("bytes/reused_buffer_aligned");
 
     let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
+
+    let humansize_aligned = FormatSizeOptions::from(BINARY)
+        .decimal_places(2)
+        .decimal_zeroes(2)
+        .space_after_value(true);
+
     let cap = 32usize;
 
     group.bench_with_input(
@@ -290,6 +359,26 @@ fn bench_bytes_reused_buffer_aligned(c: &mut Criterion) {
                 for &v in &VALUES_U64_ALIGNED {
                     out.clear();
                     write!(&mut out, "{}", HumanBytes(black_box(v))).unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("humansize/u64/iec_fixed2/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64_ALIGNED {
+                    out.clear();
+                    write!(
+                        &mut out,
+                        "{}",
+                        SizeFormatter::new(black_box(v), humansize_aligned)
+                    )
+                    .unwrap();
                     black_box(&out);
                 }
             })
