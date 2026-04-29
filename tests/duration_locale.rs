@@ -76,3 +76,44 @@ fn formats_polish_duration_and_relative_time() {
         "1 minuta 30 sekund temu"
     );
 }
+
+#[cfg(feature = "polish")]
+#[test]
+fn polish_duration_plural_regressions_for_12_14_21_22_25_seconds() {
+    use humfmt::locale::Polish;
+
+    // max_units(1) ensures the output is only the seconds unit, so the plural form
+    // is easy to assert against.
+    let opts = DurationOptions::new()
+        .locale(Polish)
+        .long_units()
+        .max_units(1);
+
+    // 12..=14 always use the many form.
+    assert_eq!(
+        duration_with(Duration::from_secs(12), opts).to_string(),
+        "12 sekund"
+    );
+    assert_eq!(
+        duration_with(Duration::from_secs(14), opts).to_string(),
+        "14 sekund"
+    );
+
+    // 21 uses many form in Polish.
+    assert_eq!(
+        duration_with(Duration::from_secs(21), opts).to_string(),
+        "21 sekund"
+    );
+
+    // 22 => few form.
+    assert_eq!(
+        duration_with(Duration::from_secs(22), opts).to_string(),
+        "22 sekundy"
+    );
+
+    // 25 => many form.
+    assert_eq!(
+        duration_with(Duration::from_secs(25), opts).to_string(),
+        "25 sekund"
+    );
+}
