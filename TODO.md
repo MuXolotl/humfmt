@@ -20,7 +20,6 @@ If you want to work on something, open an issue or a draft PR first so we don't 
 - [ ] Stable public API snapshot — lock down the formatter surface before 1.0 so downstream users can depend on it without surprises
 - [ ] Cookbook-style docs — short, practical guides on the docs.rs page: "how do I format bytes?", "how do I add a custom locale?", edge-case tables, that sort of thing. No walls of text.
 - [ ] More locale packs — German, French, Spanish are the obvious next ones. Looking for native speakers to help get pluralization right.
-- [ ] Byte formatter locale-awareness — right now the decimal separator in byte output is always `.`. It should respect the active locale like numbers do.
 
 ---
 
@@ -64,3 +63,4 @@ If you want to work on something, open an issue or a draft PR first so we don't 
 - [x] Shrink `StackString<512>` to `StackString<64>` — 512 bytes on the stack for a float that will never exceed ~50 characters is overkill
 - [x] Polish plural rules for long-form output are CLDR-aligned (compact-number long suffixes and duration units).
 - [x] Float compact-number formatting remains stable `no_std` on MSRV by avoiding std-only or unstable core float math methods.
+- [x] Byte formatter locale-awareness — the decimal separator in byte output can respect the active locale like numbers do.

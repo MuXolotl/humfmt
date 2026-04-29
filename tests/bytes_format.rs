@@ -34,6 +34,33 @@ fn supports_precision_override() {
 }
 
 #[test]
+fn supports_custom_decimal_separator() {
+    let opts = BytesOptions::new().decimal_separator(',');
+    assert_eq!(humfmt::bytes_with(1536, opts).to_string(), "1,5KB");
+}
+
+#[test]
+fn supports_locale_decimal_separator_via_custom_locale() {
+    let locale = humfmt::locale::CustomLocale::english().decimal_separator(',');
+    let opts = BytesOptions::new().locale(locale);
+    assert_eq!(humfmt::bytes_with(1536, opts).to_string(), "1,5KB");
+}
+
+#[cfg(feature = "russian")]
+#[test]
+fn supports_locale_decimal_separator_russian() {
+    let opts = BytesOptions::new().locale(humfmt::locale::Russian);
+    assert_eq!(humfmt::bytes_with(1536, opts).to_string(), "1,5KB");
+}
+
+#[cfg(feature = "polish")]
+#[test]
+fn supports_locale_decimal_separator_polish() {
+    let opts = BytesOptions::new().locale(humfmt::locale::Polish);
+    assert_eq!(humfmt::bytes_with(1536, opts).to_string(), "1,5KB");
+}
+
+#[test]
 fn supports_negative_values() {
     assert_eq!(bytes(-1536).to_string(), "-1.5KB");
 }

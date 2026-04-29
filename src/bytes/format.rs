@@ -70,8 +70,7 @@ pub fn format_bytes(
     let max_idx: usize = 6; // EB / EiB is the ceiling for both standards
     let precision = options.precision_value();
 
-    // O(1) magnitude detection using integer logarithms, replacing the old
-    // linear loop. Both ilog10 and ilog2 are stable since Rust 1.67.
+    // O(1) magnitude detection using integer logarithms.
     let (mut idx, table) = if options.binary_value() {
         let idx = if magnitude == 0 {
             0
@@ -107,7 +106,7 @@ pub fn format_bytes(
     write_u128(f, parts.integer, false, ',')?;
 
     if parts.frac_len != 0 {
-        f.write_char('.')?;
+        f.write_char(options.decimal_separator_value())?;
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 

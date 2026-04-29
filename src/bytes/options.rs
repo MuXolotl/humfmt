@@ -1,9 +1,16 @@
+use crate::locale::Locale;
+
 /// Builder-style configuration for byte-size formatting.
 ///
 /// This type is designed to be:
 /// - cheap to copy (`Copy`)
 /// - easy to chain (builder methods return `Self`)
 /// - predictable (values are clamped to small, fixed ranges)
+///
+/// Locale-awareness for bytes is intentionally minimal:
+/// - unit labels are currently English-only (`KB`, `MB`, or `kilobytes`, ...),
+/// - the decimal separator for scaled values is configurable and can be taken
+///   from a `Locale` (`BytesOptions::locale(...)`).
 ///
 /// # Examples
 ///
@@ -13,11 +20,19 @@
 /// let opts = BytesOptions::new().binary().precision(2);
 /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5KiB");
 /// ```
+///
+/// ```rust
+/// use humfmt::BytesOptions;
+///
+/// let opts = BytesOptions::new().decimal_separator(',');
+/// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
+/// ```
 #[derive(Copy, Clone, Debug)]
 pub struct BytesOptions {
     precision: u8,
     binary: bool,
     long_units: bool,
+    decimal_separator: char,
 }
 
 impl BytesOptions {
@@ -27,12 +42,14 @@ impl BytesOptions {
     /// - precision: `1`
     /// - standard: decimal (SI, 1000-based)
     /// - unit labels: short (`KB`, `MB`, ...)
+    /// - decimal separator: `'.'`
     #[inline]
     pub fn new() -> Self {
         Self {
             precision: 1,
             binary: false,
             long_units: false,
+            decimal_separator: '.',
         }
     }
 
@@ -88,6 +105,45 @@ impl BytesOptions {
         self
     }
 
+    /// Overrides the decimal separator for scaled byte values.
+    ///
+    /// This affects output like `1.5KB` (scaled) but not unscaled output like `999B`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let opts = BytesOptions::new().decimal_separator(',');
+    /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
+    /// ```
+    #[inline]
+    pub fn decimal_separator(mut self, separator: char) -> Self {
+        self.decimal_separator = separator;
+        self
+    }
+
+    /// Applies numeric separators from the provided locale.
+    ///
+    /// Currently this only affects the decimal separator used by the byte formatter.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{bytes_with, BytesOptions};
+    /// use humfmt::locale::CustomLocale;
+    ///
+    /// let locale = CustomLocale::english().decimal_separator(',');
+    /// let opts = BytesOptions::new().locale(locale);
+    ///
+    /// assert_eq!(bytes_with(1536_u64, opts).to_string(), "1,5KB");
+    /// ```
+    #[inline]
+    pub fn locale<L: Locale>(mut self, locale: L) -> Self {
+        self.decimal_separator = locale.decimal_separator();
+        self
+    }
+
     pub(crate) fn precision_value(&self) -> u8 {
         self.precision
     }
@@ -98,6 +154,10 @@ impl BytesOptions {
 
     pub(crate) fn long_units_value(&self) -> bool {
         self.long_units
+    }
+
+    pub(crate) fn decimal_separator_value(&self) -> char {
+        self.decimal_separator
     }
 }
 

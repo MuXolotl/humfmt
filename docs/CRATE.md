@@ -86,12 +86,34 @@ assert_eq!(bytes_with(1536_u64, BytesOptions::new().binary()).to_string(), "1.5K
 | precision | 1 | fractional digits for scaled values |
 | binary | false | SI (1000) vs IEC (1024) |
 | long_units | false | `KB` vs ` kilobytes` |
+| decimal_separator | `.` | decimal separator for scaled output |
+
+#### Locale-aware decimal separator
+Byte unit labels are currently English-only, but the decimal separator is configurable:
+
+```rust
+use humfmt::BytesOptions;
+
+let opts = BytesOptions::new().decimal_separator(',');
+assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
+```
+
+You can also copy the decimal separator from any `Locale`:
+
+```rust
+use humfmt::{BytesOptions, bytes_with};
+use humfmt::locale::CustomLocale;
+
+let locale = CustomLocale::english().decimal_separator(',');
+let opts = BytesOptions::new().locale(locale);
+
+assert_eq!(bytes_with(1536_u64, opts).to_string(), "1,5KB");
+```
 
 #### Notes / edge cases
 - Signed inputs are supported (e.g. `-1536 -> -1.5KB`).
 - Precision is clamped to a small maximum to keep formatting cheap and predictable.
 - The unit ceiling is `EB` / `EiB`.
-- Byte formatting is currently **not locale-aware** (decimal separator is `.`).
 
 ### Ordinals (`ordinal`)
 
@@ -189,7 +211,7 @@ Both integrations provide:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.2", default-features = false }
+humfmt = { version = "0.3", default-features = false }
 ```
 
 ## Benchmarks

@@ -8,11 +8,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- Byte-size formatting now supports a locale-aware decimal separator:
+  - `BytesOptions::decimal_separator(char)` overrides the separator for scaled output (e.g. `1,5KB`).
+  - `BytesOptions::locale(locale)` copies the decimal separator from any `Locale`.
+
 ### Fixed
 - Polish long-form plural selection is now CLDR-aligned:
   - `one` is used only for `1`
   - `few` is used for integers ending with `2..=4` excluding `12..=14`
-  - all other integers use the `many` form This affects both long compact-number suffixes and long-form duration unit labels.
+  - all other integers use the `many` form
+  This affects both long compact-number suffixes and long-form duration unit labels.
 - Restored `polish::ordinal_suffix` and `russian::ordinal_suffix` helpers used by `CustomLocale::{polish,russian}()` presets.
 - Russian and Polish duration unit selection now uses integer counts directly (no `u128 -> f64` casts), preserving correctness for very large durations.
 
