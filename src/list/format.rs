@@ -9,8 +9,11 @@ pub fn format_list<T: fmt::Display, L: Locale>(
     items: &[T],
     options: &ListOptions<L>,
 ) -> fmt::Result {
-    let locale = options.locale_ref();
-    let conjunction = options.conjunction_or(locale.and_word());
+    let locale = &options.locale;
+    let conjunction = options.conjunction.unwrap_or_else(|| locale.and_word());
+    let serial_comma = options
+        .serial_comma
+        .unwrap_or_else(|| locale.serial_comma());
 
     match items {
         [] => Ok(()),
@@ -22,11 +25,10 @@ pub fn format_list<T: fmt::Display, L: Locale>(
                 if idx != 0 {
                     write!(f, "{separator}")?;
                 }
-
                 write!(f, "{item}")?;
             }
 
-            if options.serial_comma_value() {
+            if serial_comma {
                 write!(f, ",")?;
             }
 

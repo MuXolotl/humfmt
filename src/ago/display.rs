@@ -32,7 +32,7 @@ impl<L: Locale> fmt::Display for AgoDisplay<L> {
             f,
             "{} {}",
             duration_with(self.value, self.options),
-            self.options.locale_ref().ago_word()
+            self.options.locale.ago_word()
         )
     }
 }

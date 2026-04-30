@@ -86,7 +86,8 @@ proptest! {
         prop_assert!(!rendered.contains("  "));
         prop_assert!(!rendered.ends_with(' '));
         prop_assert!(unit_count >= 1);
-        prop_assert!(unit_count <= usize::from(max_units.clamp(1, 4)));
+        // max_units is clamped to 1..=7 (7 is the total number of supported units).
+        prop_assert!(unit_count <= usize::from(max_units.clamp(1, 7)));
     }
 
     #[test]

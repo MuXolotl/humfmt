@@ -9,12 +9,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [Unreleased]
 
 ### Added
+- `common::numeric::is_integer_f64` — shared, correct, `no_std`-compatible helper for checking whether a `f64` value has no fractional part. Replaces the broken `value == (value as u128) as f64` pattern that was copy-pasted across locale modules. Conditionally compiled under `#[cfg(any(feature = "russian", feature = "polish"))]` to avoid `dead_code` warnings in bare builds.
+- Unit tests for `is_integer_f64` covering whole numbers, fractional numbers, non-finite values, and negative whole numbers (the previously broken case).
+- `DurationOptions::max_units` now accepts values up to `7` (previously clamped to `4`), enabling callers to render all supported time units down to nanoseconds.
+- New integration tests for `max_units(7)` and the minimum clamp behaviour (`max_units(0)` → `1`).
 - Byte-size formatting now supports a locale-aware decimal separator:
   - `BytesOptions::decimal_separator(char)` overrides the separator for scaled output (e.g. `1,5KB`).
   - `BytesOptions::locale(locale)` copies the decimal separator from any `Locale`.
 - `BytesOptions::space(bool)` to optionally insert a space before short unit labels (e.g. `1.5 KB`).
 
 ### Fixed
+- `is_integer_f64` in `russian.rs` and `polish.rs`: the old `value == (value as u128) as f64` check incorrectly returned `false` for negative whole floats (e.g. `-1.0`, `-42.0`) because casting a negative `f64` to `u128` saturates to `0` on stable Rust. This caused wrong grammatical form selection for negative scaled values in long-form output. Fixed with `value.is_finite() && value % 1.0 == 0.0`.
 - Polish long-form plural selection is now CLDR-aligned:
   - `one` is used only for `1`
   - `few` is used for integers ending with `2..=4` excluding `12..=14`
@@ -24,8 +29,13 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Russian and Polish duration unit selection now uses integer counts directly (no `u128 -> f64` casts), preserving correctness for very large durations.
 
 ### Changed
+- `Locale::duration_unit` default implementation in `traits.rs` now delegates to `english::duration_unit` instead of duplicating the same match expression verbatim. Single source of truth; adding a new time unit no longer requires updating two places.
+- `DurationOptions::max_units` clamp widened from `1..=4` to `1..=7`. Existing code using values `1..=4` is unaffected. Values `5..=7` previously silently clamped to `4`; they now work as documented.
+- Internal `Options` types (`BytesOptions`, `NumberOptions`, `DurationOptions`, `ListOptions`) now expose their fields as `pub(crate)` directly instead of going through `_value()`-suffixed getter methods. The public builder API is unchanged. This removes a layer of noise with no runtime cost and eliminates naming conflicts between builder methods and internal accessors.
+- `proptest` invariant `duration_output_respects_max_units` updated to reflect the new `clamp(1, 7)` bound.
 - Float compact-number rounding no longer relies on std-only float math APIs, preserving stable `no_std` builds.
 - Float formatting now uses a smaller fixed stack buffer (64 bytes) with a safe fallback, and localized numeric rendering preserves any exponent suffix if it appears.
+- Small negative floating-point values that round to zero no longer render as `-0`.
 
 ---
 

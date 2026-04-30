@@ -20,9 +20,9 @@ use crate::locale::{English, Locale};
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct DurationOptions<L: Locale = English> {
-    max_units: u8,
-    long_units: bool,
-    locale: L,
+    pub(crate) max_units: u8,
+    pub(crate) long_units: bool,
+    pub(crate) locale: L,
 }
 
 impl DurationOptions<English> {
@@ -56,8 +56,8 @@ impl<L: Locale> Default for DurationOptions<L> {
 impl<L: Locale> DurationOptions<L> {
     /// Limits how many non-zero units are rendered.
     ///
-    /// The value is clamped to `1..=4` to keep output compact and stable.
-    /// (Rendering too many units tends to produce long, noisy strings.)
+    /// The value is clamped to `1..=7` (the full range of supported units:
+    /// days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
     ///
     /// # Examples
     ///
@@ -69,10 +69,17 @@ impl<L: Locale> DurationOptions<L> {
     ///     humfmt::duration_with(core::time::Duration::from_secs(3665), opts).to_string(),
     ///     "1h"
     /// );
+    ///
+    /// let opts_full = DurationOptions::new().max_units(7).long_units();
+    /// assert_eq!(
+    ///     humfmt::duration_with(core::time::Duration::from_nanos(1_001_001_001), opts_full)
+    ///         .to_string(),
+    ///     "1 second 1 millisecond 1 microsecond 1 nanosecond"
+    /// );
     /// ```
     #[inline]
     pub fn max_units(mut self, n: u8) -> Self {
-        self.max_units = n.clamp(1, 4);
+        self.max_units = n.clamp(1, 7);
         self
     }
 
@@ -108,17 +115,5 @@ impl<L: Locale> DurationOptions<L> {
             long_units: self.long_units,
             locale,
         }
-    }
-
-    pub(crate) fn max_units_value(&self) -> u8 {
-        self.max_units
-    }
-
-    pub(crate) fn long_units_value(&self) -> bool {
-        self.long_units
-    }
-
-    pub(crate) fn locale_ref(&self) -> &L {
-        &self.locale
     }
 }

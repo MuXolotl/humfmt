@@ -1,3 +1,5 @@
+use crate::common::numeric::is_integer_f64;
+
 use super::DurationUnit;
 
 pub(crate) const MAX_COMPACT_SUFFIX_INDEX: usize = 11;
@@ -158,13 +160,16 @@ fn plural_form_scaled(
     few: &'static str,
     many: &'static str,
 ) -> &'static str {
-    if !is_integer(value) {
-        // In this simplified model, fractional values use the "few" form:
+    if !is_integer_f64(value) {
+        // Fractional values use the genitive singular ("few") form in Russian:
         // e.g. "1,5 миллиона".
         return few;
     }
 
-    if value < 0.0 || value > (u128::MAX as f64) {
+    // At this point value is a finite whole number. The cast is safe because
+    // is_integer_f64 guarantees finiteness, and values that exceed u128::MAX
+    // are astronomically large — we fall through to `many` for those.
+    if value < 0.0 || value > u128::MAX as f64 {
         return many;
     }
 
@@ -172,7 +177,7 @@ fn plural_form_scaled(
 }
 
 #[inline]
-fn plural_form_int(
+pub(crate) fn plural_form_int(
     n: u128,
     one: &'static str,
     few: &'static str,
@@ -189,9 +194,4 @@ fn plural_form_int(
         2..=4 => few,
         _ => many,
     }
-}
-
-#[inline]
-fn is_integer(value: f64) -> bool {
-    value == (value as u128) as f64
 }

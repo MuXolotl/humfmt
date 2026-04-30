@@ -29,11 +29,11 @@ use crate::locale::Locale;
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct BytesOptions {
-    precision: u8,
-    binary: bool,
-    long_units: bool,
-    decimal_separator: char,
-    space: bool,
+    pub(crate) precision: u8,
+    pub(crate) binary: bool,
+    pub(crate) long_units: bool,
+    pub(crate) decimal_separator: char,
+    pub(crate) space: bool,
 }
 
 impl BytesOptions {
@@ -169,26 +169,6 @@ impl BytesOptions {
     pub fn locale<L: Locale>(mut self, locale: L) -> Self {
         self.decimal_separator = locale.decimal_separator();
         self
-    }
-
-    pub(crate) fn precision_value(&self) -> u8 {
-        self.precision
-    }
-
-    pub(crate) fn binary_value(&self) -> bool {
-        self.binary
-    }
-
-    pub(crate) fn long_units_value(&self) -> bool {
-        self.long_units
-    }
-
-    pub(crate) fn decimal_separator_value(&self) -> char {
-        self.decimal_separator
-    }
-
-    pub(crate) fn space_value(&self) -> bool {
-        self.space
     }
 }
 

@@ -22,9 +22,9 @@ use crate::locale::{English, Locale};
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct ListOptions<L: Locale = English> {
-    serial_comma: Option<bool>,
-    conjunction: Option<&'static str>,
-    locale: L,
+    pub(crate) serial_comma: Option<bool>,
+    pub(crate) conjunction: Option<&'static str>,
+    pub(crate) locale: L,
 }
 
 impl ListOptions<English> {
@@ -106,18 +106,5 @@ impl<L: Locale> ListOptions<L> {
             conjunction: self.conjunction,
             locale,
         }
-    }
-
-    pub(crate) fn serial_comma_value(&self) -> bool {
-        self.serial_comma
-            .unwrap_or_else(|| self.locale.serial_comma())
-    }
-
-    pub(crate) fn locale_ref(&self) -> &L {
-        &self.locale
-    }
-
-    pub(crate) fn conjunction_or<'a>(&'a self, fallback: &'a str) -> &'a str {
-        self.conjunction.unwrap_or(fallback)
     }
 }

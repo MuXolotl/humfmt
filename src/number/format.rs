@@ -67,14 +67,13 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
     magnitude: u128,
     options: &NumberOptions<L>,
 ) -> fmt::Result {
-    let locale = options.locale_ref();
-    let precision = options.precision_value();
+    let locale = &options.locale;
+    let precision = options.precision;
     let max_idx = locale.max_compact_suffix_index().min(POW1000.len() - 1);
 
     let (mut idx, unit) = compute_compact_unit(magnitude, max_idx);
     let mut parts = decimal_parts_rounded(magnitude, unit, precision);
 
-    // Rescale if rounding pushes us over the compact boundary (e.g. 999.95K -> 1M).
     if parts.integer >= 1_000 && idx < max_idx {
         idx += 1;
         parts = decimal_parts_rounded(magnitude, POW1000[idx], precision);
@@ -84,12 +83,10 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
         f.write_str("-")?;
     }
 
-    // For idx > 0, the integer part is < 1000, so grouping separators won't matter.
-    // For idx == 0, grouping can be useful if enabled.
     write_u128(
         f,
         parts.integer,
-        options.separators_value() && idx == 0,
+        options.separators && idx == 0,
         locale.group_separator(),
     )?;
 
@@ -98,7 +95,7 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 
-    let suffix = locale.compact_suffix_for(idx, parts.as_f64(), options.long_units_value());
+    let suffix = locale.compact_suffix_for(idx, parts.as_f64(), options.long_units);
     f.write_str(suffix)
 }
 
@@ -108,8 +105,6 @@ fn compute_compact_unit(magnitude: u128, max_idx: usize) -> (usize, u128) {
         return (0, 1);
     }
 
-    // O(1) magnitude detection using base-10 integer logarithms.
-    // Note: `ilog10` is undefined for zero; magnitude < 1000 includes zero.
     let idx = ((magnitude.ilog10() / 3) as usize).min(max_idx);
     (idx, POW1000[idx])
 }
@@ -123,29 +118,24 @@ fn format_float<L: crate::locale::Locale>(
         return write!(f, "{raw}");
     }
 
-    let locale = options.locale_ref();
-    let precision = options.precision_value();
+    let locale = &options.locale;
+    let precision = options.precision;
     let max_idx = locale.max_compact_suffix_index();
 
     let abs = raw.abs();
     let (scaled, idx) = normalize_scaled(abs, precision, max_idx);
 
-    // Avoid "-0" after rounding tiny negatives.
     let negative = raw.is_sign_negative() && scaled != 0.0;
     if negative {
         f.write_str("-")?;
     }
 
-    // Render the scaled number to a small stack buffer first, then localize it.
-    // This is usually short (e.g. "15.3"), so a small buffer keeps stack usage low.
     let mut tmp = StackString::<64>::new();
     let write_res = write!(&mut tmp, "{:.*}", precision as usize, scaled);
 
-    // If formatting into the fixed buffer fails (unexpectedly large float rendering),
-    // fall back to writing directly without localization/separators.
     if write_res.is_err() {
         write!(f, "{:.*}", precision as usize, scaled)?;
-        let suffix = locale.compact_suffix_for(idx, scaled, options.long_units_value());
+        let suffix = locale.compact_suffix_for(idx, scaled, options.long_units);
         return f.write_str(suffix);
     }
 
@@ -154,12 +144,12 @@ fn format_float<L: crate::locale::Locale>(
     write_localized_numeric_str(
         f,
         tmp.as_str(),
-        options.separators_value(),
+        options.separators,
         locale.decimal_separator(),
         locale.group_separator(),
     )?;
 
-    let suffix = locale.compact_suffix_for(idx, scaled, options.long_units_value());
+    let suffix = locale.compact_suffix_for(idx, scaled, options.long_units);
     f.write_str(suffix)
 }
 
@@ -183,16 +173,9 @@ fn normalize_scaled(value: f64, precision: u8, max_idx: usize) -> (f64, usize) {
 
 #[inline]
 fn round_to_non_negative(value: f64, precision: u8) -> f64 {
-    // IMPORTANT:
-    // - This crate supports `no_std` on stable (MSRV 1.67).
-    // - `core` does NOT provide `f64::round()`/`fract()` methods on stable.
-    //
-    // We therefore use a small, fast half-up rounding that only relies on:
-    // - multiplication
-    // - addition
-    // - truncation via integer casts (safe for non-negative values)
-    //
-    // For extreme magnitudes (where the cast would saturate), we skip rounding.
+    // This crate supports `no_std` on stable (MSRV 1.67).
+    // `core` does not expose `f64::round()` on stable, so we implement
+    // half-up rounding via integer cast (safe for non-negative finite values).
     let p = (precision.min(6)) as usize;
     let factor = POW10_F64[p];
 
@@ -200,20 +183,15 @@ fn round_to_non_negative(value: f64, precision: u8) -> f64 {
         return value;
     }
 
-    // The float path only rounds non-negative values (we format abs() and emit the sign separately).
     if value < 0.0 {
         return value;
     }
 
-    // Ensure the integer cast stays meaningful.
-    // For very large values, rounding at `precision` digits is irrelevant anyway.
     let max_safe = (u128::MAX as f64) / factor;
     if value > max_safe {
         return value;
     }
 
-    // Half-up rounding: for non-negative values, truncation == floor.
-    // Example: 1.234 with precision=2 => (123.4 + 0.5) => 123.9 => 123 => 1.23
     let scaled = (value * factor) + 0.5;
     ((scaled as u128) as f64) / factor
 }
@@ -225,8 +203,6 @@ fn write_localized_numeric_str(
     decimal_separator: char,
     group_separator: char,
 ) -> fmt::Result {
-    // `input` is expected to be ASCII output from float formatting ("1234.5", "0", etc).
-    // We keep this parser robust even if an exponent slips in for extreme values.
     let (mantissa, exp_part) = match input
         .as_bytes()
         .iter()

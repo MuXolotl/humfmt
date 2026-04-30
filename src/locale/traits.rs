@@ -56,7 +56,7 @@
 //!     }
 //! }
 //! ```
-#[derive(Copy, Clone, Debug)]
+
 /// Duration unit kind used by locale-aware duration and relative-time formatting.
 ///
 /// Locales receive a `DurationUnit` plus a `count` and a `long` flag and are
@@ -64,6 +64,7 @@
 ///
 /// This enum intentionally matches the unit set used by `humfmt`'s duration
 /// formatter (days down to nanoseconds).
+#[derive(Copy, Clone, Debug)]
 pub enum DurationUnit {
     /// 24-hour day.
     Day,
@@ -155,32 +156,10 @@ pub trait Locale: Copy + Clone + Default {
     /// - `count` is the unit quantity (used for pluralization/inflection).
     /// - `long` selects between compact (`"h"`) and long-form (`"hour"`) labels.
     ///
-    /// Default implementation provides English labels.
+    /// Default implementation delegates to the English locale.
     #[inline]
     fn duration_unit(&self, unit: DurationUnit, count: u128, long: bool) -> &'static str {
-        match (unit, long) {
-            (DurationUnit::Day, false) => "d",
-            (DurationUnit::Hour, false) => "h",
-            (DurationUnit::Minute, false) => "m",
-            (DurationUnit::Second, false) => "s",
-            (DurationUnit::Millisecond, false) => "ms",
-            (DurationUnit::Microsecond, false) => "us",
-            (DurationUnit::Nanosecond, false) => "ns",
-            (DurationUnit::Day, true) if count == 1 => "day",
-            (DurationUnit::Hour, true) if count == 1 => "hour",
-            (DurationUnit::Minute, true) if count == 1 => "minute",
-            (DurationUnit::Second, true) if count == 1 => "second",
-            (DurationUnit::Millisecond, true) if count == 1 => "millisecond",
-            (DurationUnit::Microsecond, true) if count == 1 => "microsecond",
-            (DurationUnit::Nanosecond, true) if count == 1 => "nanosecond",
-            (DurationUnit::Day, true) => "days",
-            (DurationUnit::Hour, true) => "hours",
-            (DurationUnit::Minute, true) => "minutes",
-            (DurationUnit::Second, true) => "seconds",
-            (DurationUnit::Millisecond, true) => "milliseconds",
-            (DurationUnit::Microsecond, true) => "microseconds",
-            (DurationUnit::Nanosecond, true) => "nanoseconds",
-        }
+        crate::locale::english::duration_unit(unit, count, long)
     }
 
     /// Conjunction word used for list formatting (English: `"and"`).

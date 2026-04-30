@@ -33,7 +33,6 @@ const BINARY_LONG_PLURAL: [&str; 7] = [
     "exbibytes",
 ];
 
-// Powers-of-1000 table for decimal units, indexed by magnitude (0..=6).
 const DECIMAL_UNITS: [u128; 7] = [
     1,
     1_000,
@@ -44,7 +43,6 @@ const DECIMAL_UNITS: [u128; 7] = [
     1_000_000_000_000_000_000,
 ];
 
-// Powers-of-1024 table for binary units, indexed by magnitude (0..=6).
 const BINARY_UNITS: [u128; 7] = [
     1,
     1_024,
@@ -66,11 +64,10 @@ pub fn format_bytes(
         BytesValue::UInt(v) => (false, v),
     };
 
-    let max_idx: usize = 6; // EB / EiB is the ceiling for both standards
-    let precision = options.precision_value();
+    let max_idx: usize = 6;
+    let precision = options.precision;
 
-    // O(1) magnitude detection using integer logarithms.
-    let (mut idx, table) = if options.binary_value() {
+    let (mut idx, table) = if options.binary {
         let idx = if magnitude == 0 {
             0
         } else {
@@ -89,9 +86,7 @@ pub fn format_bytes(
     let mut unit = table[idx];
     let mut parts = decimal_parts_rounded(magnitude, unit, precision);
 
-    // If rounding pushes the integer part to the next boundary (e.g. 999.95KB -> 1MB),
-    // rescale once. A single rescale is always sufficient.
-    let boundary = if options.binary_value() { 1_024 } else { 1_000 };
+    let boundary = if options.binary { 1_024 } else { 1_000 };
     if parts.integer >= boundary && idx < max_idx {
         idx += 1;
         unit = table[idx];
@@ -105,18 +100,18 @@ pub fn format_bytes(
     write_u128(f, parts.integer, false, ',')?;
 
     if parts.frac_len != 0 {
-        f.write_char(options.decimal_separator_value())?;
+        f.write_char(options.decimal_separator)?;
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 
-    if options.long_units_value() {
-        let label = long_label(options.binary_value(), idx, parts.is_exactly_one());
+    if options.long_units {
+        let label = long_label(options.binary, idx, parts.is_exactly_one());
         write!(f, " {label}")
     } else {
-        if options.space_value() {
+        if options.space {
             f.write_char(' ')?;
         }
-        let suffix = short_label(options.binary_value(), idx);
+        let suffix = short_label(options.binary, idx);
         f.write_str(suffix)
     }
 }

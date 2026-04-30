@@ -1,3 +1,5 @@
+use crate::common::numeric::is_integer_f64;
+
 use super::DurationUnit;
 
 pub(crate) const MAX_COMPACT_SUFFIX_INDEX: usize = 6;
@@ -118,10 +120,10 @@ pub(crate) fn duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'st
         };
     }
 
-    // Polish plural rules (CLDR-style):
-    // - "one": only 1
-    // - "few": integers ending in 2..4, excluding 12..14
-    // - "many": all other integers
+    // Polish plural rules (CLDR):
+    // - "one":  exactly 1
+    // - "few":  integers ending in 2..=4, excluding 12..=14
+    // - "many": everything else
     match unit {
         DurationUnit::Day => plural_form_int(count, "dzień", "dni", "dni"),
         DurationUnit::Hour => plural_form_int(count, "godzina", "godziny", "godzin"),
@@ -147,11 +149,11 @@ fn plural_form_scaled(
     many: &'static str,
     fraction: &'static str,
 ) -> &'static str {
-    if !is_integer(value) {
+    if !is_integer_f64(value) {
         return fraction;
     }
 
-    if value < 0.0 || value > (u128::MAX as f64) {
+    if value < 0.0 || value > u128::MAX as f64 {
         return many;
     }
 
@@ -159,7 +161,7 @@ fn plural_form_scaled(
 }
 
 #[inline]
-fn plural_form_int(
+pub(crate) fn plural_form_int(
     n: u128,
     one: &'static str,
     few: &'static str,
@@ -177,9 +179,4 @@ fn plural_form_int(
     } else {
         many
     }
-}
-
-#[inline]
-fn is_integer(value: f64) -> bool {
-    value == (value as u128) as f64
 }

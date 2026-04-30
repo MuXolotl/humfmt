@@ -20,10 +20,10 @@ use crate::locale::{English, Locale};
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct NumberOptions<L: Locale = English> {
-    precision: u8,
-    long_units: bool,
-    separators: bool,
-    locale: L,
+    pub(crate) precision: u8,
+    pub(crate) long_units: bool,
+    pub(crate) separators: bool,
+    pub(crate) locale: L,
 }
 
 impl NumberOptions<English> {
@@ -101,8 +101,8 @@ impl<L: Locale> NumberOptions<L> {
     /// active locale.
     ///
     /// If you want to force unscaled rendering for values that would otherwise
-    /// be compacted (like `12_345 -> 12.3K`), use a locale with
-    /// `max_compact_suffix_index(0)` (e.g. via [`crate::locale::CustomLocale`]).
+    /// be compacted, use a locale with `max_compact_suffix_index(0)` (e.g. via
+    /// [`crate::locale::CustomLocale`]).
     ///
     /// # Examples
     ///
@@ -145,21 +145,5 @@ impl<L: Locale> NumberOptions<L> {
             separators: self.separators,
             locale,
         }
-    }
-
-    pub(crate) fn precision_value(&self) -> u8 {
-        self.precision
-    }
-
-    pub(crate) fn long_units_value(&self) -> bool {
-        self.long_units
-    }
-
-    pub(crate) fn separators_value(&self) -> bool {
-        self.separators
-    }
-
-    pub(crate) fn locale_ref(&self) -> &L {
-        &self.locale
     }
 }

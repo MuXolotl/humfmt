@@ -8,11 +8,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## PLANNED
 
-- [ ] Fix `is_integer` in `russian.rs` and `polish.rs` — the current `value == (value as u128) as f64` check gives wrong results for negative floats because the cast saturates to zero. Use `value % 1.0 == 0.0` instead, which works on stable `no_std`.
-- [ ] Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common` — it is the same function copy-pasted in two places.
-- [ ] Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs` — it is a word-for-word copy of `english::duration_unit`. The default should just call `english::duration_unit` to avoid two places to update.
-- [ ] Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units when they explicitly ask for it.
-- [ ] Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions` — the suffix adds noise without benefit, just access the fields or drop the suffix.
 - [ ] Add a percentage formatter — `0.423 -> "42.3%"`, `1.0 -> "100%"`, with locale-aware decimal separators and a configurable number of decimal places. Should reuse the existing number formatting infrastructure rather than being its own thing.
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
@@ -43,6 +38,8 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Final API consistency pass before 1.0 — make sure all formatters follow the same naming patterns and builder method conventions with no small inconsistencies left.
 - [ ] Add more comparison crates to the benchmark harness — `readable`, `human-readable`, `fancy-duration`, and `duration-human` are missing and cover overlapping functionality. Honest comparison means including them.
 - [ ] Improve benchmark alignment — add explicit scenarios that match common real-world output styles (e.g. binary + `precision(2)` + `space(true)`) so the capability matrix stays fair and easy to interpret.
+- [ ] `no_std + alloc` tier — right now it is either full `std` or truly bare `no_std`. An `alloc`-gated tier would let embedded targets with a heap use `.to_string()` without pulling in all of `std`. More useful than it sounds for embedded targets.
+- [ ] f64 precision loss in `compact_suffix_for` for values above 2^53 — document as a known limitation. The `as_f64()` conversion on `DecimalParts` loses integer precision for very large magnitudes. For display purposes this is rarely visible, but worth a note in docs.
 
 ---
 
@@ -59,12 +56,16 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Grammar-aware unit forms — case and gender agreement for languages that need it (e.g. Russian genitive after 2–4). The current approach covers most cases but is not linguistically complete.
 - [ ] WASM and embedded target smoke tests in CI.
 - [ ] Fuzzing harness for the formatting paths — finding edge cases in the integer math and float rendering code.
-- [ ] `no_std` + `alloc` (without `std`) tier — right now it is either full `std` or truly bare `no_std`. An `alloc`-gated tier would let embedded targets with a heap use `to_string()` without pulling in all of `std`.
 
 ---
 
 ## DONE
 
+- [x] ~~Fix `is_integer` in `russian.rs` and `polish.rs` — use `value % 1.0 == 0.0` instead of the broken `value == (value as u128) as f64` cast that saturates for negative floats~~ (Unreleased)
+- [x] ~~Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common::numeric`~~ (Unreleased)
+- [x] ~~Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs`~~ (Unreleased)
+- [x] ~~Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units~~ (Unreleased)
+- [x] ~~Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions`~~ (Unreleased)
 - [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~ (Unreleased)
 - [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~ (Unreleased)
 - [x] ~~Comparison harness covers `indicatif::HumanBytes` and aligned byte groups~~ (Unreleased)

@@ -44,6 +44,26 @@ fn supports_max_unit_override() {
 }
 
 #[test]
+fn supports_max_units_up_to_seven() {
+    // 1s 1ms 1us 1ns — four distinct non-zero units below second boundary.
+    let value = Duration::from_nanos(1_001_001_001);
+    let opts = DurationOptions::new().max_units(7).long_units();
+    assert_eq!(
+        humfmt::duration_with(value, opts).to_string(),
+        "1 second 1 millisecond 1 microsecond 1 nanosecond"
+    );
+}
+
+#[test]
+fn max_units_clamps_to_one_at_minimum() {
+    let opts = DurationOptions::new().max_units(0);
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(3661), opts).to_string(),
+        "1h"
+    );
+}
+
+#[test]
 fn supports_extension_trait_usage() {
     assert_eq!(
         Duration::from_secs(90).human_duration().to_string(),
