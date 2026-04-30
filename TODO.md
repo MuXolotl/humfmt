@@ -6,6 +6,18 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ---
 
+| Priority | Formatter |
+|-|-|
+| 1 | number |
+| 2 | bytes |
+| 3 | duration + ago |
+| 4 | list |
+| 5 | ordinal |
+| 6 | percentage |
+| ... | other |
+
+---
+
 ## PLANNED
 
 - [ ] Add a percentage formatter — `0.423 -> "42.3%"`, `1.0 -> "100%"`, with locale-aware decimal separators and a configurable number of decimal places. Should reuse the existing number formatting infrastructure rather than being its own thing.
