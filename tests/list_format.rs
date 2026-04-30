@@ -80,6 +80,23 @@ fn supports_custom_list_separator() {
 }
 
 #[test]
+fn serial_comma_is_ignored_for_non_comma_separators() {
+    // Serial comma is a comma-specific stylistic rule. If the user overrides the
+    // list separator away from commas, injecting a literal comma becomes surprising.
+    let locale = CustomLocale::english()
+        .list_separator(" | ")
+        .and_word("&")
+        .serial_comma(true);
+
+    let out = list_with(
+        &["red", "green", "blue"],
+        ListOptions::new().locale(locale).serial_comma_enabled(true),
+    );
+
+    assert_eq!(out.to_string(), "red | green & blue");
+}
+
+#[test]
 fn supports_explicit_serial_comma_boolean_setter() {
     let with = list_with(
         &["red", "green", "blue"],

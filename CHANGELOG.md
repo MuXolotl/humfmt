@@ -27,6 +27,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   This affects both long compact-number suffixes and long-form duration unit labels.
 - Restored `polish::ordinal_suffix` and `russian::ordinal_suffix` helpers used by `CustomLocale::{polish,russian}()` presets.
 - Russian and Polish duration unit selection now uses integer counts directly (no `u128 -> f64` casts), preserving correctness for very large durations.
+- List formatting no longer injects a literal comma for serial-comma output when the list separator is not comma-style (e.g. custom separators like `" | "`).
 
 ### Changed
 - `Locale::duration_unit` default implementation in `traits.rs` now delegates to `english::duration_unit` instead of duplicating the same match expression verbatim. Single source of truth; adding a new time unit no longer requires updating two places.

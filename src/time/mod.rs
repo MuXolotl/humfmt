@@ -9,7 +9,7 @@
 //! Enable with:
 //!
 //! ```toml
-//! humfmt = { version = "0.2", features = ["time"] }
+//! humfmt = { version = "0.4", features = ["time"] }
 //! ```
 //!
 //! # What this module provides

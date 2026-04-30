@@ -195,6 +195,28 @@ assert_eq!(
 - Conjunction: `"and"`
 - Serial comma enabled: `true`
 
+#### Serial comma and custom separators
+The serial comma (Oxford comma) is a comma-specific style rule.
+
+If you override the list separator away from commas (for example, using `" | "`),
+`humfmt` will not inject a literal comma before the final conjunction even if
+serial comma is enabled.
+
+Example:
+
+```rust
+use humfmt::{list_with, ListOptions};
+use humfmt::locale::CustomLocale;
+
+let locale = CustomLocale::english()
+    .list_separator(" | ")
+    .and_word("&")
+    .serial_comma(true);
+
+let out = list_with(&["red", "green", "blue"], ListOptions::new().locale(locale));
+assert_eq!(out.to_string(), "red | green & blue");
+```
+
 ## Locales
 
 Built-in locale packs exist for:
