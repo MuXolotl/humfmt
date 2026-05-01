@@ -40,11 +40,13 @@ jobs:
         with:
           toolchain: "1.70"
 
-      - name: Check library compiles on MSRV (no ecosystem integrations)
+      # Checks that the library itself compiles on MSRV.
+      # Tests are not run here because dev-dependencies (criterion, proptest)
+      # and optional ecosystem crates (chrono, time) pull in transitive
+      # dependencies that require editions newer than what Rust 1.70 supports.
+      # Correctness is covered by the Test Suite job on stable.
+      - name: Check library on MSRV
         run: cargo check --features std,english,russian,polish
-
-      - name: Run tests on MSRV (no ecosystem integrations)
-        run: cargo test --features std,english,russian,polish --lib --tests
 
   minimal:
     name: Minimal feature check
