@@ -8,17 +8,30 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+### Added
+- Percentage formatter: `percent(0.423) → "42.3%"`.
+  - Free functions `percent(value)` and `percent_with(value, options)`.
+  - `PercentDisplay<L>` implements `Display` with zero intermediate allocation.
+  - `PercentOptions<L>` builder with `precision`, `fixed_precision`, and `locale`.
+  - `PercentLike` sealed trait implemented for `f32` and `f64`.
+  - `.human_percent()` / `.human_percent_with()` extension methods on `Humanize`.
+  - Input is a ratio (`1.0 = 100%`); values outside `0.0..=1.0` are accepted.
+  - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
+  - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
+  - Locale-aware decimal separator via `.locale(locale)`.
+
 ### Fixed
-- `format_float` fallback path: when the internal `StackString` buffer overflows, the old code wrote directly via `write!()` ignoring the active locale decimal separator. The new `write_float_direct()` helper correctly applies the locale separator in all code paths. In practice the buffer (64 bytes) never overflows for `precision <= 6`, but the fallback is now correct rather than silently wrong.
-- `round_f64`: removed an incorrect comment claiming `f64::round()` is unavailable in `core`. The real reason for using integer-cast rounding is that `f64::round()` requires `std` or `libm` at MSRV 1.70 in a `no_std` build. The comment now states this accurately.
-- `is_integer_f64`: removed the `#[cfg(any(feature = "russian", feature = "polish"))]` guard that caused a `dead_code` warning in bare `no_std` builds with no locale features active. Replaced with `#[allow(dead_code)]` — the function is always compiled and always tested regardless of active features.
+- `format_float` fallback path: when the internal `StackString` buffer overflows, the old code wrote directly via `write!()` ignoring the active locale decimal separator. The new `write_float_direct()` helper correctly applies the locale separator in all code paths.
+- `round_f64`: removed an incorrect comment claiming `f64::round()` is unavailable in `core`. The real reason for using integer-cast rounding is that `f64::round()` requires `std` or `libm` at MSRV 1.70 in a `no_std` build.
+- `is_integer_f64`: removed the `#[cfg(any(feature = "russian", feature = "polish"))]` guard that caused a `dead_code` warning in bare `no_std` builds with no locale features active. Replaced with `#[allow(dead_code)]`.
 
 ### Changed
-- `NumberOptions::separators()` documentation clarified: digit grouping separators apply only when the value is not compacted (suffix index 0). The previous wording did not make this obvious. A concrete example showing the no-effect case with compacted output is now included in the docstring.
+- `NumberOptions::separators()` documentation clarified: digit grouping separators apply only when the value is not compacted (suffix index 0).
 
 ### Tests
-- Added edge-case tests for the `number` formatter covering: `0`, `1`, `-1`, `i128::MIN`, `u128::MAX`, `precision(0)` rounding, sign symmetry for floats, `separators` semantics (compacted vs unscaled), very small positive and negative floats, exact suffix boundaries, float just below the rescale boundary.
-- Added `very_large_float_near_f64_precision_limit` test for `is_integer_f64` verifying correct behaviour at the `2^53` f64 integer precision boundary.
+- Added 21 tests for the percentage formatter covering common ratios, precision, fixed_precision, edge cases, locale separators, extension trait, rounding, and sign symmetry.
+- Added edge-case tests for the `number` formatter: `0`, `1`, `-1`, `i128::MIN`, `u128::MAX`, `precision(0)`, sign symmetry for floats, `separators` semantics, very small floats, exact suffix boundaries.
+- Added `very_large_float_near_f64_precision_limit` test for `is_integer_f64`.
 
 ---
 

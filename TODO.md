@@ -20,7 +20,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## PLANNED
 
-- [ ] Add a percentage formatter — `0.423 -> "42.3%"`, `1.0 -> "100%"`, with locale-aware decimal separators and a configurable number of decimal places. Should reuse the existing number formatting infrastructure rather than being its own thing.
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
 - [ ] Significant-digits mode — instead of decimal places, round to N total significant digits. Useful for scientific or telemetry output.
@@ -54,6 +53,8 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Document the Russian ordinal gender limitation — `ordinal_suffix` for Russian always returns `-й` (masculine). The library has no concept of grammatical gender since it only receives a number. This should be explicitly noted in the Russian locale docs and in the edge-case behavior tables.
 - [ ] Investigate `is_comma_style_separator` Unicode edge cases — the current check finds the first non-whitespace character and compares it to `,`. This works for ASCII separators but will not recognize `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma). Low priority until non-Latin list separators are needed.
 - [ ] Number formatter: `separators(true)` currently applies only at suffix index 0 (unscaled output). Consider whether it should also apply to the integer part of compacted output (e.g. `1,234.5K` for very large scaled values). Document the current behaviour explicitly and decide before 1.0.
+- [ ] Percentage formatter: consider accepting integer inputs (e.g. `42_u8` meaning `42%` directly, without the `* 100` ratio convention). Could be a separate `percent_ratio` vs `percent_value` split, or an option flag. Decide before 1.0.
+- [ ] Percentage formatter: `+` sign option for positive values — `"+42.3%"` style useful for delta/change displays (e.g. portfolio gains).
 
 ---
 
@@ -74,6 +75,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Percentage formatter — `0.423 → "42.3%"`, locale-aware decimal separator, configurable precision, fixed_precision, f32/f64 input, Humanize trait methods~~
 - [x] ~~Fix `format_float` fallback path: locale decimal separator was ignored when`StackString` overflowed~~
 - [x] ~~Fix incorrect `no_std` comment in `round_f64`~~
 - [x] ~~Remove feature-gated `#[cfg]` guard from `is_integer_f64`, replace with `#[allow(dead_code)]`~~

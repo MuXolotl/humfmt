@@ -11,6 +11,7 @@
 ///
 /// assert_eq!(1_500_000.human_number().to_string(), "1.5M");
 /// assert_eq!(1536_u64.human_bytes().to_string(), "1.5KB");
+/// assert_eq!(0.423_f64.human_percent().to_string(), "42.3%");
 /// ```
 pub trait Humanize: Sized {
     /// Formats this value as a human-readable byte size using default options.
@@ -105,6 +106,36 @@ pub trait Humanize: Sized {
         Self: crate::ordinal::OrdinalLike,
     {
         crate::ordinal::ordinal_with(self, locale)
+    }
+
+    /// Formats this value as a human-readable percentage using default options.
+    ///
+    /// The input is a ratio: `1.0` means `100%`, `0.5` means `50%`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::Humanize;
+    ///
+    /// assert_eq!(0.423_f64.human_percent().to_string(), "42.3%");
+    /// assert_eq!(1.0_f64.human_percent().to_string(), "100%");
+    /// ```
+    fn human_percent(self) -> crate::percent::PercentDisplay<crate::locale::English>
+    where
+        Self: crate::percent::PercentLike,
+    {
+        crate::percent::percent(self)
+    }
+
+    /// Formats this value as a human-readable percentage using custom options.
+    fn human_percent_with<L: crate::locale::Locale>(
+        self,
+        options: crate::percent::PercentOptions<L>,
+    ) -> crate::percent::PercentDisplay<L>
+    where
+        Self: crate::percent::PercentLike,
+    {
+        crate::percent::percent_with(self, options)
     }
 }
 
