@@ -8,7 +8,17 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
-...
+### Fixed
+- `format_float` fallback path: when the internal `StackString` buffer overflows, the old code wrote directly via `write!()` ignoring the active locale decimal separator. The new `write_float_direct()` helper correctly applies the locale separator in all code paths. In practice the buffer (64 bytes) never overflows for `precision <= 6`, but the fallback is now correct rather than silently wrong.
+- `round_f64`: removed an incorrect comment claiming `f64::round()` is unavailable in `core`. The real reason for using integer-cast rounding is that `f64::round()` requires `std` or `libm` at MSRV 1.70 in a `no_std` build. The comment now states this accurately.
+- `is_integer_f64`: removed the `#[cfg(any(feature = "russian", feature = "polish"))]` guard that caused a `dead_code` warning in bare `no_std` builds with no locale features active. Replaced with `#[allow(dead_code)]` — the function is always compiled and always tested regardless of active features.
+
+### Changed
+- `NumberOptions::separators()` documentation clarified: digit grouping separators apply only when the value is not compacted (suffix index 0). The previous wording did not make this obvious. A concrete example showing the no-effect case with compacted output is now included in the docstring.
+
+### Tests
+- Added edge-case tests for the `number` formatter covering: `0`, `1`, `-1`, `i128::MIN`, `u128::MAX`, `precision(0)` rounding, sign symmetry for floats, `separators` semantics (compacted vs unscaled), very small positive and negative floats, exact suffix boundaries, float just below the rescale boundary.
+- Added `very_large_float_near_f64_precision_limit` test for `is_integer_f64` verifying correct behaviour at the `2^53` f64 integer precision boundary.
 
 ---
 

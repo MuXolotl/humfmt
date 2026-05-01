@@ -13,7 +13,7 @@ pub enum NumericValue {
 ///
 /// Used by locale packs that need to distinguish whole from fractional
 /// scaled values for grammatical agreement (Russian, Polish, etc.).
-#[cfg(any(feature = "russian", feature = "polish"))]
+#[allow(dead_code)]
 #[inline]
 pub fn is_integer_f64(value: f64) -> bool {
     value.is_finite() && value % 1.0 == 0.0
@@ -21,11 +21,7 @@ pub fn is_integer_f64(value: f64) -> bool {
 
 #[cfg(test)]
 mod tests {
-    // The tests are always compiled so the logic stays verified
-    // regardless of which locale features are active.
-    fn is_integer_f64(value: f64) -> bool {
-        value.is_finite() && value % 1.0 == 0.0
-    }
+    use super::is_integer_f64;
 
     #[test]
     fn whole_floats_are_integers() {
@@ -53,11 +49,19 @@ mod tests {
 
     #[test]
     fn large_negative_whole_float_is_integer() {
-        // This was the broken case with the old `value as u128` cast:
-        // -1.0 as u128 saturates to 0 on stable Rust, making the old
-        // check return false for -1.0 (wrong). The % 1.0 check is correct.
+        // The old `value as u128` cast saturated to 0 for negative values,
+        // causing -1.0, -42.0 etc. to incorrectly return false.
+        // The `% 1.0 == 0.0` check is correct for all finite values.
         assert!(is_integer_f64(-1.0));
         assert!(is_integer_f64(-42.0));
         assert!(is_integer_f64(-999_999.0));
+    }
+
+    #[test]
+    fn very_large_float_near_f64_precision_limit() {
+        // 2^53 is the largest integer exactly representable as f64.
+        let max_exact = (1u64 << 53) as f64;
+        assert!(is_integer_f64(max_exact));
+        assert!(is_integer_f64(-max_exact));
     }
 }

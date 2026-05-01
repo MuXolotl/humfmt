@@ -91,10 +91,15 @@ impl<L: Locale> NumberOptions<L> {
         self
     }
 
-    /// Enables or disables digit grouping separators for unscaled output.
+    /// Enables or disables digit grouping separators.
     ///
-    /// Separators apply only when the value is not compacted (suffix index `0`).
-    /// Separator characters come from the active locale.
+    /// **Important:** grouping separators only apply when the value is not compacted
+    /// (i.e. when it is below the first suffix threshold, or when compact scaling
+    /// is disabled via [`CustomLocale::max_compact_suffix_index(0)`]).
+    /// For compacted values like `15.3K` the separator has no effect.
+    ///
+    /// Separator characters come from the active locale
+    /// (English default: `','` as group separator, `'.'` as decimal separator).
     ///
     /// # Examples
     ///
@@ -102,10 +107,15 @@ impl<L: Locale> NumberOptions<L> {
     /// use humfmt::{number_with, NumberOptions};
     /// use humfmt::locale::CustomLocale;
     ///
+    /// // Disable compact scaling so separators are visible.
     /// let locale = CustomLocale::english().max_compact_suffix_index(0);
     /// let opts = NumberOptions::new().locale(locale).separators(true);
     ///
     /// assert_eq!(number_with(12_345, opts).to_string(), "12,345");
+    ///
+    /// // With compact scaling active, separators have no effect on the compacted part.
+    /// let opts_compact = NumberOptions::new().separators(true);
+    /// assert_eq!(humfmt::number_with(15_320, opts_compact).to_string(), "15.3K");
     /// ```
     #[inline]
     pub fn separators(mut self, yes: bool) -> Self {

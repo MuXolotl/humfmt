@@ -155,29 +155,103 @@ fn format_float<L: crate::locale::Locale>(
         f.write_str("-")?;
     }
 
+    // Write the scaled value into a stack buffer so we can apply locale-aware
+    // decimal separator and trailing-zero trimming without heap allocation.
+    // The buffer is 64 bytes which is always sufficient for precision <= 6
+    // plus a small integer part (e.g. "999.123456" is 10 chars).
     let mut tmp = StackString::<64>::new();
-    let write_res = write!(&mut tmp, "{:.*}", precision as usize, scaled);
+    let write_ok = write!(&mut tmp, "{:.*}", precision as usize, scaled).is_ok();
 
-    if write_res.is_err() {
-        write!(f, "{:.*}", precision as usize, scaled)?;
-        let suffix = locale.compact_suffix_for(idx, scaled, options.long_units);
-        return f.write_str(suffix);
+    if write_ok {
+        if !options.fixed_precision {
+            trim_ascii_trailing_zeros_and_dot(&mut tmp);
+        }
+
+        write_localized_numeric_str(
+            f,
+            tmp.as_str(),
+            options.separators,
+            locale.decimal_separator(),
+            locale.group_separator(),
+        )?;
+    } else {
+        // Fallback: the stack buffer overflowed (should not happen for precision <= 6,
+        // but we handle it defensively). We write directly with the locale decimal
+        // separator by splitting on '.'.
+        write_float_direct(f, scaled, precision, options.fixed_precision, locale)?;
     }
-
-    if !options.fixed_precision {
-        trim_ascii_trailing_zeros_and_dot(&mut tmp);
-    }
-
-    write_localized_numeric_str(
-        f,
-        tmp.as_str(),
-        options.separators,
-        locale.decimal_separator(),
-        locale.group_separator(),
-    )?;
 
     let suffix = locale.compact_suffix_for(idx, scaled, options.long_units);
     f.write_str(suffix)
+}
+
+/// Fallback float writer used when the stack buffer overflows.
+///
+/// Writes `value` with `precision` decimal places, applying the locale decimal
+/// separator. This path avoids StackString but still respects the locale.
+fn write_float_direct<L: crate::locale::Locale>(
+    f: &mut fmt::Formatter<'_>,
+    value: f64,
+    precision: u8,
+    fixed_precision: bool,
+    locale: &L,
+) -> fmt::Result {
+    // Decompose into integer and fractional parts using integer arithmetic
+    // to stay no_std compatible and avoid a second stack buffer.
+    let p = precision as usize;
+    let factor = POW10_F64[p.min(POW10_F64.len() - 1)];
+    let shifted = (value * factor + 0.5) as u64;
+    let int_part = shifted / factor as u64;
+    let frac_raw = shifted % factor as u64;
+
+    write_u128(f, int_part as u128, false, locale.group_separator())?;
+
+    if fixed_precision && precision > 0 {
+        f.write_char(locale.decimal_separator())?;
+        // Write fractional digits with leading zeros preserved.
+        write_padded_frac(f, frac_raw, precision)?;
+    } else if !fixed_precision {
+        // Trim trailing zeros from the fractional part.
+        if frac_raw != 0 {
+            f.write_char(locale.decimal_separator())?;
+            write_padded_frac_trimmed(f, frac_raw, precision)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Writes a fractional value as exactly `precision` digits, zero-padded on the left.
+fn write_padded_frac(f: &mut fmt::Formatter<'_>, frac: u64, precision: u8) -> fmt::Result {
+    let p = precision as usize;
+    let mut buf = [b'0'; 6];
+    let mut rem = frac;
+    for i in (0..p).rev() {
+        buf[i] = b'0' + (rem % 10) as u8;
+        rem /= 10;
+    }
+    let s = unsafe { core::str::from_utf8_unchecked(&buf[..p]) };
+    f.write_str(s)
+}
+
+/// Writes a fractional value with trailing zeros trimmed.
+fn write_padded_frac_trimmed(f: &mut fmt::Formatter<'_>, frac: u64, precision: u8) -> fmt::Result {
+    let p = precision as usize;
+    let mut buf = [b'0'; 6];
+    let mut rem = frac;
+    for i in (0..p).rev() {
+        buf[i] = b'0' + (rem % 10) as u8;
+        rem /= 10;
+    }
+    let mut end = p;
+    while end > 0 && buf[end - 1] == b'0' {
+        end -= 1;
+    }
+    if end > 0 {
+        let s = unsafe { core::str::from_utf8_unchecked(&buf[..end]) };
+        f.write_str(s)?;
+    }
+    Ok(())
 }
 
 /// Computes the compact scale index and scaled value for a non-negative finite f64.
@@ -189,10 +263,10 @@ fn format_float<L: crate::locale::Locale>(
 /// The exponent of an f64 is stored in bits 52..=62 with a bias of 1023.
 /// Dividing the unbiased exponent by log2(1000) ≈ 9.966 gives the approximate
 /// power-of-1000 index. Integer arithmetic is used throughout to stay
-/// compatible with `no_std` stable Rust (no `f64::log10`, no `f64::powi`).
+/// compatible with `no_std` stable Rust.
 fn normalize_scaled_o1(value: f64, precision: u8, max_idx: usize) -> (f64, usize) {
     if value < 1_000.0 || max_idx == 0 {
-        let scaled = round_to_non_negative(value, precision);
+        let scaled = round_f64(value, precision);
         return if scaled >= 1_000.0 && max_idx > 0 {
             (scaled / 1_000.0, 1)
         } else {
@@ -200,11 +274,10 @@ fn normalize_scaled_o1(value: f64, precision: u8, max_idx: usize) -> (f64, usize
         };
     }
 
-    // Extract the unbiased binary exponent from the IEEE 754 representation.
+    // Extract the unbiased binary exponent from the IEEE 754 bit representation.
     // For a normal f64: exponent bits are [52..62], bias is 1023.
     // log2(1000) ≈ 9.9658, so floor(unbiased_exp / 9.966) approximates
-    // the base-1000 index. We use the integer fraction 1000/9966 to avoid
-    // any floating-point math here, keeping this no_std compatible.
+    // the base-1000 index. Integer fraction 1000/9966 avoids any f64 math here.
     let bits = value.to_bits();
     let biased_exp = ((bits >> 52) & 0x7FF) as i32;
     let unbiased_exp = biased_exp - 1023;
@@ -215,9 +288,8 @@ fn normalize_scaled_o1(value: f64, precision: u8, max_idx: usize) -> (f64, usize
         ((unbiased_exp as usize) * 1_000 / 9_966).min(max_idx)
     };
 
-    // The approximation can be off by one due to the non-integer log2(1000) ratio.
-    // Correct downward if the value is actually below the threshold for approx_idx.
-    // POW1000_F64 is used instead of powi() to stay no_std compatible.
+    // The approximation can be off by one. Correct downward if the value is
+    // actually below the threshold for approx_idx.
     let idx = if approx_idx > 0 && approx_idx < POW1000_F64.len() && value < POW1000_F64[approx_idx]
     {
         approx_idx - 1
@@ -232,9 +304,8 @@ fn normalize_scaled_o1(value: f64, precision: u8, max_idx: usize) -> (f64, usize
         POW1000_F64[POW1000_F64.len() - 1]
     };
 
-    let scaled = round_to_non_negative(value / divisor, precision);
+    let scaled = round_f64(value / divisor, precision);
 
-    // After rounding, the scaled value may have crossed the 1000 boundary.
     if scaled >= 1_000.0 && idx < max_idx {
         (scaled / 1_000.0, idx + 1)
     } else {
@@ -242,25 +313,35 @@ fn normalize_scaled_o1(value: f64, precision: u8, max_idx: usize) -> (f64, usize
     }
 }
 
+/// Rounds a non-negative finite f64 to `precision` decimal places using half-up rounding.
+///
+/// Uses integer cast rounding instead of `f64::round()` because `round()` is not
+/// available in `core` on stable Rust at MSRV 1.70 without `std` or `libm`.
+/// The cast `(x + 0.5) as u64` produces correct half-up rounding for non-negative
+/// finite values within the safe range.
 #[inline]
-fn round_to_non_negative(value: f64, precision: u8) -> f64 {
-    // `core` on stable does not expose `f64::round()` in no_std builds (MSRV 1.70).
-    // Half-up rounding via integer cast is safe for non-negative finite values
-    // within the representable u128 range.
-    let p = (precision.min(6)) as usize;
-    let factor = POW10_F64[p];
-
+fn round_f64(value: f64, precision: u8) -> f64 {
     if !value.is_finite() || value < 0.0 {
         return value;
     }
 
-    let max_safe = (u128::MAX as f64) / factor;
+    let p = precision.min(6) as usize;
+    let factor = POW10_F64[p];
+
+    // Guard against overflow before shifting into integer range.
+    let max_safe = f64::MAX / factor;
     if value > max_safe {
         return value;
     }
 
-    let scaled = (value * factor) + 0.5;
-    ((scaled as u128) as f64) / factor
+    let shifted = value * factor + 0.5;
+
+    // Guard against values that exceed u64 range after shifting.
+    if shifted >= u64::MAX as f64 {
+        return value;
+    }
+
+    (shifted as u64) as f64 / factor
 }
 
 fn write_localized_numeric_str(
@@ -270,6 +351,7 @@ fn write_localized_numeric_str(
     decimal_separator: char,
     group_separator: char,
 ) -> fmt::Result {
+    // Split off any exponent part (e.g. "1.5e10") before processing.
     let (mantissa, exp_part) = match input
         .as_bytes()
         .iter()

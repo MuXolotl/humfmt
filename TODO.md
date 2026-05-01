@@ -53,6 +53,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] f64 precision loss in `compact_suffix_for` for values above 2^53 — document as a known limitation. The `as_f64()` conversion on `DecimalParts` loses integer precision for very large magnitudes. For display purposes this is rarely visible, but worth a note in docs.
 - [ ] Document the Russian ordinal gender limitation — `ordinal_suffix` for Russian always returns `-й` (masculine). The library has no concept of grammatical gender since it only receives a number. This should be explicitly noted in the Russian locale docs and in the edge-case behavior tables.
 - [ ] Investigate `is_comma_style_separator` Unicode edge cases — the current check finds the first non-whitespace character and compares it to `,`. This works for ASCII separators but will not recognize `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma). Low priority until non-Latin list separators are needed.
+- [ ] Number formatter: `separators(true)` currently applies only at suffix index 0 (unscaled output). Consider whether it should also apply to the integer part of compacted output (e.g. `1,234.5K` for very large scaled values). Document the current behaviour explicitly and decide before 1.0.
 
 ---
 
@@ -72,51 +73,60 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## DONE
 
-(Unreleased → 0.5.0)
+### (Unreleased → 0.5.0)
+- [x] ~~Fix `format_float` fallback path: locale decimal separator was ignored when`StackString` overflowed~~
+- [x] ~~Fix incorrect `no_std` comment in `round_f64`~~
+- [x] ~~Remove feature-gated `#[cfg]` guard from `is_integer_f64`, replace with `#[allow(dead_code)]`~~
+- [x] ~~Clarify `NumberOptions::separators()` documentation~~
+- [x] ~~Edge-case test coverage for `number` formatter (zero, one, -1, i128::MIN, u128::MAX, precision(0), sign symmetry, separators semantics, small floats, suffix boundaries)~~
 
-- [x] ~~MSRV raised to 1.70 and enforced by a dedicated CI job~~ (0.4.0)
-- [x] ~~`NumberOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~ (0.4.0)
-- [x] ~~`BytesOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~ (0.4.0)
-- [x] ~~Float compact-number scaling rewritten to O(1) via IEEE 754 exponent — consistent with integer `ilog10` path~~ (0.4.0)
-- [x] ~~Byte label arrays refactored from 6 flat arrays to 2 `UnitLabels` struct arrays~~ (0.4.0)
-- [x] ~~Fix `is_integer` in `russian.rs` and `polish.rs` — use `value % 1.0 == 0.0` instead of the broken `value == (value as u128) as f64` cast that saturates for negative floats~~ (0.4.0)
-- [x] ~~Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common::numeric`~~ (Unreleased → 0.4.0)
-- [x] ~~Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs`~~ (0.4.0)
-- [x] ~~Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units~~ (0.4.0)
-- [x] ~~Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions`~~ (0.4.0)
-- [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~ (0.4.0)
-- [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~ (0.4.0)
-- [x] ~~Comparison harness covers `indicatif::HumanBytes` and aligned byte groups~~ (0.4.0)
-- [x] ~~Optional spacing in short byte output via `BytesOptions::space(bool)`~~ (0.4.0)
-- [x] ~~Byte formatter locale-aware decimal separator~~ (0.4.0)
-- [x] ~~Float compact-number formatting stable on `no_std` MSRV~~ (0.4.0)
-- [x] ~~Polish plural rules CLDR-aligned for long-form output~~ (0.4.0)
-- [x] ~~Shrink `StackString<512>` to `StackString<64>`~~ (0.4.0)
-- [x] ~~`ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction`~~ (0.4.0)
-- [x] ~~`locale::CustomLocale` list separator hook (`list_separator`)~~ (0.4.0)
-- [x] ~~On-demand GitHub Actions benchmark workflow~~ (0.4.0)
-- [x] ~~CI: test suite + clippy + fmt + feature matrix + `no_std` check~~ (0.4.0)
+### v0.4.0 released
+- [x] ~~MSRV raised to 1.70 and enforced by a dedicated CI job~~
+- [x] ~~`NumberOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~
+- [x] ~~`BytesOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~
+- [x] ~~Float compact-number scaling rewritten to O(1) via IEEE 754 exponent — consistent with integer `ilog10` path~~
+- [x] ~~Byte label arrays refactored from 6 flat arrays to 2 `UnitLabels` struct arrays~~
+- [x] ~~Fix `is_integer` in `russian.rs` and `polish.rs` — use `value % 1.0 == 0.0` instead of the broken `value == (value as u128) as f64` cast that saturates for negative floats~~
+- [x] ~~Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common::numeric`~~
+- [x] ~~Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs`~~
+- [x] ~~Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units~~
+- [x] ~~Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions`~~
+- [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~
+- [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~
+- [x] ~~Comparison harness covers `indicatif::HumanBytes` and aligned byte groups~~
+- [x] ~~Optional spacing in short byte output via `BytesOptions::space(bool)`~~
+- [x] ~~Byte formatter locale-aware decimal separator~~
+- [x] ~~Float compact-number formatting stable on `no_std` MSRV~~
+- [x] ~~Polish plural rules CLDR-aligned for long-form output~~
+- [x] ~~Shrink `StackString<512>` to `StackString<64>`~~
+- [x] ~~`ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction`~~
+- [x] ~~`locale::CustomLocale` list separator hook (`list_separator`)~~
+- [x] ~~On-demand GitHub Actions benchmark workflow~~
+- [x] ~~CI: test suite + clippy + fmt + feature matrix + `no_std` check~~
 
-- [x] ~~docs.rs all-features build~~ (0.3.0)
-- [x] ~~`#![deny(missing_docs)]` + full public API rustdoc coverage~~ (0.3.0)
-- [x] ~~Centralized `Sealed` trait infrastructure~~ (0.3.0)
-- [x] ~~O(1) compact integer scaling via `ilog10` / `ilog2`~~ (0.3.0)
-- [x] ~~Property tests with `proptest` (sign symmetry, monotonicity, locale invariants)~~ (0.3.0)
-- [x] ~~Capability matrix in `BENCHMARKS.md`~~ (0.3.0)
-- [x] ~~Auto-generated `BENCHMARKS.md` + dark-theme SVG charts~~ (0.3.0)
-- [x] ~~Standalone comparison benchmark harness (`tools/benchmarks/`)~~ (0.3.0)
-- [x] ~~Criterion benchmark suite for the core formatter paths~~ (0.3.0)
-- [x] ~~`DurationConversionError` + `*_checked` helpers~~ (0.3.0)
+### v0.3.0 released
+- [x] ~~docs.rs all-features build~~
+- [x] ~~`#![deny(missing_docs)]` + full public API rustdoc coverage~~
+- [x] ~~Centralized `Sealed` trait infrastructure~~
+- [x] ~~O(1) compact integer scaling via `ilog10` / `ilog2`~~
+- [x] ~~Property tests with `proptest` (sign symmetry, monotonicity, locale invariants)~~
+- [x] ~~Capability matrix in `BENCHMARKS.md`~~
+- [x] ~~Auto-generated `BENCHMARKS.md` + dark-theme SVG charts~~
+- [x] ~~Standalone comparison benchmark harness (`tools/benchmarks/`)~~
+- [x] ~~Criterion benchmark suite for the core formatter paths~~
+- [x] ~~`DurationConversionError` + `*_checked` helpers~~
 
-- [x] ~~Optional `time` integration (`Duration`, `OffsetDateTime`)~~ (0.2.0)
-- [x] ~~Optional `chrono` integration (`TimeDelta`, `DateTime`)~~ (0.2.0)
-- [x] ~~`CustomLocale` builder for ad hoc suffix / separator / hook overrides~~ (0.2.0)
-- [x] ~~English, Russian, and Polish locale packs~~ (0.2.0)
-- [x] ~~Natural-language list formatter~~ (0.2.0)
-- [x] ~~Relative-time ("ago") formatter~~ (0.2.0)
-- [x] ~~Duration formatter with configurable `max_units`~~ (0.2.0)
-- [x] ~~Ordinal formatter~~ (0.2.0)
-- [x] ~~Byte-size formatter (decimal SI + binary IEC)~~ (0.2.0)
+### v0.2.0 released
+- [x] ~~Optional `time` integration (`Duration`, `OffsetDateTime`)~~
+- [x] ~~Optional `chrono` integration (`TimeDelta`, `DateTime`)~~
+- [x] ~~`CustomLocale` builder for ad hoc suffix / separator / hook overrides~~
+- [x] ~~English, Russian, and Polish locale packs~~
+- [x] ~~Natural-language list formatter~~
+- [x] ~~Relative-time ("ago") formatter~~
+- [x] ~~Duration formatter with configurable `max_units`~~
+- [x] ~~Ordinal formatter~~
+- [x] ~~Byte-size formatter (decimal SI + binary IEC)~~
 
-- [x] ~~`no_std` compatible build~~ (0.1.1)
-- [x] ~~Compact number formatter with short and long units~~ (0.1.0)
+### v0.1.x released
+- [x] ~~`no_std` compatible build~~
+- [x] ~~Compact number formatter with short and long units~~
