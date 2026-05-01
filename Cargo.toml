@@ -27,7 +27,7 @@ time = ["dep:time"]
 
 [dependencies]
 chrono = { version = "0.4", optional = true, default-features = false }
-time = { version = "0.3", optional = true, default-features = false }
+time = { version = ">=0.3, <0.3.42", optional = true, default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"

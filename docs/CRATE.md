@@ -245,7 +245,7 @@ Both integrations provide:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.3", default-features = false }
+humfmt = { version = "0.4", default-features = false }
 ```
 
 ## Benchmarks

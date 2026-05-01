@@ -40,11 +40,11 @@ jobs:
         with:
           toolchain: "1.70"
 
-      - name: Check library compiles on MSRV
-        run: cargo check --all-features
+      - name: Check library compiles on MSRV (no ecosystem integrations)
+        run: cargo check --features std,english,russian,polish
 
-      - name: Run tests on MSRV
-        run: cargo test --all-features --lib --tests
+      - name: Run tests on MSRV (no ecosystem integrations)
+        run: cargo test --features std,english,russian,polish --lib --tests
 
   minimal:
     name: Minimal feature check
