@@ -1,9 +1,8 @@
 [package]
 name = "humfmt"
-# A preview version of an upcoming release (0.3.0 → 0.4.0) / Current → Future version
 version = "0.4.0"
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.70"
 authors = ["MuXolotl"]
 description = "Ergonomic human-readable formatting toolkit for Rust"
 license = "MIT"
@@ -14,23 +13,15 @@ keywords = ["format", "humanize", "display", "number", "numeric"]
 categories = ["value-formatting", "text-processing"]
 
 [features]
-# Keep the current feature names stable across pre-1.0 releases, even when some
-# of them are still compatibility placeholders. This lets downstream manifests
-# stay valid while corresponding APIs land incrementally.
 default = ["std", "english"]
 
-# `std` is the only behavior-changing flag today.
 std = []
-
-# Placeholder for future finer-grained `alloc` gating.
 alloc = []
 
-# Locale flags. English, Russian, and Polish are currently implemented.
 english = []
 russian = []
 polish = []
 
-# Optional ecosystem integration layers.
 chrono = ["dep:chrono"]
 time = ["dep:time"]
 

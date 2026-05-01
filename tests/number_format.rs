@@ -98,3 +98,54 @@ fn keeps_rounding_stable_near_suffix_boundary_for_large_values() {
     let out = number(999_950_000_000_000_000_000_000_000_000_000_u128).to_string();
     assert_eq!(out, "1Dc");
 }
+
+#[test]
+fn fixed_precision_preserves_trailing_zeros_for_integers() {
+    let opts = NumberOptions::new().precision(2).fixed_precision(true);
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1.50K");
+    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1.00K");
+    assert_eq!(humfmt::number_with(1_540, opts).to_string(), "1.54K");
+}
+
+#[test]
+fn fixed_precision_preserves_trailing_zeros_for_floats() {
+    let opts = NumberOptions::new().precision(2).fixed_precision(true);
+    assert_eq!(humfmt::number_with(1_500.0_f64, opts).to_string(), "1.50K");
+    assert_eq!(humfmt::number_with(1_000.0_f64, opts).to_string(), "1.00K");
+}
+
+#[test]
+fn fixed_precision_false_trims_zeros_by_default() {
+    let opts = NumberOptions::new().precision(2);
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1.5K");
+    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1K");
+}
+
+#[test]
+fn fixed_precision_with_zero_precision_emits_no_decimal() {
+    let opts = NumberOptions::new().precision(0).fixed_precision(true);
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "2K");
+    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1K");
+}
+
+#[test]
+fn float_scaling_matches_integer_scaling_for_round_values() {
+    // Verifies the O(1) float path produces the same index as the integer path.
+    let pairs: &[(f64, &str)] = &[
+        (1_000.0, "1K"),
+        (1_500.0, "1.5K"),
+        (1_000_000.0, "1M"),
+        (1_500_000.0, "1.5M"),
+        (1_000_000_000.0, "1B"),
+        (1_000_000_000_000.0, "1T"),
+        (1_000_000_000_000_000.0, "1Qa"),
+    ];
+
+    for &(input, expected) in pairs {
+        assert_eq!(
+            number(input).to_string(),
+            expected,
+            "failed for input {input}"
+        );
+    }
+}

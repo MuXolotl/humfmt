@@ -2,11 +2,6 @@ use crate::locale::{English, Locale};
 
 /// Builder-style configuration for compact number formatting.
 ///
-/// This type is designed to be:
-/// - cheap to copy (`Copy`)
-/// - easy to chain (builder methods return `Self`)
-/// - predictable (values are clamped to small, fixed ranges)
-///
 /// # Examples
 ///
 /// ```rust
@@ -23,6 +18,7 @@ pub struct NumberOptions<L: Locale = English> {
     pub(crate) precision: u8,
     pub(crate) long_units: bool,
     pub(crate) separators: bool,
+    pub(crate) fixed_precision: bool,
     pub(crate) locale: L,
 }
 
@@ -32,7 +28,8 @@ impl NumberOptions<English> {
     /// Defaults:
     /// - precision: `1`
     /// - long units: `false` (short suffixes like `K`, `M`)
-    /// - separators: `false` (no digit grouping by default)
+    /// - separators: `false` (no digit grouping)
+    /// - fixed precision: `false` (trailing zeros are trimmed)
     /// - locale: `English`
     #[inline]
     pub fn new() -> Self {
@@ -40,6 +37,7 @@ impl NumberOptions<English> {
             precision: 1,
             long_units: false,
             separators: false,
+            fixed_precision: false,
             locale: English,
         }
     }
@@ -52,6 +50,7 @@ impl<L: Locale> Default for NumberOptions<L> {
             precision: 1,
             long_units: false,
             separators: false,
+            fixed_precision: false,
             locale: L::default(),
         }
     }
@@ -78,8 +77,6 @@ impl<L: Locale> NumberOptions<L> {
 
     /// Uses long suffixes like `" thousand"` instead of short suffixes like `"K"`.
     ///
-    /// Long-form suffixes are locale-controlled and may include inflection rules.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -96,13 +93,8 @@ impl<L: Locale> NumberOptions<L> {
 
     /// Enables or disables digit grouping separators for unscaled output.
     ///
-    /// Separators are applied only when the output is *not* compacted (i.e. when
-    /// the suffix index is `0`). The actual separator characters come from the
-    /// active locale.
-    ///
-    /// If you want to force unscaled rendering for values that would otherwise
-    /// be compacted, use a locale with `max_compact_suffix_index(0)` (e.g. via
-    /// [`crate::locale::CustomLocale`]).
+    /// Separators apply only when the value is not compacted (suffix index `0`).
+    /// Separator characters come from the active locale.
     ///
     /// # Examples
     ///
@@ -121,12 +113,34 @@ impl<L: Locale> NumberOptions<L> {
         self
     }
 
+    /// Controls whether trailing fractional zeros are preserved.
+    ///
+    /// - `false` (default): trailing zeros are trimmed — `1.50K` becomes `1.5K`
+    /// - `true`: trailing zeros are kept — `1.50K` stays `1.50K`
+    ///
+    /// This is useful when you need consistent column widths in tables or logs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::NumberOptions;
+    ///
+    /// let trimmed = NumberOptions::new().precision(2);
+    /// assert_eq!(humfmt::number_with(1_500, trimmed).to_string(), "1.5K");
+    ///
+    /// let fixed = NumberOptions::new().precision(2).fixed_precision(true);
+    /// assert_eq!(humfmt::number_with(1_500, fixed).to_string(), "1.50K");
+    /// ```
+    #[inline]
+    pub fn fixed_precision(mut self, yes: bool) -> Self {
+        self.fixed_precision = yes;
+        self
+    }
+
     /// Switches the active locale.
     ///
-    /// This affects:
-    /// - decimal and grouping separators
-    /// - compact suffixes and inflection rules
-    /// - maximum scaling index (via `Locale::max_compact_suffix_index`)
+    /// Affects decimal and grouping separators, compact suffixes, inflection
+    /// rules, and maximum scaling index.
     ///
     /// # Examples
     ///
@@ -143,6 +157,7 @@ impl<L: Locale> NumberOptions<L> {
             precision: self.precision,
             long_units: self.long_units,
             separators: self.separators,
+            fixed_precision: self.fixed_precision,
             locale,
         }
     }

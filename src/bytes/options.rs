@@ -2,16 +2,6 @@ use crate::locale::Locale;
 
 /// Builder-style configuration for byte-size formatting.
 ///
-/// This type is designed to be:
-/// - cheap to copy (`Copy`)
-/// - easy to chain (builder methods return `Self`)
-/// - predictable (values are clamped to small, fixed ranges)
-///
-/// Locale-awareness for bytes is intentionally minimal:
-/// - unit labels are currently English-only (`KB`, `MB`, or `kilobytes`, ...),
-/// - the decimal separator for scaled values is configurable and can be taken
-///   from a `Locale` (`BytesOptions::locale(...)`).
-///
 /// # Examples
 ///
 /// ```rust
@@ -34,6 +24,7 @@ pub struct BytesOptions {
     pub(crate) long_units: bool,
     pub(crate) decimal_separator: char,
     pub(crate) space: bool,
+    pub(crate) fixed_precision: bool,
 }
 
 impl BytesOptions {
@@ -44,7 +35,8 @@ impl BytesOptions {
     /// - standard: decimal (SI, 1000-based)
     /// - unit labels: short (`KB`, `MB`, ...)
     /// - decimal separator: `'.'`
-    /// - short-unit spacing: disabled (no space between number and suffix)
+    /// - short-unit spacing: disabled
+    /// - fixed precision: `false` (trailing zeros are trimmed)
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -53,12 +45,13 @@ impl BytesOptions {
             long_units: false,
             decimal_separator: '.',
             space: false,
+            fixed_precision: false,
         }
     }
 
     /// Sets decimal precision for scaled values.
     ///
-    /// Precision is clamped to `0..=6` to keep formatting cheap and predictable.
+    /// Precision is clamped to `0..=6`.
     ///
     /// # Examples
     ///
@@ -92,8 +85,8 @@ impl BytesOptions {
 
     /// Uses long unit labels like `kilobytes` instead of `KB`.
     ///
-    /// Long labels include a separating space (e.g. `"1.5 kilobytes"`).
-    /// When `long_units` is enabled, the `space(...)` option has no effect.
+    /// Long labels always include a separating space. When enabled,
+    /// the `space(...)` option has no effect.
     ///
     /// # Examples
     ///
@@ -111,11 +104,10 @@ impl BytesOptions {
 
     /// Controls whether short unit labels are separated from the number by a space.
     ///
-    /// This affects output like:
-    /// - `false` (default): `1.5KB`, `1.5KiB`, `999B`
-    /// - `true`: `1.5 KB`, `1.5 KiB`, `999 B`
+    /// - `false` (default): `1.5KB`, `999B`
+    /// - `true`: `1.5 KB`, `999 B`
     ///
-    /// This option applies only to short unit labels. Long labels always include a space.
+    /// Has no effect when `long_units` is enabled.
     ///
     /// # Examples
     ///
@@ -134,7 +126,7 @@ impl BytesOptions {
 
     /// Overrides the decimal separator for scaled byte values.
     ///
-    /// This affects output like `1.5KB` (scaled) but not unscaled output like `999B`.
+    /// Affects scaled output like `1.5KB` but not unscaled output like `999B`.
     ///
     /// # Examples
     ///
@@ -150,9 +142,31 @@ impl BytesOptions {
         self
     }
 
-    /// Applies numeric separators from the provided locale.
+    /// Controls whether trailing fractional zeros are preserved.
     ///
-    /// Currently this only affects the decimal separator used by the byte formatter.
+    /// - `false` (default): trailing zeros are trimmed — `1.50 KiB` becomes `1.5 KiB`
+    /// - `true`: trailing zeros are kept — `1.50 KiB` stays `1.50 KiB`
+    ///
+    /// Useful when you need consistent column widths in tables or dashboards.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let trimmed = BytesOptions::new().binary().precision(2).space(true);
+    /// assert_eq!(humfmt::bytes_with(1536_u64, trimmed).to_string(), "1.5 KiB");
+    ///
+    /// let fixed = BytesOptions::new().binary().precision(2).space(true).fixed_precision(true);
+    /// assert_eq!(humfmt::bytes_with(1536_u64, fixed).to_string(), "1.50 KiB");
+    /// ```
+    #[inline]
+    pub fn fixed_precision(mut self, yes: bool) -> Self {
+        self.fixed_precision = yes;
+        self
+    }
+
+    /// Applies the decimal separator from the provided locale.
     ///
     /// # Examples
     ///

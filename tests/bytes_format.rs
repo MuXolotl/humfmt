@@ -30,6 +30,7 @@ fn supports_binary_long_units() {
 #[test]
 fn supports_precision_override() {
     let opts = BytesOptions::new().precision(2);
+    // 1536 / 1000 = 1.536, rounds to 1.54 at precision=2
     assert_eq!(humfmt::bytes_with(1536, opts).to_string(), "1.54KB");
 }
 
@@ -67,6 +68,7 @@ fn supports_optional_space_before_short_units() {
     assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KB");
 
     let bin = BytesOptions::new().binary().precision(2).space(true);
+    // 1536 / 1024 = 1.5, no trailing zeros to trim
     assert_eq!(humfmt::bytes_with(1536_u64, bin).to_string(), "1.5 KiB");
 }
 
@@ -100,4 +102,49 @@ fn formats_extreme_u128_in_binary_mode() {
 #[test]
 fn rounds_up_across_decimal_unit_boundary() {
     assert_eq!(bytes(999_950).to_string(), "1MB");
+}
+
+#[test]
+fn fixed_precision_preserves_trailing_zeros() {
+    let opts = BytesOptions::new().precision(2).fixed_precision(true);
+    // 1536 / 1000 = 1.536 → rounds to 1.54, no trailing zeros to pad here
+    assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.54KB");
+    // 1500 / 1000 = 1.5 → fixed_precision pads to 1.50
+    assert_eq!(humfmt::bytes_with(1500_u64, opts).to_string(), "1.50KB");
+    // 1_000_000 / 1_000_000 = 1.0 → fixed_precision pads to 1.00
+    assert_eq!(
+        humfmt::bytes_with(1_000_000_u64, opts).to_string(),
+        "1.00MB"
+    );
+}
+
+#[test]
+fn fixed_precision_with_space_and_binary() {
+    let opts = BytesOptions::new()
+        .binary()
+        .precision(2)
+        .space(true)
+        .fixed_precision(true);
+    // 1536 / 1024 = 1.5 → fixed_precision pads to 1.50
+    assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.50 KiB");
+    // 1024 / 1024 = 1.0 → fixed_precision pads to 1.00
+    assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "1.00 KiB");
+}
+
+#[test]
+fn fixed_precision_false_trims_by_default() {
+    let opts = BytesOptions::new().binary().precision(2).space(true);
+    // 1536 / 1024 = 1.5 → trimmed, no trailing zero
+    assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KiB");
+    // 1024 / 1024 = 1.0 → trimmed to integer
+    assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "1 KiB");
+}
+
+#[test]
+fn fixed_precision_with_zero_precision_emits_no_decimal() {
+    let opts = BytesOptions::new().precision(0).fixed_precision(true);
+    // 1536 / 1000 = 1.536 → rounds to 2 at precision=0
+    assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "2KB");
+    // 1024 / 1000 = 1.024 → rounds to 1 at precision=0
+    assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "1KB");
 }

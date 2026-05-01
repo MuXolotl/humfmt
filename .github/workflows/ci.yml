@@ -27,6 +27,25 @@ jobs:
       - name: Run tests
         run: cargo test --all-features --verbose
 
+  msrv:
+    name: MSRV (1.70)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.70
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.70"
+
+      - name: Check library compiles on MSRV
+        run: cargo check --all-features
+
+      - name: Run tests on MSRV
+        run: cargo test --all-features --lib --tests
+
   minimal:
     name: Minimal feature check
     runs-on: ubuntu-latest

@@ -23,7 +23,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Add a percentage formatter — `0.423 -> "42.3%"`, `1.0 -> "100%"`, with locale-aware decimal separators and a configurable number of decimal places. Should reuse the existing number formatting infrastructure rather than being its own thing.
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
-- [ ] Fixed-precision mode — when the caller sets `precision(2)`, optionally preserve trailing zeros so `1.50 KiB` stays `1.50 KiB` instead of being trimmed to `1.5 KiB`. Keep it opt-in so default behavior does not change.
 - [ ] Significant-digits mode — instead of decimal places, round to N total significant digits. Useful for scientific or telemetry output.
 - [ ] Rounding mode control — let the caller choose between default half-up rounding, floor, and ceil. Keep the API simple: one enum or three builder methods.
 - [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
@@ -45,13 +44,15 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Cookbook-style documentation on docs.rs — short, focused examples for common scenarios: "how do I format bytes", "how do I add my own locale", "what happens with zero / negative / very large values". No walls of text, just code and a one-line explanation.
 - [ ] Edge-case behavior tables in the docs — a quick reference showing what each formatter does with `0`, `i128::MIN`, `u128::MAX`, `f64::NAN`, `f64::INFINITY`, and `Duration::MAX`.
 - [ ] More real-world examples — CLI progress output, log lines, dashboard numbers. Helps new users immediately see where the crate fits.
-- [ ] Explicit MSRV CI job — add a CI step that runs `cargo check` and `cargo test` against exactly Rust 1.67, not just stable, so MSRV regressions are caught automatically.
+- [ ] Explicit MSRV CI job — done, see 0.4.0. Keep this note as a reminder to re-verify after any MSRV bump.
 - [ ] Stable public API snapshot before 1.0 — lock down the formatter surface so downstream crates can rely on it without surprises across minor versions.
 - [ ] Final API consistency pass before 1.0 — make sure all formatters follow the same naming patterns and builder method conventions with no small inconsistencies left.
 - [ ] Add more comparison crates to the benchmark harness — `readable`, `human-readable`, `fancy-duration`, and `duration-human` are missing and cover overlapping functionality. Honest comparison means including them.
 - [ ] Improve benchmark alignment — add explicit scenarios that match common real-world output styles (e.g. binary + `precision(2)` + `space(true)`) so the capability matrix stays fair and easy to interpret.
 - [ ] `no_std + alloc` tier — right now it is either full `std` or truly bare `no_std`. An `alloc`-gated tier would let embedded targets with a heap use `.to_string()` without pulling in all of `std`. More useful than it sounds for embedded targets.
 - [ ] f64 precision loss in `compact_suffix_for` for values above 2^53 — document as a known limitation. The `as_f64()` conversion on `DecimalParts` loses integer precision for very large magnitudes. For display purposes this is rarely visible, but worth a note in docs.
+- [ ] Document the Russian ordinal gender limitation — `ordinal_suffix` for Russian always returns `-й` (masculine). The library has no concept of grammatical gender since it only receives a number. This should be explicitly noted in the Russian locale docs and in the edge-case behavior tables.
+- [ ] Investigate `is_comma_style_separator` Unicode edge cases — the current check finds the first non-whitespace character and compares it to `,`. This works for ASCII separators but will not recognize `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma). Low priority until non-Latin list separators are needed.
 
 ---
 
@@ -60,11 +61,9 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Optional ICU4X integration — high-fidelity locale behavior (pluralization, list formatting, relative time) backed by Unicode CLDR data. This would be a heavy optional feature, definitely not the default.
 - [ ] `serde` feature — serialize and deserialize options structs, useful for config-file driven formatting. Not needed until someone asks for it.
 - [ ] `num-bigint` integration — compact formatting of arbitrary-precision integers. Very niche.
-- [ ] Smart adaptive formatter — `humfmt::auto(value)` that picks the best representation automatically based on the input type and magnitude.
 - [ ] Human-readable ranges — `"1–5 MB"`, `"~3 hours"` for UI-style approximate output.
 - [ ] Currency formatter — lightweight, definitely not trying to compete with full i18n libraries. Only makes sense if locale support grows significantly first.
 - [ ] Scientific notation formatter — `1.23e9`, with locale-aware decimal separator and optional compact form.
-- [ ] Word-order templates for locales — so languages like German and Polish can reorder phrases naturally instead of always appending the unit after the number. Complex to design well.
 - [ ] Grammar-aware unit forms — case and gender agreement for languages that need it (e.g. Russian genitive after 2–4). The current approach covers most cases but is not linguistically complete.
 - [ ] WASM and embedded target smoke tests in CI.
 - [ ] Fuzzing harness for the formatting paths — finding edge cases in the integer math and float rendering code.
@@ -73,23 +72,28 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## DONE
 
-- [x] ~~Fix `is_integer` in `russian.rs` and `polish.rs` — use `value % 1.0 == 0.0` instead of the broken `value == (value as u128) as f64` cast that saturates for negative floats~~ (Unreleased)
-- [x] ~~Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common::numeric`~~ (Unreleased)
-- [x] ~~Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs`~~ (Unreleased)
-- [x] ~~Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units~~ (Unreleased)
-- [x] ~~Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions`~~ (Unreleased)
-- [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~ (Unreleased)
-- [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~ (Unreleased)
-- [x] ~~Comparison harness covers `indicatif::HumanBytes` and aligned byte groups~~ (Unreleased)
-- [x] ~~Optional spacing in short byte output via `BytesOptions::space(bool)`~~ (Unreleased)
-- [x] ~~Byte formatter locale-aware decimal separator~~ (Unreleased)
-- [x] ~~Float compact-number formatting stable on `no_std` MSRV~~ (Unreleased)
-- [x] ~~Polish plural rules CLDR-aligned for long-form output~~ (Unreleased)
-- [x] ~~Shrink `StackString<512>` to `StackString<64>`~~ (Unreleased)
-- [x] ~~`ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction`~~ (Unreleased)
-- [x] ~~`locale::CustomLocale` list separator hook (`list_separator`)~~ (Unreleased)
-- [x] ~~On-demand GitHub Actions benchmark workflow~~ (Unreleased)
-- [x] ~~CI: test suite + clippy + fmt + feature matrix + `no_std` check~~ (Unreleased)
+- [x] ~~MSRV raised to 1.70 and enforced by a dedicated CI job~~ (Unreleased → 0.4.0)
+- [x] ~~`NumberOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~ (Unreleased → 0.4.0)
+- [x] ~~`BytesOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~ (Unreleased → 0.4.0)
+- [x] ~~Float compact-number scaling rewritten to O(1) via IEEE 754 exponent — consistent with integer `ilog10` path~~ (Unreleased → 0.4.0)
+- [x] ~~Byte label arrays refactored from 6 flat arrays to 2 `UnitLabels` struct arrays~~ (Unreleased → 0.4.0)
+- [x] ~~Fix `is_integer` in `russian.rs` and `polish.rs` — use `value % 1.0 == 0.0` instead of the broken `value == (value as u128) as f64` cast that saturates for negative floats~~ (Unreleased → 0.4.0)
+- [x] ~~Extract the shared `is_integer` helper out of `russian.rs` and `polish.rs` into `common::numeric`~~ (Unreleased → 0.4.0)
+- [x] ~~Remove the duplicated English duration unit logic from `Locale::duration_unit` default impl in `traits.rs`~~ (Unreleased → 0.4.0)
+- [x] ~~Expand `max_units` clamp from `1..=4` to `1..=7` so callers can render all seven duration units~~ (Unreleased → 0.4.0)
+- [x] ~~Rename or remove the `_value()` suffix on `pub(crate)` getter methods across `BytesOptions`, `NumberOptions`, `DurationOptions`, and `ListOptions`~~ (Unreleased → 0.4.0)
+- [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~ (Unreleased → 0.4.0)
+- [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~ (Unreleased → 0.4.0)
+- [x] ~~Comparison harness covers `indicatif::HumanBytes` and aligned byte groups~~ (Unreleased → 0.4.0)
+- [x] ~~Optional spacing in short byte output via `BytesOptions::space(bool)`~~ (Unreleased → 0.4.0)
+- [x] ~~Byte formatter locale-aware decimal separator~~ (Unreleased → 0.4.0)
+- [x] ~~Float compact-number formatting stable on `no_std` MSRV~~ (Unreleased → 0.4.0)
+- [x] ~~Polish plural rules CLDR-aligned for long-form output~~ (Unreleased → 0.4.0)
+- [x] ~~Shrink `StackString<512>` to `StackString<64>`~~ (Unreleased → 0.4.0)
+- [x] ~~`ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction`~~ (Unreleased → 0.4.0)
+- [x] ~~`locale::CustomLocale` list separator hook (`list_separator`)~~ (Unreleased → 0.4.0)
+- [x] ~~On-demand GitHub Actions benchmark workflow~~ (Unreleased → 0.4.0)
+- [x] ~~CI: test suite + clippy + fmt + feature matrix + `no_std` check~~ (Unreleased → 0.4.0)
 - [x] ~~docs.rs all-features build~~ (0.3.0)
 - [x] ~~`#![deny(missing_docs)]` + full public API rustdoc coverage~~ (0.3.0)
 - [x] ~~Centralized `Sealed` trait infrastructure~~ (0.3.0)

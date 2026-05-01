@@ -4,33 +4,88 @@ use core::fmt::Write;
 use super::{traits::BytesValue, BytesOptions};
 use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
 
-const DECIMAL_SHORT: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
-const BINARY_SHORT: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
+// Each entry groups short label, long singular, and long plural for one unit tier.
+// Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.
+struct UnitLabels {
+    short: &'static str,
+    long_singular: &'static str,
+    long_plural: &'static str,
+}
 
-const DECIMAL_LONG_SINGULAR: [&str; 7] = [
-    "byte", "kilobyte", "megabyte", "gigabyte", "terabyte", "petabyte", "exabyte",
-];
-const DECIMAL_LONG_PLURAL: [&str; 7] = [
-    "bytes",
-    "kilobytes",
-    "megabytes",
-    "gigabytes",
-    "terabytes",
-    "petabytes",
-    "exabytes",
+const DECIMAL_LABELS: [UnitLabels; 7] = [
+    UnitLabels {
+        short: "B",
+        long_singular: "byte",
+        long_plural: "bytes",
+    },
+    UnitLabels {
+        short: "KB",
+        long_singular: "kilobyte",
+        long_plural: "kilobytes",
+    },
+    UnitLabels {
+        short: "MB",
+        long_singular: "megabyte",
+        long_plural: "megabytes",
+    },
+    UnitLabels {
+        short: "GB",
+        long_singular: "gigabyte",
+        long_plural: "gigabytes",
+    },
+    UnitLabels {
+        short: "TB",
+        long_singular: "terabyte",
+        long_plural: "terabytes",
+    },
+    UnitLabels {
+        short: "PB",
+        long_singular: "petabyte",
+        long_plural: "petabytes",
+    },
+    UnitLabels {
+        short: "EB",
+        long_singular: "exabyte",
+        long_plural: "exabytes",
+    },
 ];
 
-const BINARY_LONG_SINGULAR: [&str; 7] = [
-    "byte", "kibibyte", "mebibyte", "gibibyte", "tebibyte", "pebibyte", "exbibyte",
-];
-const BINARY_LONG_PLURAL: [&str; 7] = [
-    "bytes",
-    "kibibytes",
-    "mebibytes",
-    "gibibytes",
-    "tebibytes",
-    "pebibytes",
-    "exbibytes",
+const BINARY_LABELS: [UnitLabels; 7] = [
+    UnitLabels {
+        short: "B",
+        long_singular: "byte",
+        long_plural: "bytes",
+    },
+    UnitLabels {
+        short: "KiB",
+        long_singular: "kibibyte",
+        long_plural: "kibibytes",
+    },
+    UnitLabels {
+        short: "MiB",
+        long_singular: "mebibyte",
+        long_plural: "mebibytes",
+    },
+    UnitLabels {
+        short: "GiB",
+        long_singular: "gibibyte",
+        long_plural: "gibibytes",
+    },
+    UnitLabels {
+        short: "TiB",
+        long_singular: "tebibyte",
+        long_plural: "tebibytes",
+    },
+    UnitLabels {
+        short: "PiB",
+        long_singular: "pebibyte",
+        long_plural: "pebibytes",
+    },
+    UnitLabels {
+        short: "EiB",
+        long_singular: "exbibyte",
+        long_plural: "exbibytes",
+    },
 ];
 
 const DECIMAL_UNITS: [u128; 7] = [
@@ -99,38 +154,37 @@ pub fn format_bytes(
 
     write_u128(f, parts.integer, false, ',')?;
 
-    if parts.frac_len != 0 {
+    if options.fixed_precision {
+        if precision > 0 {
+            f.write_char(options.decimal_separator)?;
+            let existing = parts.frac_len as usize;
+            write_frac_digits(f, &parts.frac_digits[..existing])?;
+            for _ in existing..precision as usize {
+                f.write_char('0')?;
+            }
+        }
+    } else if parts.frac_len != 0 {
         f.write_char(options.decimal_separator)?;
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 
+    let labels = if options.binary {
+        &BINARY_LABELS
+    } else {
+        &DECIMAL_LABELS
+    };
+
     if options.long_units {
-        let label = long_label(options.binary, idx, parts.is_exactly_one());
+        let label = if parts.is_exactly_one() {
+            labels[idx].long_singular
+        } else {
+            labels[idx].long_plural
+        };
         write!(f, " {label}")
     } else {
         if options.space {
             f.write_char(' ')?;
         }
-        let suffix = short_label(options.binary, idx);
-        f.write_str(suffix)
-    }
-}
-
-#[inline]
-fn short_label(binary: bool, idx: usize) -> &'static str {
-    if binary {
-        BINARY_SHORT[idx]
-    } else {
-        DECIMAL_SHORT[idx]
-    }
-}
-
-#[inline]
-fn long_label(binary: bool, idx: usize, singular: bool) -> &'static str {
-    match (binary, singular) {
-        (false, true) => DECIMAL_LONG_SINGULAR[idx],
-        (false, false) => DECIMAL_LONG_PLURAL[idx],
-        (true, true) => BINARY_LONG_SINGULAR[idx],
-        (true, false) => BINARY_LONG_PLURAL[idx],
+        f.write_str(labels[idx].short)
     }
 }

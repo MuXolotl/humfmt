@@ -9,6 +9,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [Unreleased]
 
 ### Added
+- `NumberOptions::fixed_precision(bool)` — opt-in mode that preserves trailing fractional zeros for consistent column widths (e.g. `1.50K` instead of `1.5K`).
+- `BytesOptions::fixed_precision(bool)` — same opt-in mode for byte-size output (e.g. `1.50 KiB` instead of `1.5 KiB`).
+- MSRV CI job that compiles and tests the library on Rust 1.70 on every push and pull request.
 - `common::numeric::is_integer_f64` — shared, correct, `no_std`-compatible helper for checking whether a `f64` value has no fractional part. Replaces the broken `value == (value as u128) as f64` pattern that was copy-pasted across locale modules. Conditionally compiled under `#[cfg(any(feature = "russian", feature = "polish"))]` to avoid `dead_code` warnings in bare builds.
 - Unit tests for `is_integer_f64` covering whole numbers, fractional numbers, non-finite values, and negative whole numbers (the previously broken case).
 - `DurationOptions::max_units` now accepts values up to `7` (previously clamped to `4`), enabling callers to render all supported time units down to nanoseconds.
@@ -19,6 +22,7 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - `BytesOptions::space(bool)` to optionally insert a space before short unit labels (e.g. `1.5 KB`).
 
 ### Fixed
+- `common::numeric::is_integer_f64` — previously only compiled under `#[cfg(any(feature = "russian", feature = "polish"))]`. The inner test module always compiled the logic unconditionally, so correctness was verified regardless of active features.
 - `is_integer_f64` in `russian.rs` and `polish.rs`: the old `value == (value as u128) as f64` check incorrectly returned `false` for negative whole floats (e.g. `-1.0`, `-42.0`) because casting a negative `f64` to `u128` saturates to `0` on stable Rust. This caused wrong grammatical form selection for negative scaled values in long-form output. Fixed with `value.is_finite() && value % 1.0 == 0.0`.
 - Polish long-form plural selection is now CLDR-aligned:
   - `one` is used only for `1`
@@ -30,6 +34,9 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - List formatting no longer injects a literal comma for serial-comma output when the list separator is not comma-style (e.g. custom separators like `" | "`).
 
 ### Changed
+- MSRV raised from **1.67** to **1.70** (released June 2023). This aligns with `criterion 0.5` which already required 1.70, eliminating a silent mismatch where the declared MSRV was lower than what dev-dependencies actually needed.
+- Float compact-number scaling (`normalize_scaled`) rewritten from an O(n) loop to an O(1) IEEE 754 exponent-based approach, consistent with the integer path which already used `ilog10`. Division loop is fully removed. The implementation uses a precomputed `POW1000_F64` table instead of `f64::powi` to remain `no_std` compatible.
+- `src/bytes/format.rs` — six flat label arrays (`DECIMAL_SHORT`, `BINARY_SHORT`, `DECIMAL_LONG_SINGULAR`, etc.) replaced with two arrays of `UnitLabels` structs. Each struct groups short label, long singular, and long plural for one unit tier. Eliminates the DRY violation and makes adding or auditing labels a single-place change.
 - `Locale::duration_unit` default implementation in `traits.rs` now delegates to `english::duration_unit` instead of duplicating the same match expression verbatim. Single source of truth; adding a new time unit no longer requires updating two places.
 - `DurationOptions::max_units` clamp widened from `1..=4` to `1..=7`. Existing code using values `1..=4` is unaffected. Values `5..=7` previously silently clamped to `4`; they now work as documented.
 - Internal `Options` types (`BytesOptions`, `NumberOptions`, `DurationOptions`, `ListOptions`) now expose their fields as `pub(crate)` directly instead of going through `_value()`-suffixed getter methods. The public builder API is unchanged. This removes a layer of noise with no runtime cost and eliminates naming conflicts between builder methods and internal accessors.

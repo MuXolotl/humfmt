@@ -247,7 +247,7 @@ humfmt = { version = "0.3", default-features = false }
 
 ## MSRV
 
-`humfmt` targets Rust **1.67** (see `rust-version` in `Cargo.toml`).
+`humfmt` targets Rust **1.70** (see `rust-version` in `Cargo.toml`).
 
 ---
 
