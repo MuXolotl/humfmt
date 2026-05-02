@@ -3,10 +3,8 @@ use core::fmt::Write;
 
 /// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
 ///
-/// This is intentionally minimal. It is written to only via `fmt::Write::write_str`,
-/// which guarantees UTF-8 input, so the buffer content is always valid UTF-8.
-///
-/// Internally this is used for float formatting and other small intermediate renderings.
+/// Written to only via `fmt::Write::write_str`, which guarantees UTF-8 input,
+/// so the buffer content is always valid UTF-8.
 pub(crate) struct StackString<const N: usize> {
     buf: [u8; N],
     len: usize,
@@ -27,18 +25,6 @@ impl<const N: usize> StackString<N> {
         // are always valid UTF-8.
         unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
     }
-
-    fn truncate(&mut self, new_len: usize) {
-        self.len = new_len.min(self.len);
-    }
-
-    fn ends_with_byte(&self, byte: u8) -> bool {
-        self.len != 0 && self.buf[self.len - 1] == byte
-    }
-
-    fn find_byte(&self, byte: u8) -> Option<usize> {
-        self.buf[..self.len].iter().position(|b| *b == byte)
-    }
 }
 
 impl<const N: usize> Default for StackString<N> {
@@ -53,37 +39,15 @@ impl<const N: usize> fmt::Write for StackString<N> {
         if self.len + bytes.len() > N {
             return Err(fmt::Error);
         }
-
-        let dst = &mut self.buf[self.len..self.len + bytes.len()];
-        dst.copy_from_slice(bytes);
+        self.buf[self.len..self.len + bytes.len()].copy_from_slice(bytes);
         self.len += bytes.len();
         Ok(())
     }
 }
 
-/// Trims trailing `0` digits after a `.` and then removes the `.` if it becomes the last character.
-/// This matches the "15.0K" -> "15K" behavior used throughout the crate.
-pub(crate) fn trim_ascii_trailing_zeros_and_dot<const N: usize>(s: &mut StackString<N>) {
-    let dot = match s.find_byte(b'.') {
-        Some(pos) => pos,
-        None => return,
-    };
-
-    // Trim trailing zeros, but never trim past the dot.
-    while s.len > dot + 1 && s.ends_with_byte(b'0') {
-        s.truncate(s.len - 1);
-    }
-
-    // If we trimmed everything after the dot, also remove the dot.
-    if s.ends_with_byte(b'.') {
-        s.truncate(s.len - 1);
-    }
-}
-
-/// Writes an ASCII digit slice with grouping separators every 3 digits from the right.
+/// Writes an ASCII digit string with grouping separators every 3 digits from the right.
 ///
-/// Example (separator = '_'):
-/// "12345" -> "12_345"
+/// Example with separator `','`: `"12345"` → `"12,345"`.
 pub(crate) fn write_grouped_ascii_digits(
     f: &mut fmt::Formatter<'_>,
     digits: &str,
@@ -101,7 +65,6 @@ pub(crate) fn write_grouped_ascii_digits(
 
     f.write_str(&digits[..first])?;
     let mut pos = first;
-
     while pos < len {
         f.write_char(group_separator)?;
         f.write_str(&digits[pos..pos + 3])?;
@@ -111,7 +74,7 @@ pub(crate) fn write_grouped_ascii_digits(
     Ok(())
 }
 
-/// Writes a `u128` without allocations, optionally using digit grouping.
+/// Writes a `u128` without heap allocation, with optional digit grouping.
 pub(crate) fn write_u128(
     f: &mut fmt::Formatter<'_>,
     mut value: u128,
@@ -122,13 +85,12 @@ pub(crate) fn write_u128(
         return f.write_str("0");
     }
 
-    // u128 max is 39 decimal digits.
+    // u128::MAX is 39 decimal digits.
     let mut rev = [0u8; 39];
     let mut len = 0usize;
 
     while value != 0 {
-        let digit = (value % 10) as u8;
-        rev[len] = b'0' + digit;
+        rev[len] = b'0' + (value % 10) as u8;
         len += 1;
         value /= 10;
     }
@@ -149,7 +111,8 @@ pub(crate) fn write_u128(
 
 /// A compact "integer + fractional digits" representation used for scaled outputs.
 ///
-/// Fractional digits are stored as ASCII bytes and may be shorter than `precision` after trimming.
+/// Fractional digits are stored as ASCII bytes. `frac_len` reflects the number
+/// of significant digits after trimming trailing zeros.
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct DecimalParts {
     pub(crate) integer: u128,
@@ -158,29 +121,31 @@ pub(crate) struct DecimalParts {
 }
 
 impl DecimalParts {
+    /// Returns `true` if the value is exactly `1` with no fractional part.
+    /// Used for English singular/plural selection in byte labels.
     pub(crate) fn is_exactly_one(&self) -> bool {
         self.integer == 1 && self.frac_len == 0
     }
 
+    /// Converts the parts to `f64` for locale suffix inflection hooks.
+    ///
+    /// Note: precision is limited to 6 decimal places and f64 cannot exactly
+    /// represent all large integers, but for display purposes this is sufficient.
     pub(crate) fn as_f64(&self) -> f64 {
         let mut value = self.integer as f64;
         let mut denom = 10.0;
-
         for i in 0..(self.frac_len as usize) {
-            let digit = (self.frac_digits[i] - b'0') as f64;
-            value += digit / denom;
+            value += (self.frac_digits[i] - b'0') as f64 / denom;
             denom *= 10.0;
         }
-
         value
     }
 }
 
-/// Produces rounded decimal parts for `magnitude / unit`, using "half-up" rounding.
-/// `precision` is clamped to 6.
+/// Produces rounded decimal parts for `magnitude / unit` using half-up rounding.
 ///
-/// This function is designed to be safe for very large `u128` values:
-/// it uses long division for fractional digits (no `remainder * 10^precision` multiplication).
+/// Uses long division for fractional digits — safe for the full `u128` range
+/// without any intermediate multiplication overflow.
 pub(crate) fn decimal_parts_rounded(magnitude: u128, unit: u128, precision: u8) -> DecimalParts {
     let precision = precision.min(6);
     let mut integer = magnitude / unit;
@@ -192,7 +157,7 @@ pub(crate) fn decimal_parts_rounded(magnitude: u128, unit: u128, precision: u8) 
         integer = integer.saturating_add(1);
     }
 
-    // Trim trailing zeros in fractional digits.
+    // Trim trailing zeros.
     while frac_len != 0 && frac_digits[(frac_len - 1) as usize] == b'0' {
         frac_len -= 1;
     }
@@ -209,7 +174,6 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
     let mut rem = remainder;
 
     if precision == 0 {
-        // Round based on the first digit after decimal.
         rem = rem.saturating_mul(10);
         let round_digit = rem / unit;
         return (digits, 0, round_digit >= 5);
@@ -219,10 +183,10 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
         rem = rem.saturating_mul(10);
         let digit = rem / unit;
         rem %= unit;
-        *slot = b'0' + (digit as u8);
+        *slot = b'0' + digit as u8;
     }
 
-    // Look one digit ahead to decide rounding.
+    // One digit beyond precision to decide rounding direction.
     rem = rem.saturating_mul(10);
     let round_digit = rem / unit;
 
@@ -230,7 +194,7 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
         return (digits, precision, false);
     }
 
-    // Increment the last digit with carry propagation.
+    // Propagate carry through fractional digits.
     let mut idx = precision as i32 - 1;
     while idx >= 0 {
         let i = idx as usize;
@@ -242,12 +206,14 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
         idx -= 1;
     }
 
-    // Carry out of fractional digits increments the integer part.
+    // Carry propagated past all fractional digits — increment integer part.
     (digits, precision, true)
 }
 
-/// Writes fractional digits (ASCII bytes) to the formatter.
+/// Writes fractional digits (ASCII bytes) directly to the formatter.
 pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
+    // Safety: digits are always ASCII bytes in '0'..='9', produced by
+    // fractional_digits_rounded. They are valid UTF-8 by construction.
     let s = unsafe { core::str::from_utf8_unchecked(digits) };
     f.write_str(s)
 }

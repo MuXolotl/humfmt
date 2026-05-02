@@ -19,9 +19,9 @@ use std::fmt::Write as _;
 use byte_unit::{Byte, UnitType};
 use bytesize::ByteSize;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use humfmt::{bytes, bytes_with, BytesOptions};
 use human_repr::HumanCount;
 use humansize::{format_size, format_size_i, FormatSizeOptions, SizeFormatter, BINARY, DECIMAL};
+use humfmt::{bytes, bytes_with, BytesOptions};
 use indicatif::HumanBytes;
 use prettier_bytes::{ByteFormatter, Standard, Unit};
 
@@ -241,16 +241,20 @@ fn bench_bytes_reused_buffer(c: &mut Criterion) {
 
     let cap = 32usize;
 
-    group.bench_with_input(BenchmarkId::new("humfmt/u64/write", cap), &cap, |b, &cap| {
-        let mut out = String::with_capacity(cap);
-        b.iter(|| {
-            for &v in &VALUES_U64 {
-                out.clear();
-                write!(&mut out, "{}", bytes_with(black_box(v), humfmt_opts)).unwrap();
-                black_box(&out);
-            }
-        })
-    });
+    group.bench_with_input(
+        BenchmarkId::new("humfmt/u64/write", cap),
+        &cap,
+        |b, &cap| {
+            let mut out = String::with_capacity(cap);
+            b.iter(|| {
+                for &v in &VALUES_U64 {
+                    out.clear();
+                    write!(&mut out, "{}", bytes_with(black_box(v), humfmt_opts)).unwrap();
+                    black_box(&out);
+                }
+            })
+        },
+    );
 
     group.bench_with_input(
         BenchmarkId::new("humansize/u64/write_decimal_precision2", cap),
@@ -409,7 +413,8 @@ fn bench_bytes_reused_buffer_aligned(c: &mut Criterion) {
             b.iter(|| {
                 for &v in &VALUES_U64_ALIGNED {
                     out.clear();
-                    let adjusted = Byte::from_u64(black_box(v)).get_appropriate_unit(UnitType::Binary);
+                    let adjusted =
+                        Byte::from_u64(black_box(v)).get_appropriate_unit(UnitType::Binary);
                     write!(&mut out, "{adjusted:.2}").unwrap();
                     black_box(&out);
                 }

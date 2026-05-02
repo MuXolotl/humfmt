@@ -2,6 +2,22 @@ use crate::locale::{English, Locale};
 
 /// Builder-style configuration for compact number formatting.
 ///
+/// # Quick reference
+///
+/// | Method | Default | Effect |
+/// |---|---|---|
+/// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
+/// | [`long_units()`] | `false` | `"15.3K"` → `"15.3 thousand"` |
+/// | [`separators(bool)`] | `false` | `"999"` → `"999"` / `"1,234"` (unscaled only) |
+/// | [`fixed_precision(bool)`] | `false` | `"1.5K"` → `"1.50K"` |
+/// | [`locale(L)`] | `English` | Separators, suffixes, inflection rules |
+///
+/// [`precision(n)`]: NumberOptions::precision
+/// [`long_units()`]: NumberOptions::long_units
+/// [`separators(bool)`]: NumberOptions::separators
+/// [`fixed_precision(bool)`]: NumberOptions::fixed_precision
+/// [`locale(L)`]: NumberOptions::locale
+///
 /// # Examples
 ///
 /// ```rust
@@ -25,12 +41,13 @@ pub struct NumberOptions<L: Locale = English> {
 impl NumberOptions<English> {
     /// Creates default English formatting options.
     ///
-    /// Defaults:
-    /// - precision: `1`
-    /// - long units: `false` (short suffixes like `K`, `M`)
-    /// - separators: `false` (no digit grouping)
-    /// - fixed precision: `false` (trailing zeros are trimmed)
-    /// - locale: `English`
+    /// | Option | Default |
+    /// |---|---|
+    /// | precision | `1` |
+    /// | long units | `false` (short suffixes: `K`, `M`, …) |
+    /// | separators | `false` (no digit grouping) |
+    /// | fixed precision | `false` (trailing zeros trimmed) |
+    /// | locale | `English` |
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -57,17 +74,32 @@ impl<L: Locale> Default for NumberOptions<L> {
 }
 
 impl<L: Locale> NumberOptions<L> {
-    /// Sets decimal precision for compact values.
+    /// Sets the number of decimal places shown in the scaled fractional part.
     ///
     /// Precision is clamped to `0..=6`.
+    ///
+    /// Trailing zeros are trimmed by default. Use [`fixed_precision(true)`] to
+    /// keep them for consistent column widths.
+    ///
+    /// [`fixed_precision(true)`]: NumberOptions::fixed_precision
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
+    /// |---:|---|---|---|
+    /// | `1_400` | `"1K"` | `"1.4K"` | `"1.40K"` → `"1.4K"` (trimmed) |
+    /// | `1_500` | `"2K"` | `"1.5K"` | `"1.50K"` → `"1.5K"` (trimmed) |
+    /// | `15_320` | `"15K"` | `"15.3K"` | `"15.32K"` |
+    /// | `999_950` | `"1M"` | `"1M"` | `"1M"` (rescaled after rounding) |
     ///
     /// # Examples
     ///
     /// ```rust
     /// use humfmt::NumberOptions;
     ///
-    /// let opts = NumberOptions::new().precision(2);
-    /// assert_eq!(humfmt::number_with(15_320, opts).to_string(), "15.32K");
+    /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(0)).to_string(), "15K");
+    /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(2)).to_string(), "15.32K");
+    /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(6)).to_string(), "15.32K");
     /// ```
     #[inline]
     pub fn precision(mut self, n: u8) -> Self {
@@ -75,15 +107,30 @@ impl<L: Locale> NumberOptions<L> {
         self
     }
 
-    /// Uses long suffixes like `" thousand"` instead of short suffixes like `"K"`.
+    /// Uses long-form suffix labels instead of short ones.
+    ///
+    /// Long suffixes come from the active locale. For English:
+    /// `"K"` → `" thousand"`, `"M"` → `" million"`, and so on.
+    ///
+    /// For non-English locales, long suffixes may also be inflected based on
+    /// the rendered value (e.g. Russian: `"2 тысячи"`, `"5 тысяч"`).
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | Short (default) | Long |
+    /// |---:|---|---|
+    /// | `999` | `"999"` | `"999"` |
+    /// | `1_000` | `"1K"` | `"1 thousand"` |
+    /// | `1_500` | `"1.5K"` | `"1.5 thousand"` |
+    /// | `1_000_000` | `"1M"` | `"1 million"` |
     ///
     /// # Examples
     ///
     /// ```rust
     /// use humfmt::NumberOptions;
     ///
-    /// let opts = NumberOptions::new().long_units();
-    /// assert_eq!(humfmt::number_with(15_320, opts).to_string(), "15.3 thousand");
+    /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().long_units()).to_string(), "15.3 thousand");
+    /// assert_eq!(humfmt::number_with(1_000_000, NumberOptions::new().long_units()).to_string(), "1 million");
     /// ```
     #[inline]
     pub fn long_units(mut self) -> Self {
@@ -91,15 +138,31 @@ impl<L: Locale> NumberOptions<L> {
         self
     }
 
-    /// Enables or disables digit grouping separators.
+    /// Enables digit grouping separators for unscaled output.
     ///
-    /// **Important:** grouping separators only apply when the value is not compacted
-    /// (i.e. when it is below the first suffix threshold, or when compact scaling
-    /// is disabled via [`CustomLocale::max_compact_suffix_index(0)`]).
-    /// For compacted values like `15.3K` the separator has no effect.
+    /// **Important:** grouping separators apply **only when the value is not
+    /// compacted** — that is, when the output has no suffix (index 0).
+    /// For compacted output like `"15.3K"` the integer part is always small
+    /// (`15`) and grouping would never trigger anyway.
     ///
-    /// Separator characters come from the active locale
-    /// (English default: `','` as group separator, `'.'` as decimal separator).
+    /// To show grouped digits for large numbers without compacting, disable
+    /// compact scaling via [`CustomLocale::max_compact_suffix_index(0)`]:
+    ///
+    /// [`CustomLocale::max_compact_suffix_index(0)`]: crate::locale::CustomLocale::max_compact_suffix_index
+    ///
+    /// Separator characters come from the active locale:
+    /// - English: group separator `','`, decimal separator `'.'`
+    /// - Russian / Polish: group separator `' '`, decimal separator `','`
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `separators(false)` (default) | `separators(true)` |
+    /// |---:|---|---|
+    /// | `999` | `"999"` | `"999"` |
+    /// | `1_234` | `"1.2K"` | `"1.2K"` (compacted, grouping has no effect) |
+    /// | `999` with scaling disabled | `"999"` | `"999"` |
+    /// | `1_234` with scaling disabled | `"1234"` | `"1,234"` |
+    /// | `1_234_567` with scaling disabled | `"1234567"` | `"1,234,567"` |
     ///
     /// # Examples
     ///
@@ -107,15 +170,16 @@ impl<L: Locale> NumberOptions<L> {
     /// use humfmt::{number_with, NumberOptions};
     /// use humfmt::locale::CustomLocale;
     ///
-    /// // Disable compact scaling so separators are visible.
+    /// // With compact scaling active, separators have no visible effect.
+    /// assert_eq!(
+    ///     humfmt::number_with(15_320, NumberOptions::new().separators(true)).to_string(),
+    ///     "15.3K"
+    /// );
+    ///
+    /// // Disable compact scaling to show grouped digits.
     /// let locale = CustomLocale::english().max_compact_suffix_index(0);
     /// let opts = NumberOptions::new().locale(locale).separators(true);
-    ///
-    /// assert_eq!(number_with(12_345, opts).to_string(), "12,345");
-    ///
-    /// // With compact scaling active, separators have no effect on the compacted part.
-    /// let opts_compact = NumberOptions::new().separators(true);
-    /// assert_eq!(humfmt::number_with(15_320, opts_compact).to_string(), "15.3K");
+    /// assert_eq!(number_with(1_234_567, opts).to_string(), "1,234,567");
     /// ```
     #[inline]
     pub fn separators(mut self, yes: bool) -> Self {
@@ -125,10 +189,19 @@ impl<L: Locale> NumberOptions<L> {
 
     /// Controls whether trailing fractional zeros are preserved.
     ///
-    /// - `false` (default): trailing zeros are trimmed — `1.50K` becomes `1.5K`
-    /// - `true`: trailing zeros are kept — `1.50K` stays `1.50K`
+    /// - `false` (default): trailing zeros are trimmed — `"1.50K"` → `"1.5K"`
+    /// - `true`: trailing zeros are kept — `"1.50K"` stays `"1.50K"`
     ///
-    /// This is useful when you need consistent column widths in tables or logs.
+    /// Useful for consistent column widths in tables, logs, and dashboards.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(2)` trimmed | `precision(2)` fixed |
+    /// |---:|---|---|
+    /// | `1_000` | `"1K"` | `"1.00K"` |
+    /// | `1_500` | `"1.5K"` | `"1.50K"` |
+    /// | `1_540` | `"1.54K"` | `"1.54K"` |
+    /// | `1_000_000` | `"1M"` | `"1.00M"` |
     ///
     /// # Examples
     ///
@@ -137,9 +210,11 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// let trimmed = NumberOptions::new().precision(2);
     /// assert_eq!(humfmt::number_with(1_500, trimmed).to_string(), "1.5K");
+    /// assert_eq!(humfmt::number_with(1_000, trimmed).to_string(), "1K");
     ///
     /// let fixed = NumberOptions::new().precision(2).fixed_precision(true);
     /// assert_eq!(humfmt::number_with(1_500, fixed).to_string(), "1.50K");
+    /// assert_eq!(humfmt::number_with(1_000, fixed).to_string(), "1.00K");
     /// ```
     #[inline]
     pub fn fixed_precision(mut self, yes: bool) -> Self {
@@ -149,8 +224,11 @@ impl<L: Locale> NumberOptions<L> {
 
     /// Switches the active locale.
     ///
-    /// Affects decimal and grouping separators, compact suffixes, inflection
-    /// rules, and maximum scaling index.
+    /// Locale affects:
+    /// - decimal and grouping separator characters
+    /// - compact suffix labels (short and long)
+    /// - suffix inflection rules (Russian, Polish)
+    /// - maximum compact scaling index
     ///
     /// # Examples
     ///
@@ -158,8 +236,7 @@ impl<L: Locale> NumberOptions<L> {
     /// use humfmt::{number_with, NumberOptions};
     /// use humfmt::locale::English;
     ///
-    /// let opts = NumberOptions::new().locale(English);
-    /// assert_eq!(number_with(15_320, opts).to_string(), "15.3K");
+    /// assert_eq!(number_with(15_320, NumberOptions::new().locale(English)).to_string(), "15.3K");
     /// ```
     #[inline]
     pub fn locale<N: Locale>(self, locale: N) -> NumberOptions<N> {

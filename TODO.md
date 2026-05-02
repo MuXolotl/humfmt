@@ -32,8 +32,8 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Byte formatter: allow forcing a specific unit — e.g. always render in MB regardless of value size, useful for dashboards and log lines where consistent column width matters.
 - [ ] Byte formatter: clamp min/max unit — stop the formatter from jumping all the way to EB when you want output to stay in MB/GB range.
 - [ ] Byte formatter: bits mode — `Kb`, `Mb`, `Gb` using the same 1000-based infrastructure. Useful for network throughput display.
-- [ ] Number formatter: always-on grouping separators option — right now `separators(true)` only applies when the value is not compacted. Add a way to show `1,234` instead of `1.2K` when the caller explicitly wants raw grouped output.
-- [ ] Number formatter: fully disable compact scaling — a way to say "never compact this number, just group the digits". Currently achievable via `CustomLocale::max_compact_suffix_index(0)` but it is not obvious.
+- [ ] Number formatter: fully disable compact scaling cleanly — currently achievable via `CustomLocale::max_compact_suffix_index(0)` but not obvious from the API surface. Consider a dedicated `NumberOptions::no_compact()` method.
+- [ ] Number formatter: always-on grouping separators option — `separators(true)` only applies when the value is not compacted. Add a way to show `1,234` instead of `1.2K` when the caller explicitly wants raw grouped output. Related to `no_compact()` above.
 - [ ] List formatter: `"or"` conjunction style — `"red, green, or blue"` alongside the existing `"and"` style.
 - [ ] List formatter: better handling of edge cases — single-item and empty-list behavior should be explicitly documented with tests, since they are silent no-ops right now.
 - [ ] More locale packs — German, French, and Spanish are the obvious next additions since they cover a large chunk of real-world users. Native speaker review of plural rules is important before publishing these.
@@ -41,9 +41,8 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Locale system: allow overriding the `"in"` word cleanly for future-time formatting alongside the existing `ago_word` hook.
 - [ ] Add golden output test files per locale — a set of fixed inputs and expected outputs stored in test data files so that locale changes never silently break grammar without a test failure.
 - [ ] Cookbook-style documentation on docs.rs — short, focused examples for common scenarios: "how do I format bytes", "how do I add my own locale", "what happens with zero / negative / very large values". No walls of text, just code and a one-line explanation.
-- [ ] Edge-case behavior tables in the docs — a quick reference showing what each formatter does with `0`, `i128::MIN`, `u128::MAX`, `f64::NAN`, `f64::INFINITY`, and `Duration::MAX`.
+- [ ] Edge-case behavior tables in the docs — a quick reference showing what each formatter does with `0`, `i128::MIN`, `u128::MAX`, `f64::NAN`, `f64::INFINITY`, and `Duration::MAX`. Started for `number`, needs to be done for `bytes`, `duration`, `ago`, `percent`.
 - [ ] More real-world examples — CLI progress output, log lines, dashboard numbers. Helps new users immediately see where the crate fits.
-- [ ] Explicit MSRV CI job — done, see 0.4.0. Keep this note as a reminder to re-verify after any MSRV bump.
 - [ ] Stable public API snapshot before 1.0 — lock down the formatter surface so downstream crates can rely on it without surprises across minor versions.
 - [ ] Final API consistency pass before 1.0 — make sure all formatters follow the same naming patterns and builder method conventions with no small inconsistencies left.
 - [ ] Add more comparison crates to the benchmark harness — `readable`, `human-readable`, `fancy-duration`, and `duration-human` are missing and cover overlapping functionality. Honest comparison means including them.
@@ -52,9 +51,9 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] f64 precision loss in `compact_suffix_for` for values above 2^53 — document as a known limitation. The `as_f64()` conversion on `DecimalParts` loses integer precision for very large magnitudes. For display purposes this is rarely visible, but worth a note in docs.
 - [ ] Document the Russian ordinal gender limitation — `ordinal_suffix` for Russian always returns `-й` (masculine). The library has no concept of grammatical gender since it only receives a number. This should be explicitly noted in the Russian locale docs and in the edge-case behavior tables.
 - [ ] Investigate `is_comma_style_separator` Unicode edge cases — the current check finds the first non-whitespace character and compares it to `,`. This works for ASCII separators but will not recognize `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma). Low priority until non-Latin list separators are needed.
-- [ ] Number formatter: `separators(true)` currently applies only at suffix index 0 (unscaled output). Consider whether it should also apply to the integer part of compacted output (e.g. `1,234.5K` for very large scaled values). Document the current behaviour explicitly and decide before 1.0.
 - [ ] Percentage formatter: consider accepting integer inputs (e.g. `42_u8` meaning `42%` directly, without the `* 100` ratio convention). Could be a separate `percent_ratio` vs `percent_value` split, or an option flag. Decide before 1.0.
 - [ ] Percentage formatter: `+` sign option for positive values — `"+42.3%"` style useful for delta/change displays (e.g. portfolio gains).
+- [ ] `BytesOptions::locale()` semantics — currently copies only `decimal_separator` from the locale, ignoring everything else. Either copy all relevant fields or rename to `decimal_separator_from_locale()` to make the limited scope explicit. Decide before 1.0.
 
 ---
 
@@ -64,7 +63,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] `serde` feature — serialize and deserialize options structs, useful for config-file driven formatting. Not needed until someone asks for it.
 - [ ] `num-bigint` integration — compact formatting of arbitrary-precision integers. Very niche.
 - [ ] Human-readable ranges — `"1–5 MB"`, `"~3 hours"` for UI-style approximate output.
-- [ ] Currency formatter — lightweight, definitely not trying to compete with full i18n libraries. Only makes sense if locale support grows significantly first.
 - [ ] Scientific notation formatter — `1.23e9`, with locale-aware decimal separator and optional compact form.
 - [ ] Grammar-aware unit forms — case and gender agreement for languages that need it (e.g. Russian genitive after 2–4). The current approach covers most cases but is not linguistically complete.
 - [ ] WASM and embedded target smoke tests in CI.
@@ -75,8 +73,15 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Fix `report.rs`: `io::Error::other`, hardcoded hex colors in raw strings~~
+- [x] ~~Expand `compare_numbers` benchmark: allocating_int, allocating_float, reused_buffer, locale overhead groups~~
+- [x] ~~Expand `number` tests: small types, usize/isize, f32, very small floats, fixed_precision+long_units, separators+negatives, precision clamping, Russian/Polish inflection, space group separator~~
+- [x] ~~Add edge case table to `number` module docs~~
+- [x] ~~Add behaviour tables to `NumberOptions` rustdoc~~
+- [x] ~~Remove dead code from `common/fmt.rs`: `truncate`, `ends_with_byte`, `find_byte`, `trim_ascii_trailing_zeros_and_dot`~~
+- [x] ~~Refactor `number/format.rs`: remove dead fallback path, rename internal functions, extract `write_int_frac` helper, add `debug_assert` and `expect`~~
 - [x] ~~Percentage formatter — `0.423 → "42.3%"`, locale-aware decimal separator, configurable precision, fixed_precision, f32/f64 input, Humanize trait methods~~
-- [x] ~~Fix `format_float` fallback path: locale decimal separator was ignored when`StackString` overflowed~~
+- [x] ~~Fix `format_float` fallback path: locale decimal separator was ignored when `StackString` overflowed~~
 - [x] ~~Fix incorrect `no_std` comment in `round_f64`~~
 - [x] ~~Remove feature-gated `#[cfg]` guard from `is_integer_f64`, replace with `#[allow(dead_code)]`~~
 - [x] ~~Clarify `NumberOptions::separators()` documentation~~

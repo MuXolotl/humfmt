@@ -2,7 +2,8 @@
 
 All notable changes to `humfmt` will be documented in this file.
 
-The format is based on Keep a Changelog and this project adheres to Semantic Versioning.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
@@ -19,19 +20,19 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
   - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
   - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
   - Locale-aware decimal separator via `.locale(locale)`.
-
-### Fixed
-- `format_float` fallback path: when the internal `StackString` buffer overflows, the old code wrote directly via `write!()` ignoring the active locale decimal separator. The new `write_float_direct()` helper correctly applies the locale separator in all code paths.
-- `round_f64`: removed an incorrect comment claiming `f64::round()` is unavailable in `core`. The real reason for using integer-cast rounding is that `f64::round()` requires `std` or `libm` at MSRV 1.70 in a `no_std` build.
-- `is_integer_f64`: removed the `#[cfg(any(feature = "russian", feature = "polish"))]` guard that caused a `dead_code` warning in bare `no_std` builds with no locale features active. Replaced with `#[allow(dead_code)]`.
+- `NumberOptions`: behaviour tables added to rustdoc for `precision`, `long_units`, `separators`, and `fixed_precision`.
+- `number` module: edge case and rounding behaviour table added to module docs.
 
 ### Changed
-- `NumberOptions::separators()` documentation clarified: digit grouping separators apply only when the value is not compacted (suffix index 0).
+- `NumberOptions::separators()`: digit grouping separators apply only when the value is not compacted (suffix index 0). Documentation clarified.
 
-### Tests
-- Added 21 tests for the percentage formatter covering common ratios, precision, fixed_precision, edge cases, locale separators, extension trait, rounding, and sign symmetry.
-- Added edge-case tests for the `number` formatter: `0`, `1`, `-1`, `i128::MIN`, `u128::MAX`, `precision(0)`, sign symmetry for floats, `separators` semantics, very small floats, exact suffix boundaries.
-- Added `very_large_float_near_f64_precision_limit` test for `is_integer_f64`.
+### Fixed
+- `number` formatter float path: removed unreachable fallback (`write_float_direct`) that silently ignored the locale decimal separator on `StackString` overflow. The buffer is always sufficient for `precision <= 6` so the fallback was never reached.
+- `round_f64`: corrected comment — the real reason for integer-cast rounding is that `f64::round()` requires `std` or `libm` at MSRV 1.70 in a `no_std` build.
+- `is_integer_f64`: removed `#[cfg(any(feature = "russian", feature = "polish"))]` guard that caused `dead_code` warnings in bare `no_std` builds. Replaced with `#[allow(dead_code)]`.
+
+### Removed
+- Dead internal code in `common/fmt.rs`: `StackString` methods `truncate`, `ends_with_byte`, `find_byte` and function `trim_ascii_trailing_zeros_and_dot` (unused after float path simplification).
 
 ---
 
@@ -40,38 +41,24 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ### Added
 - `NumberOptions::fixed_precision(bool)` — opt-in mode that preserves trailing fractional zeros for consistent column widths (e.g. `1.50K` instead of `1.5K`).
 - `BytesOptions::fixed_precision(bool)` — same opt-in mode for byte-size output (e.g. `1.50 KiB` instead of `1.5 KiB`).
-- MSRV CI job that compiles and tests the library on Rust 1.70 on every push and pull request.
-- `common::numeric::is_integer_f64` — shared, correct, `no_std`-compatible helper for checking whether a `f64` value has no fractional part. Replaces the broken `value == (value as u128) as f64` pattern that was copy-pasted across locale modules. Conditionally compiled under `#[cfg(any(feature = "russian", feature = "polish"))]` to avoid `dead_code` warnings in bare builds.
-- Unit tests for `is_integer_f64` covering whole numbers, fractional numbers, non-finite values, and negative whole numbers (the previously broken case).
+- `BytesOptions::space(bool)` — optionally insert a space before short unit labels (e.g. `1.5 KB` instead of `1.5KB`).
+- `BytesOptions::decimal_separator(char)` — overrides the decimal separator for scaled byte output (e.g. `1,5KB`).
+- `BytesOptions::locale(locale)` — copies the decimal separator from any `Locale`.
 - `DurationOptions::max_units` now accepts values up to `7` (previously clamped to `4`), enabling callers to render all supported time units down to nanoseconds.
-- New integration tests for `max_units(7)` and the minimum clamp behaviour (`max_units(0)` → `1`).
-- Byte-size formatting now supports a locale-aware decimal separator:
-  - `BytesOptions::decimal_separator(char)` overrides the separator for scaled output (e.g. `1,5KB`).
-  - `BytesOptions::locale(locale)` copies the decimal separator from any `Locale`.
-- `BytesOptions::space(bool)` to optionally insert a space before short unit labels (e.g. `1.5 KB`).
-
-### Fixed
-- `common::numeric::is_integer_f64` — previously only compiled under `#[cfg(any(feature = "russian", feature = "polish"))]`. The inner test module always compiled the logic unconditionally, so correctness was verified regardless of active features.
-- `is_integer_f64` in `russian.rs` and `polish.rs`: the old `value == (value as u128) as f64` check incorrectly returned `false` for negative whole floats (e.g. `-1.0`, `-42.0`) because casting a negative `f64` to `u128` saturates to `0` on stable Rust. This caused wrong grammatical form selection for negative scaled values in long-form output. Fixed with `value.is_finite() && value % 1.0 == 0.0`.
-- Polish long-form plural selection is now CLDR-aligned:
-  - `one` is used only for `1`
-  - `few` is used for integers ending with `2..=4` excluding `12..=14`
-  - all other integers use the `many` form
-  This affects both long compact-number suffixes and long-form duration unit labels.
-- Restored `polish::ordinal_suffix` and `russian::ordinal_suffix` helpers used by `CustomLocale::{polish,russian}()` presets.
-- Russian and Polish duration unit selection now uses integer counts directly (no `u128 -> f64` casts), preserving correctness for very large durations.
-- List formatting no longer injects a literal comma for serial-comma output when the list separator is not comma-style (e.g. custom separators like `" | "`).
+- `common::numeric::is_integer_f64` — shared, correct, `no_std`-compatible helper for checking whether a `f64` value has no fractional part.
+- MSRV CI job that compiles the library on Rust 1.70 on every push and pull request.
 
 ### Changed
-- MSRV raised from **1.67** to **1.70** (released June 2023). This aligns with `criterion 0.5` which already required 1.70, eliminating a silent mismatch where the declared MSRV was lower than what dev-dependencies actually needed.
-- Float compact-number scaling (`normalize_scaled`) rewritten from an O(n) loop to an O(1) IEEE 754 exponent-based approach, consistent with the integer path which already used `ilog10`. Division loop is fully removed. The implementation uses a precomputed `POW1000_F64` table instead of `f64::powi` to remain `no_std` compatible.
-- `src/bytes/format.rs` — six flat label arrays (`DECIMAL_SHORT`, `BINARY_SHORT`, `DECIMAL_LONG_SINGULAR`, etc.) replaced with two arrays of `UnitLabels` structs. Each struct groups short label, long singular, and long plural for one unit tier. Eliminates the DRY violation and makes adding or auditing labels a single-place change.
-- `Locale::duration_unit` default implementation in `traits.rs` now delegates to `english::duration_unit` instead of duplicating the same match expression verbatim. Single source of truth; adding a new time unit no longer requires updating two places.
-- `DurationOptions::max_units` clamp widened from `1..=4` to `1..=7`. Existing code using values `1..=4` is unaffected. Values `5..=7` previously silently clamped to `4`; they now work as documented.
-- Internal `Options` types (`BytesOptions`, `NumberOptions`, `DurationOptions`, `ListOptions`) now expose their fields as `pub(crate)` directly instead of going through `_value()`-suffixed getter methods. The public builder API is unchanged. This removes a layer of noise with no runtime cost and eliminates naming conflicts between builder methods and internal accessors.
-- `proptest` invariant `duration_output_respects_max_units` updated to reflect the new `clamp(1, 7)` bound.
-- Float compact-number rounding no longer relies on std-only float math APIs, preserving stable `no_std` builds.
-- Float formatting now uses a smaller fixed stack buffer (64 bytes) with a safe fallback, and localized numeric rendering preserves any exponent suffix if it appears.
+- MSRV raised from **1.67** to **1.70** (released June 2023), aligning with `criterion 0.5` which already required 1.70.
+- Float compact-number scaling rewritten from an O(n) loop to an O(1) IEEE 754 exponent-based approach, consistent with the integer path which uses `ilog10`.
+- `DurationOptions::max_units` clamp widened from `1..=4` to `1..=7`. Values `5..=7` previously clamped silently to `4`; they now work as documented.
+- `Locale::duration_unit` default implementation now delegates to `english::duration_unit` instead of duplicating the match expression.
+- Internal `Options` types expose fields as `pub(crate)` directly, removing the `_value()`-suffixed getter layer. Public builder API is unchanged.
+
+### Fixed
+- `is_integer_f64` in `russian.rs` and `polish.rs`: the old `value == (value as u128) as f64` check incorrectly returned `false` for negative whole floats (e.g. `-1.0`, `-42.0`) because casting a negative `f64` to `u128` saturates to `0` on stable Rust. Fixed with `value.is_finite() && value % 1.0 == 0.0`.
+- Polish long-form plural selection is now CLDR-aligned: `one` for `1`, `few` for integers ending in `2..=4` excluding `12..=14`, `many` for everything else.
+- List formatting no longer injects a literal comma for serial-comma output when the list separator is not comma-style (e.g. `" | "`).
 - Small negative floating-point values that round to zero no longer render as `-0`.
 
 ---
@@ -79,92 +66,66 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 ## [0.3.0] - 2026-04-28
 
 ### Added
-- Criterion-based benchmark suite covering the core formatter paths
-- Proptest-based invariant coverage for number, bytes, duration, relative-time, and list formatting
-- `DurationConversionError` plus non-breaking `*_checked` helpers in `humfmt::chrono` and `humfmt::time`
-- locale-aware list item separator hook via `Locale::list_separator()` and `CustomLocale::list_separator(...)`
-- `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)` for explicit list-style overrides
-- additional property tests for suffix monotonicity and locale decimal-separator invariants
-- standalone comparison benchmark harness under `tools/benchmarks/`
-- comparison harness coverage for bytes, numbers, durations, and relative-time ("ago")
-- benchmark report generator (`report` binary) that produces `BENCHMARKS.md`
-- capability matrix in `BENCHMARKS.md` to make comparisons interpretable and fair
-- combined dark-theme SVG charts under `assets/benchmarks/` (bytes, time, numbers)
-- on-demand GitHub Actions workflow to run the comparison harness and upload artifacts
-- extensive rustdoc coverage across the public API (options, locale surface, integrations, and display wrappers)
-- compile-time API documentation enforcement via `#![deny(missing_docs)]`
+- Standalone comparison benchmark harness under `tools/benchmarks/` covering bytes, numbers, durations, and relative-time.
+- Benchmark report generator (`report` binary) that produces `BENCHMARKS.md` and dark-theme SVG charts under `assets/benchmarks/`.
+- Capability matrix in `BENCHMARKS.md`.
+- On-demand GitHub Actions workflow to run the comparison harness and upload artifacts.
+- `DurationConversionError` and non-breaking `*_checked` helpers in `humfmt::chrono` and `humfmt::time`.
+- `Locale::list_separator()` and `CustomLocale::list_separator(...)` for locale-aware list item separators.
+- `ListOptions::serial_comma_enabled(bool)` and `ListOptions::conjunction(...)`.
+- Full rustdoc coverage across the public API, enforced via `#![deny(missing_docs)]`.
 
 ### Changed
-- Core number and byte formatting paths were refactored to write directly to the `fmt::Formatter` (fewer intermediate allocations)
-- Compact integer number scaling now uses O(1) unit selection (`ilog10` + power-of-1000 lookup) instead of a division loop
-- Primitive `Sealed` implementations were centralized in `common::sealed` to remove hidden cross-module coupling
-- `StackString::as_str()` is now infallible based on an internal UTF-8 invariant
-- Benchmark charts were consolidated into fewer SVG files to keep the repository tidy
-- README documentation now points to the updated comparison harness workflow and charts
-- Small negative floating-point values that round to zero no longer render as `-0`
+- Core number and byte formatting paths write directly to `fmt::Formatter`, reducing intermediate allocations.
+- Compact integer scaling uses O(1) unit selection (`ilog10` + lookup table) instead of a division loop.
+- `Sealed` implementations centralized in `common::sealed`.
+- `StackString::as_str()` is now infallible based on an internal UTF-8 invariant.
 
 ---
 
 ## [0.2.0] - 2026-04-25
 
 ### Added
-- `bytes()` and `bytes_with(...)` helpers for human-readable byte sizes
-- `BytesOptions` and `Humanize::human_bytes()` / `human_bytes_with(...)`
-- `ordinal()` and `ordinal_with(...)` helpers for human-readable ordinal formatting
-- `Humanize::human_ordinal()` and `human_ordinal_with(...)`
-- `duration()` and `duration_with(...)` helpers for compact human-readable durations
-- `DurationOptions` and `Humanize::human_duration()` / `human_duration_with(...)`
-- `ago()` and `ago_with(...)` helpers for relative time formatting
-- `Humanize::human_ago()` and `human_ago_with(...)`
-- optional `chrono` and `time` integration layers for signed durations and timestamp-based relative formatting
-- optional `Russian` locale pack for compact numbers and ordinals
-- optional `Polish` locale pack for compact numbers and ordinals
-- `CustomLocale` builder API for suffix, separator, and ordinal customization
-- `list()` and `list_with(...)` helpers for natural-language list formatting
-- `ListOptions` for locale-aware conjunction and serial-comma control
-- locale-aware duration and relative-time formatting
-- `chrono::ago_since_with(...)` and `time::ago_since_with(...)` helpers for localized timestamp comparisons
-- gated `ChronoHumanize` / `TimeHumanize` prelude exports when integration features are enabled
+- `bytes()` / `bytes_with()` and `BytesOptions` for human-readable byte sizes.
+- `ordinal()` / `ordinal_with()` for locale-aware ordinal formatting.
+- `duration()` / `duration_with()` and `DurationOptions` for compact duration output.
+- `ago()` / `ago_with()` for relative-time formatting.
+- `list()` / `list_with()` and `ListOptions` for natural-language list formatting.
+- Optional `chrono` integration: `chrono::TimeDelta` and `chrono::DateTime` adapters, including `ago_since()` / `ago_since_with()` for timestamp-based relative formatting.
+- Optional `time` integration: `time::Duration` and `time::OffsetDateTime` adapters, including `ago_since()` / `ago_since_with()`.
+- `Russian` locale pack (feature `russian`): compact numbers, ordinals, duration units, list conjunction.
+- `Polish` locale pack (feature `polish`): compact numbers, ordinals, duration units, list conjunction.
+- `CustomLocale` builder for ad hoc suffix, separator, ordinal, duration-unit, list conjunction, and `ago` word customization.
+- `Humanize` extension methods: `human_bytes`, `human_ordinal`, `human_duration`, `human_ago`.
+- `ChronoHumanize` / `TimeHumanize` extension traits gated behind feature flags.
 
 ### Changed
-- localized compact number separators now come from the active locale
-- `DurationOptions` now carries locale selection for duration and relative-time output
-- `CustomLocale` can now override default list conjunction style
-- expanded rustdoc coverage across modules and configured docs.rs to build with all features
+- Localized compact number separators now come from the active locale.
+- `DurationOptions` carries locale selection for duration and relative-time output.
+- `CustomLocale` supports overriding the default list conjunction style.
+- Expanded rustdoc coverage across modules; docs.rs configured to build with all
+  features enabled.
 
 ---
 
 ## [0.1.1] - 2026-04-25
 
 ### Fixed
-- Restored the `no_std` / `default-features = false` build path
-- Normalized `-0.0` formatting to `0`
-- Preserved non-finite float rendering (`inf`, `-inf`, `NaN`)
+- Restored the `no_std` / `default-features = false` build path.
+- Normalized `-0.0` formatting to `"0"`.
+- Preserved non-finite float rendering (`inf`, `-inf`, `NaN`).
 
 ### Changed
-- Synced README and roadmap with the published crate state
-- Tightened CI to exercise `--all-features` and minimal-feature builds
-- Narrowed crate metadata to the features that actually exist today
-- Expanded compact number suffix coverage beyond trillion
-- Documented the 0.1.x feature-flag compatibility story and added CI coverage for placeholder flags
+- Expanded compact number suffix coverage beyond trillion.
+- Tightened CI to exercise `--all-features` and minimal-feature builds.
 
 ---
 
 ## [0.1.0] - 2026-04-25
 
 ### Added
-- Initial implementation of compact number formatter
-- Builder-style `NumberOptions` API
-- `Humanize` extension trait for ergonomic usage
-- Support for short and long unit suffixes (K / million style)
-- Locale abstraction layer (foundation for future languages)
-- Thousand separators support
-- Precision control for formatted output
-- Integration test suite for numeric formatting
-- Smoke example demonstrating real-world usage
-- Doctests for all public API entry points
-
-### Notes
-- This is the initial public-style release of the formatter core.
-- API is still considered early-stage and may evolve before 1.0.
-- Future work will introduce byte formatting, duration formatting, and locale expansions.
+- Initial implementation of compact number formatter with `number()` / `number_with()` and `NumberOptions`.
+- `Humanize` extension trait for ergonomic `.human_number()` usage.
+- Short and long unit suffixes (`K` / `" thousand"` style).
+- Locale abstraction layer (`Locale` trait, `English` built-in).
+- Digit grouping separators and configurable precision.

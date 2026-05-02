@@ -16,11 +16,12 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 | Feature | humfmt | humansize | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Byte sizes | yes | yes | yes | yes | yes | yes | yes | no | no | no |
-| Compact numbers | yes | no | no | no | no | no | yes | no | no | yes |
+| Compact numbers | yes | no | no | no | no | no | no | no | no | yes |
 | Duration formatting | yes | no | no | no | no | no | yes | yes | yes | no |
 | Relative time (ago) | yes | no | no | no | no | no | no | no | yes | no |
 | Ordinals | yes | no | no | no | no | no | no | no | no | no |
 | List formatting | yes | no | no | no | no | no | no | no | no | no |
+| Percentage | yes | no | no | no | no | no | no | no | no | no |
 | Signed input (negatives) | yes | yes | no | no | no | no | yes | — | — | no |
 | u128 / i128 range | yes | no | no | partial | no | no | yes | — | — | no |
 | Float input | yes | no | no | no | no | no | yes | — | — | yes |
@@ -45,6 +46,7 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 - Some crates return an owned `String` by design; `humfmt` formatters implement `Display`.
 - Some groups are explicitly "aligned" to match a common output style (IEC + space, etc.).
 - Precision semantics differ: some crates keep fixed digits (e.g. `1.50`), while humfmt trims trailing zeros by design.
+- No crate other than humfmt and human_format produces compact `K/M/B` style number output; human-repr and readable produce grouped digits (`1,000`) instead.
 
 ---
 
@@ -71,49 +73,49 @@ These tables show representative outputs for a few byte values using the same co
 
 ## Bytes — allocating (`to_string`), u64 inputs
 
-> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** in this harness. humfmt accepts i8-i128 and u8-u128.
+> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** in this harness. humfmt accepts i8–i128 and u8–u128.
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **499 ns** | **62 ns** | 0.74x |
-| humfmt  i8-u128, any precision | 676 ns | 85 ns | 1.00x |
-| bytesize  u64 only (SI), default 1dp, space | 1.03 us | 129 ns | 1.52x |
-| humansize  u64 only, SI, precision=2, no space | 1.39 us | 173 ns | 2.05x |
-| byte-unit  u64 (auto unit), format! uses String | 4.60 us | 574 ns | 6.80x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **1.08 us** | **135 ns** | 0.58x |
+| humfmt  i8-u128, any precision | 1.87 us | 234 ns | 1.00x |
+| bytesize  u64 only (SI), default 1dp, space | 2.25 us | 281 ns | 1.20x |
+| humansize  u64 only, SI, precision=2, no space | 2.88 us | 360 ns | 1.54x |
+| byte-unit  u64 (auto unit), format! uses String | 8.28 us | 1.03 us | 4.43x |
 
 ## Bytes — allocating (`to_string`) — aligned (IEC + space + precision=2), u64 inputs
 
 > This group aligns unit system and spacing. Decimal digit policy can still differ (fixed digits vs trimmed zeros).
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, IEC, precision=2, space (trims zeros) | **503 ns** | **84 ns** | 1.00x |
-| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 769 ns | 128 ns | 1.53x |
-| bytesize  u64 only, IEC, fixed 2dp, space | 847 ns | 141 ns | 1.68x |
-| byte-unit  u64 only, IEC, fixed 2dp, space | 867 ns | 145 ns | 1.72x |
-| humansize  u64 only, IEC, fixed 2dp, space | 934 ns | 156 ns | 1.86x |
-| human-repr  u64, IEC+space (feature), decimals are algorithmic | 1.04 us | 173 ns | 2.06x |
+| humfmt  u64, IEC, precision=2, space (trims zeros) | **1.30 us** | **216 ns** | 1.00x |
+| byte-unit  u64 only, IEC, fixed 2dp, space | 1.62 us | 269 ns | 1.25x |
+| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 1.72 us | 287 ns | 1.33x |
+| bytesize  u64 only, IEC, fixed 2dp, space | 1.76 us | 294 ns | 1.36x |
+| humansize  u64 only, IEC, fixed 2dp, space | 1.99 us | 331 ns | 1.53x |
+| human-repr  u64, IEC+space (feature) | 2.53 us | 422 ns | 1.95x |
 
 ## Bytes — reused buffer (`write!` into `String`), u64 inputs
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **195 ns** | **24 ns** | 0.38x |
-| humfmt  i8-u128, any precision | 519 ns | 65 ns | 1.00x |
-| bytesize  u64 only (SI), default 1dp, space | 896 ns | 112 ns | 1.73x |
-| humansize  u64 only, SI, precision=2, no space | 1.19 us | 149 ns | 2.30x |
-| byte-unit  u64 (auto unit), write! + Display | 4.43 us | 553 ns | 8.53x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **374 ns** | **47 ns** | 0.34x |
+| humfmt  i8-u128, any precision | 1.09 us | 136 ns | 1.00x |
+| bytesize  u64 only (SI), default 1dp, space | 1.46 us | 183 ns | 1.34x |
+| humansize  u64 only, SI, precision=2, no space | 2.14 us | 267 ns | 1.96x |
+| byte-unit  u64 (auto unit), write! + Display | 6.90 us | 863 ns | 6.32x |
 
 ## Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space + precision=2), u64 inputs
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, IEC, precision=2, space (trims zeros) | **370 ns** | **62 ns** | 1.00x |
-| byte-unit  u64 only, IEC, fixed 2dp, space | 575 ns | 96 ns | 1.55x |
-| bytesize  u64 only, IEC, fixed 2dp, space | 622 ns | 104 ns | 1.68x |
-| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 653 ns | 109 ns | 1.77x |
-| humansize  u64 only, IEC, fixed 2dp, space | 821 ns | 137 ns | 2.22x |
-| human-repr  u64, IEC+space (feature), decimals are algorithmic | 936 ns | 156 ns | 2.53x |
+| humfmt  u64, IEC, precision=2, space (trims zeros) | **732 ns** | **122 ns** | 1.00x |
+| byte-unit  u64 only, IEC, fixed 2dp, space | 1.05 us | 176 ns | 1.44x |
+| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 1.11 us | 185 ns | 1.51x |
+| bytesize  u64 only, IEC, fixed 2dp, space | 1.13 us | 189 ns | 1.55x |
+| humansize  u64 only, IEC, fixed 2dp, space | 1.42 us | 237 ns | 1.94x |
+| human-repr  u64, IEC+space (feature) | 1.99 us | 332 ns | 2.72x |
 
 ## Bytes — extended range (u128 > u64::MAX) — humfmt only
 
@@ -121,7 +123,7 @@ These tables show representative outputs for a few byte values using the same co
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/u128_extended | 677 ns | 169 ns |
+| humfmt/u128_extended | 1.64 us | 411 ns |
 
 ## Bytes — negative values (i64)
 
@@ -129,38 +131,82 @@ These tables show representative outputs for a few byte values using the same co
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/negative_i64 | 322 ns | 81 ns |
-| humansize/negative_i64 | 674 ns | 168 ns |
+| humfmt/negative_i64 | 867 ns | 217 ns |
+| humansize/negative_i64 | 1.38 us | 345 ns |
 
-## Numbers — allocating (`to_string`)
+## Numbers — allocating (`to_string`), mixed i64 inputs
 
-> human_format accepts f64 only and returns an owned `String`. humfmt accepts all integer and float primitives.
+> human_format accepts f64 only and always returns an owned `String`. humfmt accepts all integer and float primitives and implements `Display`.
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  i8-u128 + f32/f64, locale-aware | **2.08 us** | **208 ns** | 1.00x |
-| human_format  f64 only, EN only, returns String | 2.33 us | 233 ns | 1.12x |
+| humfmt  i64, precision=1 (default) | **2.14 us** | **214 ns** | 1.00x |
+| humfmt  i64, precision=2 | 2.31 us | 231 ns | 1.08x |
+| human_format  f64 only, EN only, precision=2, returns String | 5.94 us | 594 ns | 2.77x |
+
+## Numbers — allocating (`to_string`), u64 inputs (apples-to-apples)
+
+> human_format receives u64 cast to f64. Both crates produce compact `K/M/B` style output.
+
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
+|---|---:|---:|---:|
+| humfmt  u64, precision=1 | **1.75 us** | **219 ns** | 1.00x |
+| humfmt  u64, precision=2 | 1.87 us | 233 ns | 1.07x |
+| human_format  u64 as f64, precision=2, returns String | 4.20 us | 526 ns | 2.40x |
+| human_format  u64 as f64, precision=1, returns String | 4.30 us | 538 ns | 2.46x |
+
+## Numbers — allocating (`to_string`), f64 inputs
+
+> Float path only. human_format accepts f64 natively. human-repr and readable do not produce compact suffixes and are excluded.
+
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
+|---|---:|---:|---:|
+| humfmt  f64, precision=2 | **3.08 us** | **385 ns** | 1.00x |
+| human_format  f64, precision=2, returns String | 4.03 us | 503 ns | 1.31x |
+
+## Numbers — reused buffer (`write!` into `String`), u64 inputs
+
+> humfmt writes via `Display` with no intermediate allocation. human_format always allocates a `String`; we `push_str` it into the buffer.
+
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
+|---|---:|---:|---:|
+| humfmt  u64, precision=1, write! | **1.01 us** | **127 ns** | 1.00x |
+| humfmt  u64, precision=2, write! | 1.15 us | 144 ns | 1.14x |
+| human_format  u64 as f64, precision=2, push_str (always allocs) | 4.24 us | 530 ns | 4.18x |
+
+## Numbers — locale overhead (humfmt only)
+
+> Measures the cost of locale-aware formatting. Russian and Polish require plural form selection based on the rendered value.
+
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
+|---|---:|---:|---:|
+| humfmt  English, short | **1.74 us** | **217 ns** | 1.00x |
+| humfmt  Polish, short | 1.93 us | 241 ns | 1.11x |
+| humfmt  Russian, short | 2.42 us | 302 ns | 1.39x |
+| humfmt  Polish, long (plural selection) | 2.57 us | 321 ns | 1.48x |
+| humfmt  Russian, long (plural selection) | 2.71 us | 339 ns | 1.56x |
+| humfmt  English, long | 5.03 us | 629 ns | 2.90x |
 
 ## Duration formatting — allocating
 
 > humantime renders all non-zero units. humfmt caps at `max_units` (default 2). These produce different output for the same input.
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (default) | **759 ns** | **95 ns** | 1.00x |
-| humantime  EN only, all non-zero units | 840 ns | 105 ns | 1.11x |
-| humfmt  short, 3 units | 972 ns | 122 ns | 1.28x |
-| humfmt  long labels, 2 units | 1.10 us | 137 ns | 1.45x |
+| humfmt  short, 2 units (default) | **2.09 us** | **261 ns** | 1.00x |
+| humfmt  short, 3 units | 2.52 us | 316 ns | 1.21x |
+| humfmt  long labels, 2 units | 3.49 us | 436 ns | 1.67x |
+| humantime  EN only, all non-zero units | 3.74 us | 467 ns | 1.79x |
 
 ## Relative time — allocating
 
 > timeago returns an owned `String` from `convert()`. humfmt implements `Display` and writes directly with no intermediate allocation.
 
-| Implementation | Median per-iteration | time per value | Relative vs humfmt |
+| Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (explicit) | **846 ns** | **106 ns** | 1.00x |
-| humfmt  short, 2 units (default) | 863 ns | 108 ns | 1.02x |
-| timeago  EN, 1 unit (default), returns String | 1.07 us | 134 ns | 1.27x |
-| humfmt  long, 2 units | 1.08 us | 135 ns | 1.28x |
-| timeago  EN, 2 units, returns String | 1.66 us | 208 ns | 1.96x |
+| humfmt  short, 2 units (explicit) | **2.61 us** | **327 ns** | 1.00x |
+| humfmt  short, 2 units (default) | 2.77 us | 347 ns | 1.06x |
+| humfmt  long, 2 units | 3.55 us | 443 ns | 1.36x |
+| timeago  EN, 1 unit (default), returns String | 3.87 us | 484 ns | 1.48x |
+| timeago  EN, 2 units, returns String | 5.60 us | 700 ns | 2.14x |
 

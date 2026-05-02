@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-humfmt = { path = "../..", default-features = true, features = ["russian"] }
+humfmt = { path = "../..", default-features = true, features = ["russian", "polish"] }
 
 # Bytes comparison crates
 bytesize = "2.3"

@@ -168,8 +168,6 @@ fn formats_one() {
 
 #[test]
 fn formats_i128_min() {
-    // i128::MIN = -170_141_183_460_469_231_731_687_303_715_884_105_728
-    // Should render as a large negative compact number, no panic, no inf/NaN.
     let out = number(i128::MIN).to_string();
     assert!(out.starts_with('-'));
     assert!(!out.contains("inf"));
@@ -178,8 +176,6 @@ fn formats_i128_min() {
 
 #[test]
 fn formats_u128_max() {
-    // u128::MAX = 340_282_366_920_938_463_463_374_607_431_768_211_455
-    // Should render as a compact number ending in "Dc", no panic, no inf/NaN.
     let out = number(u128::MAX).to_string();
     assert!(out.ends_with("Dc"));
     assert!(!out.contains("inf"));
@@ -211,9 +207,7 @@ fn precision_zero_on_float() {
 #[test]
 fn separators_apply_only_when_unscaled() {
     let opts = NumberOptions::new().separators(true);
-    // Compacted: separators have no effect on the suffix part.
     assert_eq!(humfmt::number_with(15_320, opts).to_string(), "15.3K");
-    // Unscaled (below 1000): no separator needed for 3 digits.
     assert_eq!(humfmt::number_with(999, opts).to_string(), "999");
 }
 
@@ -231,7 +225,6 @@ fn separators_apply_when_scaling_disabled() {
 
 #[test]
 fn very_small_positive_float_below_threshold() {
-    // Values below 1000 should render without suffix.
     assert_eq!(number(0.1_f64).to_string(), "0.1");
     assert_eq!(number(0.01_f64).to_string(), "0");
     assert_eq!(number(999.9_f64).to_string(), "999.9");
@@ -245,7 +238,6 @@ fn very_small_negative_float_below_threshold() {
 
 #[test]
 fn float_just_below_rescale_boundary() {
-    // 999_949.x should stay as ~999.9K, not rescale to M.
     let out = humfmt::number_with(999_949.0_f64, NumberOptions::new().precision(1)).to_string();
     assert_eq!(out, "999.9K");
 }
@@ -265,4 +257,160 @@ fn sign_symmetry_for_floats() {
         let neg = number(-v).to_string();
         assert_eq!(neg, format!("-{pos}"), "sign symmetry failed for {v}");
     }
+}
+
+// --- New tests ---
+
+#[test]
+fn formats_small_integer_types() {
+    assert_eq!(number(u8::MAX).to_string(), "255");
+    assert_eq!(number(i8::MIN).to_string(), "-128");
+    assert_eq!(number(i8::MAX).to_string(), "127");
+    assert_eq!(number(u16::MAX).to_string(), "65.5K");
+    assert_eq!(number(i16::MIN).to_string(), "-32.8K");
+}
+
+#[test]
+fn formats_usize_and_isize() {
+    // usize/isize are platform-dependent in size but always at least 32-bit.
+    // We test values that fit on all platforms.
+    assert_eq!(number(0_usize).to_string(), "0");
+    assert_eq!(number(1_000_usize).to_string(), "1K");
+    assert_eq!(number(0_isize).to_string(), "0");
+    assert_eq!(number(-1_000_isize).to_string(), "-1K");
+}
+
+#[test]
+fn formats_f32_input() {
+    // f32 has ~7 significant digits. For compact display purposes this is fine.
+    assert_eq!(number(0.0_f32).to_string(), "0");
+    assert_eq!(number(1_000.0_f32).to_string(), "1K");
+    assert_eq!(number(1_500.0_f32).to_string(), "1.5K");
+    assert_eq!(number(-1_500.0_f32).to_string(), "-1.5K");
+    assert_eq!(number(f32::INFINITY).to_string(), "inf");
+    assert_eq!(number(f32::NAN).to_string(), "NaN");
+}
+
+#[test]
+fn very_small_floats_round_to_zero() {
+    // Values so small they round to zero at default precision=1.
+    assert_eq!(number(0.001_f64).to_string(), "0");
+    assert_eq!(number(0.04_f64).to_string(), "0");
+    assert_eq!(number(0.05_f64).to_string(), "0.1");
+    assert_eq!(number(-0.001_f64).to_string(), "0");
+    assert_eq!(number(-0.04_f64).to_string(), "0");
+}
+
+#[test]
+fn fixed_precision_and_long_units_together() {
+    let opts = NumberOptions::new()
+        .precision(2)
+        .fixed_precision(true)
+        .long_units();
+    assert_eq!(
+        humfmt::number_with(1_000, opts).to_string(),
+        "1.00 thousand"
+    );
+    assert_eq!(
+        humfmt::number_with(1_500, opts).to_string(),
+        "1.50 thousand"
+    );
+    assert_eq!(
+        humfmt::number_with(1_540, opts).to_string(),
+        "1.54 thousand"
+    );
+}
+
+#[test]
+fn separators_with_negative_unscaled_values() {
+    use humfmt::locale::CustomLocale;
+    let locale = CustomLocale::english().max_compact_suffix_index(0);
+    let opts = NumberOptions::new().locale(locale).separators(true);
+    assert_eq!(humfmt::number_with(-12_345, opts).to_string(), "-12,345");
+    assert_eq!(
+        humfmt::number_with(-1_234_567, opts).to_string(),
+        "-1,234,567"
+    );
+}
+
+#[test]
+fn precision_six_is_maximum() {
+    // precision is clamped to 6; passing 10 is the same as passing 6.
+    let opts_6 = NumberOptions::new().precision(6);
+    let opts_10 = NumberOptions::new().precision(10);
+    assert_eq!(
+        humfmt::number_with(1_234_567, opts_6).to_string(),
+        humfmt::number_with(1_234_567, opts_10).to_string(),
+    );
+}
+
+#[test]
+fn float_precision_zero_at_rescale_boundary() {
+    // 999_500.0 at precision(0) → 1000K → rescales to 1M.
+    let opts = NumberOptions::new().precision(0);
+    assert_eq!(humfmt::number_with(999_500.0_f64, opts).to_string(), "1M");
+    // 999_499.0 at precision(0) → 999K → stays.
+    assert_eq!(humfmt::number_with(999_499.0_f64, opts).to_string(), "999K");
+}
+
+#[cfg(feature = "russian")]
+#[test]
+fn russian_long_units_inflection_via_number_with() {
+    use humfmt::locale::Russian;
+    let opts = NumberOptions::new().locale(Russian).long_units();
+    // 1 → singular
+    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1 тысяча");
+    // 2 → few
+    assert_eq!(humfmt::number_with(2_000, opts).to_string(), "2 тысячи");
+    // 5 → many
+    assert_eq!(humfmt::number_with(5_000, opts).to_string(), "5 тысяч");
+    // 11 → many (teen exception)
+    assert_eq!(humfmt::number_with(11_000, opts).to_string(), "11 тысяч");
+    // 21 → singular (ends in 1, not teen)
+    assert_eq!(humfmt::number_with(21_000, opts).to_string(), "21 тысяча");
+    // fractional → few (genitive singular)
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1,5 тысячи");
+}
+
+#[cfg(feature = "polish")]
+#[test]
+fn polish_long_units_inflection_via_number_with() {
+    use humfmt::locale::Polish;
+    let opts = NumberOptions::new().locale(Polish).long_units();
+    // 1 → one
+    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1 tysiąc");
+    // 2 → few
+    assert_eq!(humfmt::number_with(2_000, opts).to_string(), "2 tysiące");
+    // 5 → many
+    assert_eq!(humfmt::number_with(5_000, opts).to_string(), "5 tysięcy");
+    // 12 → many (teen exception)
+    assert_eq!(humfmt::number_with(12_000, opts).to_string(), "12 tysięcy");
+    // 22 → few (ends in 2, not teen)
+    assert_eq!(humfmt::number_with(22_000, opts).to_string(), "22 tysiące");
+    // fractional → fraction form
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1,5 tysiąca");
+}
+
+#[cfg(feature = "russian")]
+#[test]
+fn russian_separators_use_space_as_group_separator() {
+    use humfmt::locale::CustomLocale;
+    let locale = CustomLocale::russian().max_compact_suffix_index(0);
+    let opts = NumberOptions::new().locale(locale).separators(true);
+    assert_eq!(
+        humfmt::number_with(1_234_567, opts).to_string(),
+        "1 234 567"
+    );
+}
+
+#[cfg(feature = "polish")]
+#[test]
+fn polish_separators_use_space_as_group_separator() {
+    use humfmt::locale::CustomLocale;
+    let locale = CustomLocale::polish().max_compact_suffix_index(0);
+    let opts = NumberOptions::new().locale(locale).separators(true);
+    assert_eq!(
+        humfmt::number_with(1_234_567, opts).to_string(),
+        "1 234 567"
+    );
 }
