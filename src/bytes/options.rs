@@ -1,5 +1,28 @@
 use crate::locale::Locale;
 
+/// Represents a magnitude of bytes.
+///
+/// Used to clamp or force the output unit in [`BytesOptions`].
+/// Depending on the `binary()` setting, `MB` will output either
+/// decimal `MB` (1000-based) or binary `MiB` (1024-based).
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ByteUnit {
+    /// Bytes (B)
+    B = 0,
+    /// Kilobytes (KB) or Kibibytes (KiB)
+    KB = 1,
+    /// Megabytes (MB) or Mebibytes (MiB)
+    MB = 2,
+    /// Gigabytes (GB) or Gibibytes (GiB)
+    GB = 3,
+    /// Terabytes (TB) or Tebibytes (TiB)
+    TB = 4,
+    /// Petabytes (PB) or Pebibytes (PiB)
+    PB = 5,
+    /// Exabytes (EB) or Exbibytes (EiB)
+    EB = 6,
+}
+
 /// Builder-style configuration for byte-size formatting.
 ///
 /// # Examples
@@ -25,6 +48,8 @@ pub struct BytesOptions {
     pub(crate) decimal_separator: char,
     pub(crate) space: bool,
     pub(crate) fixed_precision: bool,
+    pub(crate) min_unit: ByteUnit,
+    pub(crate) max_unit: ByteUnit,
 }
 
 impl BytesOptions {
@@ -37,6 +62,8 @@ impl BytesOptions {
     /// - decimal separator: `'.'`
     /// - short-unit spacing: disabled
     /// - fixed precision: `false` (trailing zeros are trimmed)
+    /// - min unit: `ByteUnit::B`
+    /// - max unit: `ByteUnit::EB`
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -46,6 +73,8 @@ impl BytesOptions {
             decimal_separator: '.',
             space: false,
             fixed_precision: false,
+            min_unit: ByteUnit::B,
+            max_unit: ByteUnit::EB,
         }
     }
 
@@ -163,6 +192,67 @@ impl BytesOptions {
     #[inline]
     pub fn fixed_precision(mut self, yes: bool) -> Self {
         self.fixed_precision = yes;
+        self
+    }
+
+    /// Clamps the minimum unit used for formatting.
+    ///
+    /// Useful to avoid switching down to Bytes when formatting columns that
+    /// should remain in KB or higher.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{BytesOptions, ByteUnit};
+    ///
+    /// let opts = BytesOptions::new().min_unit(ByteUnit::KB).precision(3);
+    /// // 500 bytes is formatted as 0.5 KB
+    /// assert_eq!(humfmt::bytes_with(500_u64, opts).to_string(), "0.5KB");
+    /// ```
+    #[inline]
+    pub fn min_unit(mut self, unit: ByteUnit) -> Self {
+        self.min_unit = unit;
+        self
+    }
+
+    /// Clamps the maximum unit used for formatting.
+    ///
+    /// Useful to avoid switching up to TB or PB when formatting columns that
+    /// should remain in GB.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{BytesOptions, ByteUnit};
+    ///
+    /// let opts = BytesOptions::new().max_unit(ByteUnit::GB);
+    /// // 2,000,000,000,000 bytes is formatted as 2000 GB instead of 2 TB
+    /// assert_eq!(humfmt::bytes_with(2_000_000_000_000_u64, opts).to_string(), "2000GB");
+    /// ```
+    #[inline]
+    pub fn max_unit(mut self, unit: ByteUnit) -> Self {
+        self.max_unit = unit;
+        self
+    }
+
+    /// Forces the formatter to always use a specific unit.
+    ///
+    /// This is equivalent to setting both `min_unit` and `max_unit` to the same value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{BytesOptions, ByteUnit};
+    ///
+    /// let opts = BytesOptions::new().unit(ByteUnit::MB).precision(3);
+    /// assert_eq!(humfmt::bytes_with(150_000_u64, opts).to_string(), "0.15MB");
+    /// assert_eq!(humfmt::bytes_with(1_500_000_u64, opts).to_string(), "1.5MB");
+    /// assert_eq!(humfmt::bytes_with(1_500_000_000_u64, opts).to_string(), "1500MB");
+    /// ```
+    #[inline]
+    pub fn unit(mut self, unit: ByteUnit) -> Self {
+        self.min_unit = unit;
+        self.max_unit = unit;
         self
     }
 

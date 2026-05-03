@@ -20,8 +20,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## PLANNED
 
-- [ ] Byte formatter: allow forcing a specific unit — e.g. always render in MB regardless of value size, useful for dashboards and log lines where consistent column width matters.
-- [ ] Byte formatter: clamp min/max unit — stop the formatter from jumping all the way to EB when you want output to stay in MB/GB range.
 - [ ] Byte formatter: bits mode — `Kb`, `Mb`, `Gb` using the same 1000-based infrastructure. Useful for network throughput display.
 - [ ] Byte formatter: support `RoundingMode` and `significant_digits` for exact parity with the `number` formatter's API surface.
 - [ ] Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.
@@ -69,6 +67,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Byte formatter: unit forcing and min/max clamping.~~
 - [x] ~~Significant-digits mode — instead of decimal places, round to N total significant digits.~~
 - [x] ~~Rounding mode control (HalfUp, Floor, Ceil)~~
 - [x] ~~Fraction-aware pluralization: confirmed Polish and Russian boundaries work perfectly with existing tests~~

@@ -9,7 +9,7 @@ mod options;
 mod traits;
 
 pub use display::BytesDisplay;
-pub use options::BytesOptions;
+pub use options::{ByteUnit, BytesOptions};
 pub use traits::BytesLike;
 
 /// Creates a human-readable byte-size formatter using default decimal units.

@@ -25,7 +25,7 @@ mod common;
 mod traits;
 
 pub use ago::{ago, ago_with, AgoDisplay};
-pub use bytes::{bytes, bytes_with, BytesDisplay, BytesLike, BytesOptions};
+pub use bytes::{bytes, bytes_with, ByteUnit, BytesDisplay, BytesLike, BytesOptions};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
 pub use error::{DurationConversionError, NegativeDurationError};
 pub use list::{list, list_with, ListDisplay, ListOptions};

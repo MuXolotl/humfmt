@@ -1,3 +1,4 @@
+use humfmt::ByteUnit;
 use humfmt::{bytes, BytesOptions, Humanize};
 
 #[test]
@@ -147,4 +148,55 @@ fn fixed_precision_with_zero_precision_emits_no_decimal() {
     assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "2KB");
     // 1024 / 1000 = 1.024 → rounds to 1 at precision=0
     assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "1KB");
+}
+
+#[test]
+fn supports_forcing_specific_unit() {
+    let opts = BytesOptions::new().unit(ByteUnit::MB).precision(3);
+
+    // Scale up (small values padded with zeros)
+    assert_eq!(humfmt::bytes_with(150_000_u64, opts).to_string(), "0.15MB");
+
+    // Exact match
+    assert_eq!(humfmt::bytes_with(1_500_000_u64, opts).to_string(), "1.5MB");
+
+    // Scale down (large values left unscaled past the limit)
+    assert_eq!(
+        humfmt::bytes_with(1_500_000_000_u64, opts).to_string(),
+        "1500MB"
+    );
+}
+
+#[test]
+fn supports_min_unit_clamping() {
+    let opts = BytesOptions::new().min_unit(ByteUnit::KB).precision(2);
+
+    // 500 B is forced to 0.5 KB
+    assert_eq!(humfmt::bytes_with(500_u64, opts).to_string(), "0.5KB");
+
+    // 1.5 MB scales normally
+    assert_eq!(humfmt::bytes_with(1_500_000_u64, opts).to_string(), "1.5MB");
+}
+
+#[test]
+fn supports_max_unit_clamping() {
+    let opts = BytesOptions::new().max_unit(ByteUnit::GB);
+
+    // 2 TB is clamped to 2000 GB
+    assert_eq!(
+        humfmt::bytes_with(2_000_000_000_000_u64, opts).to_string(),
+        "2000GB"
+    );
+}
+
+#[test]
+fn min_unit_greater_than_max_unit_safely_clamps() {
+    // If the user maliciously sets min = GB and max = KB, it safely normalizes.
+    let opts = BytesOptions::new()
+        .min_unit(ByteUnit::GB)
+        .max_unit(ByteUnit::KB);
+    assert_eq!(
+        humfmt::bytes_with(1_500_000_000_000_u64, opts).to_string(),
+        "1500GB"
+    );
 }

@@ -120,31 +120,33 @@ pub fn format_bytes(
         BytesValue::UInt(v) => (false, v),
     };
 
-    let max_idx: usize = 6;
     let precision = options.precision;
+    let min_unit = options.min_unit as usize;
+    let max_unit = (options.max_unit as usize).min(6).max(min_unit);
 
-    let (mut idx, table) = if options.binary {
+    let (raw_idx, table) = if options.binary {
         let idx = if magnitude == 0 {
             0
         } else {
-            ((magnitude.ilog2() / 10) as usize).min(max_idx)
+            ((magnitude.ilog2() / 10) as usize).min(6)
         };
         (idx, &BINARY_UNITS)
     } else {
         let idx = if magnitude == 0 {
             0
         } else {
-            ((magnitude.ilog10() / 3) as usize).min(max_idx)
+            ((magnitude.ilog10() / 3) as usize).min(6)
         };
         (idx, &DECIMAL_UNITS)
     };
 
+    let mut idx = raw_idx.clamp(min_unit, max_unit);
     let mut unit = table[idx];
     let mut parts =
         decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
 
     let boundary = if options.binary { 1_024 } else { 1_000 };
-    if parts.integer >= boundary && idx < max_idx {
+    if parts.integer >= boundary && idx < max_unit {
         idx += 1;
         unit = table[idx];
         parts = decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
