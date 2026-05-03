@@ -114,8 +114,8 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
     /// |---:|---|---|---|
-    /// | `1_400` | `"1K"` | `"1.4K"` | `"1.40K"` → `"1.4K"` (trimmed) |
-    /// | `1_500` | `"2K"` | `"1.5K"` | `"1.50K"` → `"1.5K"` (trimmed) |
+    /// | `1_400` | `"1K"` | `"1.4K"` | `"1.4K"` (trimmed) |
+    /// | `1_500` | `"2K"` | `"1.5K"` | `"1.5K"` (trimmed) |
     /// | `15_320` | `"15K"` | `"15.3K"` | `"15.32K"` |
     /// | `999_950` | `"1M"` | `"1M"` | `"1M"` (rescaled after rounding) |
     ///
@@ -149,6 +149,15 @@ impl<L: Locale> NumberOptions<L> {
     /// | `123_456` | `"123K"` | `1`, `2`, `3` are the 3 significant digits |
     /// | `1_234` (unscaled) | `"1230"` | Unscaled integer is rounded directly |
     ///
+    /// With `fixed_precision(true)`, trailing zeros are padded to fill the
+    /// significant digit count:
+    ///
+    /// | Input | `significant_digits(3)` + `fixed_precision` |
+    /// |---:|---|
+    /// | `1` | `"1.00"` |
+    /// | `10` | `"10.0"` |
+    /// | `100` | `"100"` |
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -174,6 +183,15 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// [`separators(true)`]: NumberOptions::separators
     ///
+    /// # Behaviour table
+    ///
+    /// | Input | `compact(true)` (default) | `compact(false)` |
+    /// |---:|---|---|
+    /// | `999` | `"999"` | `"999"` |
+    /// | `1500` | `"1.5K"` | `"1500"` |
+    /// | `1_500_000` | `"1.5M"` | `"1500000"` |
+    /// | `1_500_000.5` (f64) | `"1.5M"` | `"1500000.5"` |
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -192,6 +210,16 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// Values that round to exactly zero will output `0` without a sign.
     /// Useful for deltas and change indicators.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `force_sign(false)` (default) | `force_sign(true)` |
+    /// |---:|---|---|
+    /// | `1500` | `"1.5K"` | `"+1.5K"` |
+    /// | `42` | `"42"` | `"+42"` |
+    /// | `0` | `"0"` | `"0"` (no sign on zero) |
+    /// | `-1500` | `"-1.5K"` | `"-1.5K"` (negatives unchanged) |
+    /// | `0.004` (f64, rounds to 0) | `"0"` | `"0"` (no sign on rounded-zero) |
     ///
     /// # Examples
     ///
@@ -214,6 +242,19 @@ impl<L: Locale> NumberOptions<L> {
     /// - `HalfUp` (default): standard mathematical rounding. Ties round away from zero.
     /// - `Floor`: always round towards negative infinity.
     /// - `Ceil`: always round towards positive infinity.
+    ///
+    /// Rounding may rescale across a suffix boundary. For example, `999_500`
+    /// at `precision(0)` with `HalfUp` rounds to `1000K` which rescales to `1M`.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(0)` + `HalfUp` | `Floor` | `Ceil` |
+    /// |---:|---|---|---|
+    /// | `1_100` | `"1K"` | `"1K"` | `"2K"` |
+    /// | `1_500` | `"2K"` | `"1K"` | `"2K"` |
+    /// | `1_900` | `"2K"` | `"1K"` | `"2K"` |
+    /// | `999_500` | `"1M"` (rescaled) | `"999K"` | `"1M"` (rescaled) |
+    /// | `-1_500` | `"-2K"` | `"-2K"` | `"-1K"` |
     ///
     /// # Examples
     ///
@@ -287,6 +328,7 @@ impl<L: Locale> NumberOptions<L> {
     /// | `1_234` | `"1.2K"` | `"1.2K"` (compacted, grouping has no effect) |
     /// | `1_234` with `compact(false)` | `"1234"` | `"1,234"` |
     /// | `1_234_567` with `compact(false)`| `"1234567"` | `"1,234,567"` |
+    /// | `-1_234_567` with `compact(false)`| `"-1234567"` | `"-1,234,567"` |
     ///
     /// # Examples
     ///

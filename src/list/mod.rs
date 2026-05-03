@@ -2,6 +2,38 @@
 //!
 //! This module joins slices into readable lists while respecting locale-aware
 //! conjunctions and serial-comma preferences.
+//!
+//! # Quick start
+//!
+//! ```rust
+//! use humfmt::{list, list_with, ListOptions};
+//!
+//! // Default: Oxford comma
+//! assert_eq!(list(&["red", "green", "blue"]).to_string(), "red, green, and blue");
+//!
+//! // No serial comma
+//! let no_oxford = list_with(
+//!     &["red", "green", "blue"],
+//!     ListOptions::new().no_serial_comma(),
+//! );
+//! assert_eq!(no_oxford.to_string(), "red, green and blue");
+//! ```
+//!
+//! # Edge case behaviour
+//!
+//! | Input | Default output | Notes |
+//! |---:|---|---|
+//! | `[]` | `""` | Empty list |
+//! | `["red"]` | `"red"` | Single item |
+//! | `["red", "green"]` | `"red and green"` | Two items, no comma |
+//! | `["red", "green", "blue"]` | `"red, green, and blue"` | Three items, serial comma |
+//!
+//! # Serial comma and non-comma separators
+//!
+//! The serial comma (Oxford comma) is only meaningful for comma-style separators.
+//! If you override the list separator to something non-comma-like (e.g. `" | "`),
+//! `humfmt` will not inject a literal comma before the final conjunction even if
+//! serial comma is enabled. This keeps the output predictable.
 
 mod display;
 mod format;

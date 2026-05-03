@@ -32,6 +32,38 @@ pub(crate) enum Precision {
 
 /// Builder-style configuration for byte-size formatting.
 ///
+/// # Quick reference
+///
+/// | Method | Default | Effect |
+/// |---|---|---|
+/// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
+/// | [`significant_digits(n)`] | `none` | Total significant digits (overrides precision) |
+/// | [`binary()`] | `false` | SI (1000) vs IEC (1024) units |
+/// | [`bits(bool)`] | `false` | Multiply by 8, use bit units (`Kb`, `Mb`) |
+/// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
+/// | [`long_units()`] | `false` | `"KB"` → `" kilobytes"` |
+/// | [`space(bool)`] | `false` | `"1.5KB"` → `"1.5 KB"` |
+/// | [`decimal_separator(c)`] | `'.'` | Decimal separator for scaled output |
+/// | [`fixed_precision(bool)`] | `false` | `"1.5KB"` → `"1.50KB"` |
+/// | [`min_unit(u)`] | `B` | Clamp minimum unit |
+/// | [`max_unit(u)`] | `EB` | Clamp maximum unit |
+/// | [`unit(u)`] | auto | Force specific unit |
+/// | [`locale(L)`] | — | Copy decimal separator from locale |
+///
+/// [`precision(n)`]: BytesOptions::precision
+/// [`significant_digits(n)`]: BytesOptions::significant_digits
+/// [`binary()`]: BytesOptions::binary
+/// [`bits(bool)`]: BytesOptions::bits
+/// [`rounding(mode)`]: BytesOptions::rounding
+/// [`long_units()`]: BytesOptions::long_units
+/// [`space(bool)`]: BytesOptions::space
+/// [`decimal_separator(c)`]: BytesOptions::decimal_separator
+/// [`fixed_precision(bool)`]: BytesOptions::fixed_precision
+/// [`min_unit(u)`]: BytesOptions::min_unit
+/// [`max_unit(u)`]: BytesOptions::max_unit
+/// [`unit(u)`]: BytesOptions::unit
+/// [`locale(L)`]: BytesOptions::locale
+///
 /// # Examples
 ///
 /// ```rust
@@ -94,6 +126,13 @@ impl BytesOptions {
     ///
     /// Precision is clamped to `0..=6`.
     ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
+    /// |---:|---|---|---|
+    /// | `1_536` | `"2KB"` | `"1.5KB"` | `"1.54KB"` |
+    /// | `999_950` | `"1MB"` | `"1MB"` | `"1MB"` (rescaled) |
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -115,6 +154,14 @@ impl BytesOptions {
     ///
     /// Clamped to `1..=39` (the maximum digits in a `u128`).
     ///
+    /// # Behaviour table
+    ///
+    /// | Input | `significant_digits(3)` | Notes |
+    /// |---:|---|---|
+    /// | `1_234` | `"1.23KB"` | `1`, `2`, `3` are the 3 significant digits |
+    /// | `12_345` | `"12.3KB"` | `1`, `2`, `3` are the 3 significant digits |
+    /// | `123_456` | `"123KB"` | `1`, `2`, `3` are the 3 significant digits |
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -134,6 +181,13 @@ impl BytesOptions {
     /// - `HalfUp` (default): standard mathematical rounding. Ties round away from zero.
     /// - `Floor`: always round towards negative infinity.
     /// - `Ceil`: always round towards positive infinity.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(0)` + `HalfUp` | `Floor` | `Ceil` |
+    /// |---:|---|---|---|
+    /// | `1_500` | `"2KB"` | `"1KB"` | `"2KB"` |
+    /// | `-1_500` | `"-2KB"` | `"-2KB"` | `"-1KB"` |
     ///
     /// # Examples
     ///
@@ -171,6 +225,14 @@ impl BytesOptions {
     /// Formats the input value as bits rather than bytes.
     ///
     /// Internally multiplies the value by 8 and uses lowercase suffixes (`Kb`, `Mb`).
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `bits(false)` (default) | `bits(true)` |
+    /// |---:|---|---|
+    /// | `1000` | `"1KB"` | `"8Kb"` |
+    /// | `1_500_000` | `"1.5MB"` | `"12Mb"` |
+    /// | `125` (long) | `"125 bytes"` | `"1 kilobit"` |
     ///
     /// # Examples
     ///
@@ -274,6 +336,9 @@ impl BytesOptions {
     /// Useful to avoid switching down to Bytes when formatting columns that
     /// should remain in KB or higher.
     ///
+    /// If the natural unit is below `min_unit`, the value is scaled down
+    /// (e.g. `500 B` with `min_unit(KB)` becomes `"0.5KB"`).
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -293,6 +358,9 @@ impl BytesOptions {
     ///
     /// Useful to avoid switching up to TB or PB when formatting columns that
     /// should remain in GB.
+    ///
+    /// If the natural unit exceeds `max_unit`, the value is left unscaled
+    /// (e.g. `2 TB` with `max_unit(GB)` becomes `"2000GB"`).
     ///
     /// # Examples
     ///
@@ -331,6 +399,10 @@ impl BytesOptions {
     }
 
     /// Applies the decimal separator from the provided locale.
+    ///
+    /// Currently copies only the `decimal_separator` from the locale.
+    /// Other locale fields (group separator, suffixes, etc.) are not used
+    /// by the byte formatter.
     ///
     /// # Examples
     ///

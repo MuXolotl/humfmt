@@ -13,6 +13,22 @@ pub enum NumericValue {
 ///
 /// Used by locale packs that need to distinguish whole from fractional
 /// scaled values for grammatical agreement (Russian, Polish, etc.).
+///
+/// # Examples
+///
+/// ```ignore
+/// use humfmt::common::numeric::is_integer_f64;
+///
+/// assert!(is_integer_f64(0.0));
+/// assert!(is_integer_f64(1.0));
+/// assert!(is_integer_f64(-1.0));
+/// assert!(is_integer_f64(1_000_000.0));
+///
+/// assert!(!is_integer_f64(0.5));
+/// assert!(!is_integer_f64(1.5));
+/// assert!(!is_integer_f64(f64::INFINITY));
+/// assert!(!is_integer_f64(f64::NAN));
+/// ```
 #[allow(dead_code)]
 #[inline]
 pub fn is_integer_f64(value: f64) -> bool {

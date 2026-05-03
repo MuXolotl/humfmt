@@ -5,8 +5,9 @@
 **Ergonomic human-readable formatting toolkit for Rust**
 
 [![CI](https://github.com/MuXolotl/humfmt/actions/workflows/ci.yml/badge.svg)](https://github.com/MuXolotl/humfmt/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/humfmt.svg)](https://crates.io/crates/humfmt)
+[![docs.rs](https://docs.rs/humfmt/badge.svg)](https://docs.rs/humfmt)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-actively--developing-brightgreen.svg)
 
 </div>
 
@@ -15,279 +16,229 @@
 `humfmt` turns raw machine values into readable text without turning formatting
 into a side quest.
 
-It currently includes:
-
-- compact numbers like `15320 -> 15.3K`
-- byte sizes like `1536 -> 1.5KB`
-- ordinals like `21 -> 21st`
-- durations like `3661s -> 1h 1m`
-- relative time like `90s -> 1m 30s ago`
-- natural-language lists like `["red", "green", "blue"] -> "red, green, and blue"`
-- locale-aware output for English, Russian, and Polish
-- custom locale overrides for suffixes, separators, ordinals, duration units, and list style
-- optional `chrono` and `time` integration
-
-The goal is still the same: keep the crate small, predictable, and pleasant to
-reach for.
-
----
-
-## Quick Example
-
 ```rust
 use humfmt::Humanize;
 
-fn main() {
-    println!("{}", humfmt::bytes(1536)); // 1.5KB
-    println!("{}", humfmt::number(15320)); // 15.3K
-    println!("{}", 1_500_000.human_number()); // 1.5M
-    println!("{}", humfmt::ordinal(21)); // 21st
-    println!("{}", humfmt::duration(core::time::Duration::from_secs(3661))); // 1h 1m
-    println!("{}", humfmt::ago(core::time::Duration::from_secs(90))); // 1m 30s ago
-    println!("{}", humfmt::list(&["red", "green", "blue"])); // red, green, and blue
-}
+println!("{}", 1_500_000.human_number());   // 1.5M
+println!("{}", 1536_u64.human_bytes());     // 1.5KB
+println!("{}", 0.423_f64.human_percent());  // 42.3%
+println!("{}", humfmt::ordinal(21));        // 21st
 ```
+
+**That's it.** Import the trait, call a method, done.
 
 ---
 
-## Performance Notes
+## What it does
 
-`humfmt` is designed to be cheap to call from hot paths:
+| Input | Formatter | Output |
+|---|---|---|
+| `15320` | `number` | `15.3K` |
+| `1536` | `bytes` | `1.5KB` |
+| `0.423` | `percent` | `42.3%` |
+| `21` | `ordinal` | `21st` |
+| `3661s` | `duration` | `1h 1m` |
+| `90s` | `ago` | `1m 30s ago` |
+| `["red", "green", "blue"]` | `list` | `red, green, and blue` |
 
-- The formatters implement `Display` and write directly to the provided `fmt::Formatter`.
-- The formatting path avoids building intermediate heap strings.
-- Allocation is an explicit choice of the caller (e.g. calling `.to_string()` allocates because it must own a `String`).
-- Integer compact-number scaling uses O(1) unit selection (log10-based) rather than repeated division.
-- The float compact-number path uses a small stack buffer and stays compatible with stable `no_std`.
-
-In other words: formatting itself is meant to be lightweight; if you need owned output,
-you can allocate it explicitly.
-
----
-
-## Customized Formatting
-
-```rust
-use core::time::Duration;
-
-use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions};
-
-fn main() {
-    let disk = 1536_u64.human_bytes_with(BytesOptions::new().binary());
-    println!("{disk}"); // 1.5KiB
-
-    let number = 15_320.human_number_with(
-        NumberOptions::new()
-            .precision(2)
-            .long_units(),
-    );
-    println!("{number}"); // 15.32 thousand
-
-    let elapsed = Duration::from_millis(1500)
-        .human_duration_with(DurationOptions::new().long_units());
-    println!("{elapsed}"); // 1 second 500 milliseconds
-
-    let relative = Duration::from_secs(3665)
-        .human_ago_with(DurationOptions::new().max_units(3));
-    println!("{relative}"); // 1h 1m 5s ago
-}
-```
+All formatters implement `Display` — no intermediate heap strings. Write directly into any buffer.
 
 ---
 
-## List Examples
-
-```rust
-use humfmt::{list, list_with, ListOptions};
-
-let english = list(&["red", "green", "blue"]);
-assert_eq!(english.to_string(), "red, green, and blue");
-
-let plain = list_with(
-    &["red", "green", "blue"],
-    ListOptions::new()
-        .serial_comma_enabled(false)
-        .conjunction("plus"),
-);
-assert_eq!(plain.to_string(), "red, green plus blue");
-```
-
----
-
-## Locale Examples
-
-```rust
-use core::time::Duration;
-
-use humfmt::{
-    duration_with, list_with, number_with,
-    locale::Russian,
-    DurationOptions, ListOptions, NumberOptions
-};
-
-let number = number_with(15_320, NumberOptions::new().locale(Russian));
-assert_eq!(number.to_string(), "15,3 тыс.");
-
-let elapsed = duration_with(
-    Duration::from_secs(3665),
-    DurationOptions::new()
-        .locale(Russian)
-        .long_units()
-        .max_units(3),
-);
-assert_eq!(elapsed.to_string(), "1 час 1 минута 5 секунд");
-
-let items = list_with(
-    &["яблоки", "груши", "сливы"],
-    ListOptions::new().locale(Russian),
-);
-assert_eq!(items.to_string(), "яблоки, груши и сливы");
-```
-
-```rust
-use core::time::Duration;
-
-use humfmt::{
-    ago_with, number_with, ordinal_with,
-    locale::Polish,
-    DurationOptions, NumberOptions
-};
-
-let number = number_with(15_320, NumberOptions::new().locale(Polish));
-assert_eq!(number.to_string(), "15,3 tys.");
-assert_eq!(ordinal_with(21, Polish).to_string(), "21.");
-
-let relative = ago_with(
-    Duration::from_secs(90),
-    DurationOptions::new().locale(Polish).long_units(),
-);
-assert_eq!(relative.to_string(), "1 minuta 30 sekund temu");
-```
-
-```rust
-use humfmt::{
-    ago_with,
-    number_with,
-    DurationOptions,
-    NumberOptions,
-    locale::{CustomLocale, DurationUnit},
-};
-
-fn custom_duration_unit(unit: DurationUnit, count: u128, long: bool) -> &'static str {
-    if !long {
-        return match unit {
-            DurationUnit::Minute => "m",
-            DurationUnit::Second => "s",
-            _ => "?",
-        };
-    }
-
-    match unit {
-        DurationUnit::Minute if count == 1 => "tick",
-        DurationUnit::Minute => "ticks",
-        DurationUnit::Second if count == 1 => "tock",
-        DurationUnit::Second => "tocks",
-        _ => "units",
-    }
-}
-
-let locale = CustomLocale::english()
-    .short_suffix(1, "k")
-    .separators(',', '.')
-    .list_separator(" | ")
-    .duration_unit_fn(custom_duration_unit)
-    .ago_word("back");
-
-let number = number_with(15_320, NumberOptions::new().locale(locale));
-assert_eq!(number.to_string(), "15,3k");
-
-let relative = ago_with(
-    core::time::Duration::from_secs(90),
-    DurationOptions::new().locale(locale).long_units(),
-);
-assert_eq!(relative.to_string(), "1 tick 30 tocks back");
-```
-
----
-
-## Current Features
-
-- compact number formatter
-- byte-size formatter
-- ordinal formatter
-- duration formatter
-- relative time formatter
-- list formatter
-- long and short units
-- English, Russian, and Polish locale packs
-- custom locale builder for suffix and separator overrides
-- configurable list separator per locale
-- custom duration-unit, list-style, and relative-time wording hooks
-- optional `chrono` and `time` integration
-- checked `chrono/time` adapters with detailed conversion errors
-- doctests and integration tests
-
----
-
-## Installation
+## Quick start
 
 ```toml
 [dependencies]
 humfmt = "0.5"
 ```
 
-For `no_std` targets:
+```rust
+use humfmt::Humanize;
+use core::time::Duration;
+
+// Extension trait — shortest path
+println!("{}", 1_500_000.human_number());                     // 1.5M
+println!("{}", 1536_u64.human_bytes());                       // 1.5KB
+println!("{}", 0.423_f64.human_percent());                    // 42.3%
+println!("{}", 42_u32.human_ordinal());                       // 42nd
+println!("{}", Duration::from_secs(90).human_ago());          // 1m 30s ago
+
+// Free functions — same result, no trait import needed
+println!("{}", humfmt::number(15320));                        // 15.3K
+println!("{}", humfmt::bytes(1536));                          // 1.5KB
+println!("{}", humfmt::percent(0.423));                       // 42.3%
+println!("{}", humfmt::ordinal(21));                          // 21st
+println!("{}", humfmt::duration(Duration::from_secs(3661)));  // 1h 1m
+println!("{}", humfmt::list(&["red", "green", "blue"]));      // red, green, and blue
+```
+
+---
+
+## Customization
+
+Every formatter has a `*_with` variant that takes an options builder:
+
+```rust
+use core::time::Duration;
+use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions, PercentOptions};
+
+// Bytes: binary units, space before suffix
+let disk = 1536_u64.human_bytes_with(
+    BytesOptions::new().binary().precision(2).space(true)
+);
+println!("{disk}"); // 1.5 KiB
+
+// Bytes: bits mode for network speeds
+let speed = 1_500_000_u64.human_bytes_with(
+    BytesOptions::new().bits(true)
+);
+println!("{speed}"); // 12Mb
+
+// Bytes: always show in megabytes
+let fixed = 1_500_000_u64.human_bytes_with(
+    BytesOptions::new().unit(humfmt::ByteUnit::MB).precision(3)
+);
+println!("{fixed}"); // 1.5MB
+
+// Bytes: clamp minimum to KB (500 bytes -> 0.5 KB)
+let clamped = 500_u64.human_bytes_with(
+    BytesOptions::new().min_unit(humfmt::ByteUnit::KB).precision(2)
+);
+println!("{clamped}"); // 0.5KB
+
+// Numbers: long-form
+let n = 15_320.human_number_with(
+    NumberOptions::new().precision(2).long_units()
+);
+println!("{n}"); // 15.32 thousand
+
+// Numbers: full number with digit grouping
+let full = 1_234_567.human_number_with(
+    NumberOptions::new().compact(false).separators(true)
+);
+println!("{full}"); // 1,234,567
+
+// Numbers: significant digits
+let sig = 12345.human_number_with(
+    NumberOptions::new().significant_digits(3)
+);
+println!("{sig}"); // 12.3K
+
+// Numbers: forced sign for deltas
+let delta = 1500.human_number_with(
+    NumberOptions::new().force_sign(true)
+);
+println!("{delta}"); // +1.5K
+
+// Numbers: rounding modes
+use humfmt::RoundingMode;
+let floor = 1_900.human_number_with(
+    NumberOptions::new().precision(0).rounding(RoundingMode::Floor)
+);
+println!("{floor}"); // 1K
+
+// Percentages: 2 decimal places, fixed precision
+let ratio = 0.425_f64.human_percent_with(
+    PercentOptions::new().precision(2).fixed_precision(true)
+);
+println!("{ratio}"); // 42.50%
+
+// Percentages: forced sign
+let change = 0.15_f64.human_percent_with(
+    PercentOptions::new().force_sign(true)
+);
+println!("{change}"); // +15%
+
+// Duration: long-form, 3 units
+let elapsed = Duration::from_secs(3665).human_duration_with(
+    DurationOptions::new().long_units().max_units(3)
+);
+println!("{elapsed}"); // 1 hour 1 minute 5 seconds
+
+// Relative time: 3 units
+let ago = Duration::from_secs(3665).human_ago_with(
+    DurationOptions::new().max_units(3)
+);
+println!("{ago}"); // 1h 1m 5s ago
+```
+
+---
+
+## Lists
+
+```rust
+use humfmt::{list, list_with, ListOptions};
+
+// Default: Oxford comma
+assert_eq!(
+    list(&["red", "green", "blue"]).to_string(),
+    "red, green, and blue"
+);
+
+// No serial comma
+let no_oxford = list_with(
+    &["red", "green", "blue"],
+    ListOptions::new().no_serial_comma(),
+);
+assert_eq!(no_oxford.to_string(), "red, green and blue");
+
+// Custom conjunction
+let plus = list_with(
+    &["red", "green", "blue"],
+    ListOptions::new().conjunction("plus"),
+);
+assert_eq!(plus.to_string(), "red, green, plus blue");
+```
+
+---
+
+## Locales
+
+English is the default. Russian and Polish are available behind feature flags:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.5", default-features = false }
+humfmt = { version = "0.5", features = ["russian", "polish"] }
+```
+
+```rust
+use humfmt::{number_with, ordinal_with, NumberOptions};
+use humfmt::locale::{Russian, Polish};
+
+// Russian: comma decimal separator, space group separator, inflected suffixes
+println!("{}", number_with(15_320, NumberOptions::new().locale(Russian)));             // 15,3 тыс.
+println!("{}", number_with(1_000, NumberOptions::new().locale(Russian).long_units())); // 1 тысяча
+println!("{}", number_with(5_000, NumberOptions::new().locale(Russian).long_units())); // 5 тысяч
+
+// Polish
+println!("{}", number_with(15_320, NumberOptions::new().locale(Polish))); // 15,3 tys.
+println!("{}", ordinal_with(21, Polish));                                 // 21.
+```
+
+Custom locale for anything else:
+
+```rust
+use humfmt::{number_with, NumberOptions, locale::CustomLocale};
+
+let locale = CustomLocale::english()
+    .short_suffix(1, "k")
+    .separators(',', '.');
+
+println!("{}", number_with(15_320, NumberOptions::new().locale(locale))); // 15,3k
 ```
 
 ---
 
-## MSRV
+## Performance
 
-`humfmt` targets Rust **1.70** (see `rust-version` in `Cargo.toml`).
+`humfmt` is designed to be cheap in hot paths:
 
----
+- **Zero-alloc `Display`** — formatters write directly into the output, no intermediate `String`
+- **O(1) scaling** — integer path uses `ilog10`, float path uses IEEE 754 exponent
+- **`no_std`** — works without the standard library
+- **No dependencies** — core crate has zero required dependencies
 
-## Feature Flags
-
-- `std` (default): enables the standard-library build
-- `default-features = false`: builds for `no_std`
-- `english`: baseline locale included in the default feature set
-- `russian`: enables the `humfmt::locale::Russian` locale pack
-- `polish`: enables the `humfmt::locale::Polish` locale pack
-- `alloc`: reserved compatibility flag for future alloc-gating work
-- `chrono`: enables adapters for `chrono::TimeDelta` and `chrono::DateTime`
-- `time`: enables adapters for `time::Duration` and `time::OffsetDateTime`
-
----
-
-## Benchmarks
-
-This repository includes a Criterion benchmark suite.
-
-Run:
-
-```bash
-cargo bench
-```
-
-### Comparison Benchmarks (tools/benchmarks)
-
-This repository also includes a standalone comparison benchmark harness under `tools/benchmarks/`.
-It can generate a repo-friendly report and charts:
-
-```bash
-cargo bench --manifest-path tools/benchmarks/Cargo.toml
-cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
-```
-
-This produces:
-
-- `BENCHMARKS.md` (capability matrix + comparisons + notes)
-- `assets/benchmarks/*_dark.svg`
+See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`, `bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `humantime`, `timeago`, and others.
 
 <details>
 <summary>Charts</summary>
@@ -297,32 +248,52 @@ This produces:
 </p>
 
 <p align="center">
-  <img alt="Duration and relative-time benchmarks" src="assets/benchmarks/time_comparison_dark.svg">
+  <img alt="Numbers comparison benchmarks" src="assets/benchmarks/numbers_dark.svg">
 </p>
 
 <p align="center">
-  <img alt="Numbers comparison benchmarks" src="assets/benchmarks/numbers_dark.svg">
+  <img alt="Duration and relative-time benchmarks" src="assets/benchmarks/time_comparison_dark.svg">
 </p>
 
 </details>
 
 ---
 
-## Development Status
+## Feature flags
 
-`humfmt` is still early-stage, but the formatter surface is already useful and
-deliberate. The direction is to keep the crate focused while expanding locale
-coverage and humanizer breadth without turning the API into a maze.
+| Feature | Default | Description |
+|---|:---:|---|
+| `std` | ✓ | Standard library build |
+| `english` | ✓ | English locale |
+| `russian` | | Russian locale pack |
+| `polish` | | Polish locale pack |
+| `chrono` | | `chrono::TimeDelta` / `DateTime` adapters |
+| `time` | | `time::Duration` / `OffsetDateTime` adapters |
+
+For `no_std` targets:
+
+```toml
+[dependencies]
+humfmt = { version = "0.5", default-features = false }
+```
+
+With all locales:
+
+```toml
+[dependencies]
+humfmt = { version = "0.5", features = ["russian", "polish"] }
+```
 
 ---
 
 ## Documentation
 
-- examples: [`examples/`](./examples)
-- tests: [`tests/`](./tests)
-- benchmarks: `cargo bench`
-- crates.io: [humfmt](https://crates.io/crates/humfmt)
-- docs.rs: [humfmt docs](https://docs.rs/humfmt)
+- **[docs.rs](https://docs.rs/humfmt)** — full API reference
+- **[BENCHMARKS.md](./BENCHMARKS.md)** — performance comparisons and methodology
+- **[CHANGELOG.md](./CHANGELOG.md)** — what changed and when
+- **[TODO.md](./TODO.md)** — planned features and known issues
+- **[examples/](./examples)** — runnable examples
+- **[tests/](./tests)** — integration and property tests
 
 ---
 
@@ -332,7 +303,7 @@ This crate follows one simple rule:
 
 > Human formatting should feel stupidly easy.
 
-No giant config ceremony. No formatting gymnastics. No “why is this so annoying?”
+No giant config ceremony. No formatting gymnastics. No "why is this so annoying?"
 moments.
 
 Just:

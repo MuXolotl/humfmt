@@ -2,6 +2,20 @@ use crate::locale::{English, Locale};
 
 /// Builder-style configuration for percentage formatting.
 ///
+/// # Quick reference
+///
+/// | Method | Default | Effect |
+/// |---|---|---|
+/// | [`precision(n)`] | `1` | Decimal places for the percentage value |
+/// | [`force_sign(bool)`] | `false` | `0.42` → `"+42%"` |
+/// | [`fixed_precision(bool)`] | `false` | `"42.5%"` → `"42.50%"` |
+/// | [`locale(L)`] | `English` | Decimal separator |
+///
+/// [`precision(n)`]: PercentOptions::precision
+/// [`force_sign(bool)`]: PercentOptions::force_sign
+/// [`fixed_precision(bool)`]: PercentOptions::fixed_precision
+/// [`locale(L)`]: PercentOptions::locale
+///
 /// # Examples
 ///
 /// ```rust
@@ -54,6 +68,15 @@ impl<L: Locale> PercentOptions<L> {
     ///
     /// Precision is clamped to `0..=6`.
     ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
+    /// |---:|---|---|---|
+    /// | `0.423` | `"42%"` | `"42.3%"` | `"42.3%"` (trimmed) |
+    /// | `0.4236` | `"42%"` | `"42.4%"` | `"42.36%"` |
+    /// | `0.425` | `"43%"` | `"42.5%"` | `"42.5%"` (trimmed) |
+    /// | `0.5` | `"50%"` | `"50%"` | `"50%"` (trimmed) |
+    ///
     /// # Examples
     ///
     /// ```rust
@@ -73,15 +96,24 @@ impl<L: Locale> PercentOptions<L> {
     /// Values that round to exactly zero will output `0%` without a sign.
     /// Useful for deltas and change indicators.
     ///
+    /// # Behaviour table
+    ///
+    /// | Input | `force_sign(false)` (default) | `force_sign(true)` |
+    /// |---:|---|---|
+    /// | `0.42` | `"42%"` | `"+42%"` |
+    /// | `0.0` | `"0%"` | `"0%"` (no sign on zero) |
+    /// | `-0.42` | `"-42%"` | `"-42%"` (negatives unchanged) |
+    /// | `0.0004` (rounds to 0) | `"0%"` | `"0%"` (no sign on rounded-zero) |
+    ///
     /// # Examples
     ///
     /// ```rust
     /// use humfmt::PercentOptions;
     ///
     /// let opts = PercentOptions::new().force_sign(true);
-    /// assert_eq!(humfmt::percent_with(0.42, opts).to_string(), "+42%");
-    /// assert_eq!(humfmt::percent_with(-0.42, opts).to_string(), "-42%");
-    /// assert_eq!(humfmt::percent_with(0.0, opts).to_string(), "0%");
+    /// assert_eq!(humfmt::percent_with(0.42_f64, opts).to_string(), "+42%");
+    /// assert_eq!(humfmt::percent_with(-0.42_f64, opts).to_string(), "-42%");
+    /// assert_eq!(humfmt::percent_with(0.0_f64, opts).to_string(), "0%");
     /// ```
     #[inline]
     pub fn force_sign(mut self, yes: bool) -> Self {
@@ -95,6 +127,14 @@ impl<L: Locale> PercentOptions<L> {
     /// - `true`: trailing zeros are kept — `42.50%` stays `42.50%`
     ///
     /// Useful for consistent column widths in tables or dashboards.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `precision(2)` trimmed | `precision(2)` fixed |
+    /// |---:|---|---|
+    /// | `0.5` | `"50%"` | `"50.00%"` |
+    /// | `0.425` | `"42.5%"` | `"42.50%"` |
+    /// | `0.4236` | `"42.36%"` | `"42.36%"` |
     ///
     /// # Examples
     ///

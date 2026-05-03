@@ -2,6 +2,32 @@
 //!
 //! This module builds on [`crate::duration`] and shares the same locale-aware
 //! configuration surface through [`crate::DurationOptions`].
+//!
+//! # Quick start
+//!
+//! ```rust
+//! use core::time::Duration;
+//! use humfmt::{ago, ago_with, DurationOptions};
+//!
+//! assert_eq!(ago(Duration::from_secs(90)).to_string(), "1m 30s ago");
+//! assert_eq!(ago(Duration::from_secs(3661)).to_string(), "1h 1m ago");
+//! ```
+//!
+//! # Locale
+//!
+//! The "ago" word comes from the active locale:
+//! - English: `"ago"`
+//! - Russian: `"назад"`
+//! - Polish: `"temu"`
+//!
+//! # Limitations
+//!
+//! **Past only:** Currently `ago` only formats past durations (time that has
+//! already elapsed). Future-time support (`"in 5 minutes"`) is planned.
+//!
+//! **No "just now" case:** Very small durations (e.g. under 5 seconds) render
+//! as `"0s ago"` rather than a special "just now" phrase. A configurable
+//! threshold for this case is planned.
 
 mod display;
 
