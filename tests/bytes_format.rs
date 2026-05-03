@@ -1,4 +1,5 @@
 use humfmt::ByteUnit;
+use humfmt::RoundingMode;
 use humfmt::{bytes, BytesOptions, Humanize};
 
 #[test]
@@ -198,5 +199,45 @@ fn min_unit_greater_than_max_unit_safely_clamps() {
     assert_eq!(
         humfmt::bytes_with(1_500_000_000_000_u64, opts).to_string(),
         "1500GB"
+    );
+}
+
+#[test]
+fn supports_significant_digits() {
+    let opts = BytesOptions::new().significant_digits(3);
+    assert_eq!(humfmt::bytes_with(1234_u64, opts).to_string(), "1.23KB");
+    assert_eq!(humfmt::bytes_with(12345_u64, opts).to_string(), "12.3KB");
+    assert_eq!(humfmt::bytes_with(123456_u64, opts).to_string(), "123KB");
+}
+
+#[test]
+fn supports_rounding_modes() {
+    // 1500 B = 1.5 KB
+    let base = BytesOptions::new().precision(0);
+    assert_eq!(
+        humfmt::bytes_with(1500_u64, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "2KB"
+    );
+    assert_eq!(
+        humfmt::bytes_with(1500_u64, base.rounding(RoundingMode::Floor)).to_string(),
+        "1KB"
+    );
+    assert_eq!(
+        humfmt::bytes_with(1500_u64, base.rounding(RoundingMode::Ceil)).to_string(),
+        "2KB"
+    );
+
+    // -1500 B = -1.5 KB
+    assert_eq!(
+        humfmt::bytes_with(-1500_i64, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "-2KB"
+    );
+    assert_eq!(
+        humfmt::bytes_with(-1500_i64, base.rounding(RoundingMode::Floor)).to_string(),
+        "-2KB"
+    );
+    assert_eq!(
+        humfmt::bytes_with(-1500_i64, base.rounding(RoundingMode::Ceil)).to_string(),
+        "-1KB"
     );
 }

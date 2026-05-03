@@ -1,4 +1,5 @@
 use crate::locale::Locale;
+use crate::RoundingMode;
 
 /// Represents a magnitude of bytes.
 ///
@@ -23,6 +24,12 @@ pub enum ByteUnit {
     EB = 6,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum Precision {
+    Decimals(u8),
+    Significant(u8),
+}
+
 /// Builder-style configuration for byte-size formatting.
 ///
 /// # Examples
@@ -42,7 +49,8 @@ pub enum ByteUnit {
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct BytesOptions {
-    pub(crate) precision: u8,
+    pub(crate) precision: Precision,
+    pub(crate) rounding: RoundingMode,
     pub(crate) binary: bool,
     pub(crate) long_units: bool,
     pub(crate) decimal_separator: char,
@@ -57,6 +65,7 @@ impl BytesOptions {
     ///
     /// Defaults:
     /// - precision: `1`
+    /// - rounding: `HalfUp`
     /// - standard: decimal (SI, 1000-based)
     /// - unit labels: short (`KB`, `MB`, ...)
     /// - decimal separator: `'.'`
@@ -67,7 +76,8 @@ impl BytesOptions {
     #[inline]
     pub fn new() -> Self {
         Self {
-            precision: 1,
+            precision: Precision::Decimals(1),
+            rounding: RoundingMode::HalfUp,
             binary: false,
             long_units: false,
             decimal_separator: '.',
@@ -92,7 +102,51 @@ impl BytesOptions {
     /// ```
     #[inline]
     pub fn precision(mut self, n: u8) -> Self {
-        self.precision = n.min(6);
+        self.precision = Precision::Decimals(n.min(6));
+        self
+    }
+
+    /// Sets the total number of significant digits to display.
+    ///
+    /// This provides an alternative to fixed decimal places, ensuring that the
+    /// output always maintains a stable level of precision regardless of magnitude.
+    ///
+    /// Clamped to `1..=39` (the maximum digits in a `u128`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let opts = BytesOptions::new().significant_digits(3);
+    /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.54KB");
+    /// ```
+    #[inline]
+    pub fn significant_digits(mut self, n: u8) -> Self {
+        self.precision = Precision::Significant(n.clamp(1, 39));
+        self
+    }
+
+    /// Sets the rounding direction for values that require precision cutoff.
+    ///
+    /// - `HalfUp` (default): standard mathematical rounding. Ties round away from zero.
+    /// - `Floor`: always round towards negative infinity.
+    /// - `Ceil`: always round towards positive infinity.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{BytesOptions, RoundingMode};
+    ///
+    /// let floor = BytesOptions::new().precision(0).rounding(RoundingMode::Floor);
+    /// assert_eq!(humfmt::bytes_with(1_900_u64, floor).to_string(), "1KB");
+    ///
+    /// let ceil = BytesOptions::new().precision(0).rounding(RoundingMode::Ceil);
+    /// assert_eq!(humfmt::bytes_with(1_100_u64, ceil).to_string(), "2KB");
+    /// ```
+    #[inline]
+    pub fn rounding(mut self, mode: RoundingMode) -> Self {
+        self.rounding = mode;
         self
     }
 

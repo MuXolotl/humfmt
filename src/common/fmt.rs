@@ -238,6 +238,58 @@ fn evaluate_carry(
     }
 }
 
+/// Computes significant digits for u128 magnitudes.
+#[inline]
+pub(crate) fn compute_sigfigs_u128(
+    magnitude: u128,
+    unit: u128,
+    sig_figs: u8,
+    rounding: crate::RoundingMode,
+    negative: bool,
+) -> (u8, DecimalParts) {
+    if magnitude == 0 {
+        return (
+            sig_figs.saturating_sub(1),
+            decimal_parts_rounded(0, unit, 0, rounding, negative),
+        );
+    }
+
+    let scaled_int = magnitude / unit;
+    let int_digits = if scaled_int == 0 {
+        1
+    } else {
+        (scaled_int.ilog10() + 1) as u8
+    };
+
+    let shift = sig_figs as i32 - int_digits as i32;
+
+    if shift >= 0 {
+        let mut decimals = (shift as u8).min(6);
+        let mut parts = decimal_parts_rounded(magnitude, unit, decimals, rounding, negative);
+
+        let new_int_digits = if parts.integer == 0 {
+            1
+        } else {
+            (parts.integer.ilog10() + 1) as u8
+        };
+
+        if new_int_digits > int_digits && decimals > 0 {
+            decimals -= 1;
+            if parts.frac_len > decimals {
+                parts.frac_len = decimals;
+            }
+        }
+        (decimals, parts)
+    } else {
+        let drop_digits = (-shift) as u32;
+        let round_factor = 10u128.pow(drop_digits);
+        let new_unit = unit.saturating_mul(round_factor);
+        let mut parts = decimal_parts_rounded(magnitude, new_unit, 0, rounding, negative);
+        parts.integer *= round_factor;
+        (0, parts)
+    }
+}
+
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
 pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
     // Safety: digits are always ASCII bytes in '0'..='9', produced by

@@ -1,9 +1,9 @@
 use core::fmt;
 use core::fmt::Write;
 
+use super::options::Precision;
 use super::{traits::BytesValue, BytesOptions};
 use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
-use crate::RoundingMode;
 
 // Each entry groups short label, long singular, and long plural for one unit tier.
 // Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.
@@ -120,7 +120,6 @@ pub fn format_bytes(
         BytesValue::UInt(v) => (false, v),
     };
 
-    let precision = options.precision;
     let min_unit = options.min_unit as usize;
     let max_unit = (options.max_unit as usize).min(6).max(min_unit);
 
@@ -142,14 +141,27 @@ pub fn format_bytes(
 
     let mut idx = raw_idx.clamp(min_unit, max_unit);
     let mut unit = table[idx];
-    let mut parts =
-        decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
+    let rounding = options.rounding;
+
+    let get_parts = |u: u128| match options.precision {
+        Precision::Decimals(p) => (
+            p,
+            decimal_parts_rounded(magnitude, u, p, rounding, negative),
+        ),
+        Precision::Significant(n) => {
+            crate::common::fmt::compute_sigfigs_u128(magnitude, u, n, rounding, negative)
+        }
+    };
+
+    let (mut precision, mut parts) = get_parts(unit);
 
     let boundary = if options.binary { 1_024 } else { 1_000 };
     if parts.integer >= boundary && idx < max_unit {
         idx += 1;
         unit = table[idx];
-        parts = decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
+        let res = get_parts(unit);
+        precision = res.0;
+        parts = res.1;
     }
 
     if negative && magnitude != 0 {
