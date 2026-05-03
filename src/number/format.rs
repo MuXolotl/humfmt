@@ -84,6 +84,7 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
 ) -> fmt::Result {
     let locale = &options.locale;
     let precision = options.precision;
+    let rounding = options.rounding;
     let max_idx = if options.compact {
         locale.max_compact_suffix_index().min(POW1000.len() - 1)
     } else {
@@ -91,13 +92,13 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
     };
 
     let (mut idx, unit) = compact_unit_for_u128(magnitude, max_idx);
-    let mut parts = decimal_parts_rounded(magnitude, unit, precision);
+    let mut parts = decimal_parts_rounded(magnitude, unit, precision, rounding, negative);
 
     // Rounding can push the integer part to the next threshold (e.g. 999_950
     // at precision=1 rounds to 1000K → rescale to 1M). Adjust once.
     if parts.integer >= 1_000 && idx < max_idx {
         idx += 1;
-        parts = decimal_parts_rounded(magnitude, POW1000[idx], precision);
+        parts = decimal_parts_rounded(magnitude, POW1000[idx], precision, rounding, negative);
     }
 
     if negative {
@@ -150,6 +151,7 @@ fn format_float<L: crate::locale::Locale>(
 
     let locale = &options.locale;
     let precision = options.precision;
+    let rounding = options.rounding;
     let max_idx = if options.compact {
         locale.max_compact_suffix_index().min(POW1000_F64.len() - 1)
     } else {
@@ -159,7 +161,7 @@ fn format_float<L: crate::locale::Locale>(
     let negative = raw.is_sign_negative();
     let abs = raw.abs();
 
-    let (idx, scaled_abs) = compact_unit_for_f64(abs, precision, max_idx);
+    let (idx, scaled_abs) = compact_unit_for_f64(abs, precision, max_idx, rounding, negative);
 
     // Suppress negative zero: a small negative value that rounds to 0 should
     // display as "0", not "-0".
@@ -191,13 +193,15 @@ fn format_float<L: crate::locale::Locale>(
 // Selects the compact scale index and the rounded scaled value for a
 // non-negative finite f64. Uses the IEEE 754 binary exponent for O(1) index
 // estimation, then corrects by at most one step for floating-point imprecision.
-//
-// The binary exponent of a normal f64 is stored in bits 52..=62 with bias 1023.
-// Dividing the unbiased exponent by log2(1000) ≈ 9.966 gives the approximate
-// base-1000 index. Integer arithmetic (×1000/9966) avoids f64 here.
-fn compact_unit_for_f64(abs: f64, precision: u8, max_idx: usize) -> (usize, f64) {
+fn compact_unit_for_f64(
+    abs: f64,
+    precision: u8,
+    max_idx: usize,
+    rounding: crate::RoundingMode,
+    is_negative: bool,
+) -> (usize, f64) {
     if abs < 1_000.0 || max_idx == 0 {
-        let scaled = round_f64(abs, precision);
+        let scaled = round_f64(abs, precision, rounding, is_negative);
         // Rounding can push a value just below 1000 to exactly 1000.
         return if scaled >= 1_000.0 && max_idx > 0 {
             (1, scaled / 1_000.0)
@@ -226,7 +230,7 @@ fn compact_unit_for_f64(abs: f64, precision: u8, max_idx: usize) -> (usize, f64)
         .min(max_idx);
 
     let divisor = POW1000_F64[idx.min(POW1000_F64.len() - 1)];
-    let scaled = round_f64(abs / divisor, precision);
+    let scaled = round_f64(abs / divisor, precision, rounding, is_negative);
 
     // Rounding can push scaled to exactly 1000 — rescale once.
     if scaled >= 1_000.0 && idx < max_idx {
@@ -236,14 +240,12 @@ fn compact_unit_for_f64(abs: f64, precision: u8, max_idx: usize) -> (usize, f64)
     }
 }
 
-// Rounds a non-negative finite f64 to `precision` decimal places (half-up).
+// Rounds a non-negative finite f64 to `precision` decimal places based on the `RoundingMode`.
 //
 // Uses integer-cast rounding instead of f64::round() because round() is not
 // available in core on stable no_std at MSRV 1.70.
-// The cast `(x + 0.5) as u64` is correct for non-negative finite values in
-// the safe range (scaled compact numbers are always well within u64::MAX).
 #[inline]
-fn round_f64(value: f64, precision: u8) -> f64 {
+fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negative: bool) -> f64 {
     debug_assert!(value.is_finite() && value >= 0.0);
 
     let p = precision.min(6) as usize;
@@ -253,12 +255,26 @@ fn round_f64(value: f64, precision: u8) -> f64 {
         return value;
     }
 
-    let shifted = value * factor + 0.5;
-    if shifted >= u64::MAX as f64 {
+    let shifted = value * factor;
+    let trunc = shifted as u64;
+
+    if trunc as f64 >= u64::MAX as f64 {
         return value;
     }
 
-    (shifted as u64) as f64 / factor
+    let has_remainder = shifted > trunc as f64;
+
+    let carry = match rounding {
+        crate::RoundingMode::HalfUp => {
+            let half_shifted = shifted + 0.5;
+            (half_shifted as u64) > trunc
+        }
+        crate::RoundingMode::Floor => is_negative && has_remainder,
+        crate::RoundingMode::Ceil => !is_negative && has_remainder,
+    };
+
+    let rounded_int = if carry { trunc + 1 } else { trunc };
+    rounded_int as f64 / factor
 }
 
 // Writes the fractional part of a DecimalParts value (integer path).
@@ -290,9 +306,6 @@ fn write_int_frac(
 // - locale-aware decimal separator substitution
 // - optional digit grouping on the integer part
 // - trailing-zero trimming (unless fixed_precision is set)
-//
-// Rust's float Display for values in 0..1000 never produces exponent notation,
-// so we do not handle 'e'/'E' here.
 fn write_localized_float_str(
     f: &mut fmt::Formatter<'_>,
     input: &str,

@@ -23,7 +23,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
 - [ ] Significant-digits mode — instead of decimal places, round to N total significant digits. Useful for scientific or telemetry output.
-- [ ] Rounding mode control — let the caller choose between default half-up rounding, floor, and ceil. Keep the API simple: one enum or three builder methods.
 - [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
 - [ ] Ratio formatter — `0.75 -> "3:4"` or `"75%"` depending on options.
 - [ ] Temperature formatter — `36.6 -> "36.6°C"` / `"97.9°F"`, with configurable unit and locale-aware decimal separator. Low priority, but fits the theme.
@@ -70,6 +69,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Rounding mode control (HalfUp, Floor, Ceil)~~
 - [x] ~~Fraction-aware pluralization: confirmed Polish and Russian boundaries work perfectly with existing tests~~
 - [x] ~~Number formatter: always-on grouping separators option works seamlessly with `compact(false)`~~
 - [x] ~~Number formatter: fully disable compact scaling cleanly via `NumberOptions::compact(bool)`~~

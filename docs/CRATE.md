@@ -61,6 +61,7 @@ assert_eq!(out.to_string(), "15.32K");
 |---|---:|---|
 | precision | 1 | fractional digits for compact values |
 | compact | true | enable magnitude scaling (`1.5K` vs `1500`) |
+| rounding | HalfUp | HalfUp, Floor, Ceil behaviour |
 | long_units | false | `K` vs ` thousand` |
 | separators | false | group separator for unscaled output |
 

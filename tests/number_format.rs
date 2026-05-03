@@ -1,3 +1,4 @@
+use humfmt::RoundingMode;
 use humfmt::{number, NumberOptions};
 
 #[test]
@@ -422,5 +423,124 @@ fn polish_separators_use_space_as_group_separator() {
     assert_eq!(
         humfmt::number_with(1_234_567, opts).to_string(),
         "1 234 567"
+    );
+}
+
+#[test]
+fn rounding_modes_for_positive_integers() {
+    // 1234 -> 1.234K. At precision 2, remainder is 4.
+    // HalfUp: 1.234 -> 1.23 (since 4 < 5)
+    // Floor: 1.234 -> 1.23
+    // Ceil: 1.234 -> 1.24
+    let base = NumberOptions::new().precision(2);
+    assert_eq!(
+        humfmt::number_with(1234, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "1.23K"
+    );
+    assert_eq!(
+        humfmt::number_with(1234, base.rounding(RoundingMode::Floor)).to_string(),
+        "1.23K"
+    );
+    assert_eq!(
+        humfmt::number_with(1234, base.rounding(RoundingMode::Ceil)).to_string(),
+        "1.24K"
+    );
+}
+
+#[test]
+fn rounding_modes_for_negative_integers() {
+    // -1234 -> -1.234K.
+    // HalfUp: -1.234 -> -1.23 (magnitude 1.23)
+    // Floor: -1.234 -> -1.24 (magnitude increases, rounds towards negative infinity)
+    // Ceil: -1.234 -> -1.23 (magnitude truncates, rounds towards positive infinity)
+    let base = NumberOptions::new().precision(2);
+    assert_eq!(
+        humfmt::number_with(-1234, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "-1.23K"
+    );
+    assert_eq!(
+        humfmt::number_with(-1234, base.rounding(RoundingMode::Floor)).to_string(),
+        "-1.24K"
+    );
+    assert_eq!(
+        humfmt::number_with(-1234, base.rounding(RoundingMode::Ceil)).to_string(),
+        "-1.23K"
+    );
+}
+
+#[test]
+fn rounding_modes_near_suffix_boundary() {
+    // 999_500 -> 999.5K
+    // Precision 0.
+    // HalfUp: 999.5 -> 1000K -> 1M
+    // Floor: 999.5 -> 999K
+    // Ceil: 999.5 -> 1000K -> 1M
+    let base = NumberOptions::new().precision(0);
+    assert_eq!(
+        humfmt::number_with(999_500, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "1M"
+    );
+    assert_eq!(
+        humfmt::number_with(999_500, base.rounding(RoundingMode::Floor)).to_string(),
+        "999K"
+    );
+    assert_eq!(
+        humfmt::number_with(999_500, base.rounding(RoundingMode::Ceil)).to_string(),
+        "1M"
+    );
+
+    // Negative: -999_500 -> -999.5K
+    // HalfUp: -1000K -> -1M
+    // Floor: -1000K -> -1M
+    // Ceil: -999K
+    assert_eq!(
+        humfmt::number_with(-999_500, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "-1M"
+    );
+    assert_eq!(
+        humfmt::number_with(-999_500, base.rounding(RoundingMode::Floor)).to_string(),
+        "-1M"
+    );
+    assert_eq!(
+        humfmt::number_with(-999_500, base.rounding(RoundingMode::Ceil)).to_string(),
+        "-999K"
+    );
+}
+
+#[test]
+fn rounding_modes_for_floats() {
+    let base = NumberOptions::new().precision(1);
+    // 1.55
+    // HalfUp: 1.6
+    // Floor: 1.5
+    // Ceil: 1.6
+    assert_eq!(
+        humfmt::number_with(1.55_f64, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "1.6"
+    );
+    assert_eq!(
+        humfmt::number_with(1.55_f64, base.rounding(RoundingMode::Floor)).to_string(),
+        "1.5"
+    );
+    assert_eq!(
+        humfmt::number_with(1.55_f64, base.rounding(RoundingMode::Ceil)).to_string(),
+        "1.6"
+    );
+
+    // -1.55
+    // HalfUp: -1.6
+    // Floor: -1.6
+    // Ceil: -1.5
+    assert_eq!(
+        humfmt::number_with(-1.55_f64, base.rounding(RoundingMode::HalfUp)).to_string(),
+        "-1.6"
+    );
+    assert_eq!(
+        humfmt::number_with(-1.55_f64, base.rounding(RoundingMode::Floor)).to_string(),
+        "-1.6"
+    );
+    assert_eq!(
+        humfmt::number_with(-1.55_f64, base.rounding(RoundingMode::Ceil)).to_string(),
+        "-1.5"
     );
 }

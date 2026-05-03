@@ -1,4 +1,5 @@
 use crate::locale::{English, Locale};
+use crate::RoundingMode;
 
 /// Builder-style configuration for compact number formatting.
 ///
@@ -8,6 +9,7 @@ use crate::locale::{English, Locale};
 /// |---|---|---|
 /// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
 /// | [`compact(bool)`] | `true` | `"1500"` → `"1.5K"` vs `"1500"` |
+/// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
 /// | [`long_units()`] | `false` | `"15.3K"` → `"15.3 thousand"` |
 /// | [`separators(bool)`] | `false` | `"1234"` → `"1,234"` (when unscaled or uncompacted) |
 /// | [`fixed_precision(bool)`] | `false` | `"1.5K"` → `"1.50K"` |
@@ -15,6 +17,7 @@ use crate::locale::{English, Locale};
 ///
 /// [`precision(n)`]: NumberOptions::precision
 /// [`compact(bool)`]: NumberOptions::compact
+/// [`rounding(mode)`]: NumberOptions::rounding
 /// [`long_units()`]: NumberOptions::long_units
 /// [`separators(bool)`]: NumberOptions::separators
 /// [`fixed_precision(bool)`]: NumberOptions::fixed_precision
@@ -35,6 +38,7 @@ use crate::locale::{English, Locale};
 pub struct NumberOptions<L: Locale = English> {
     pub(crate) precision: u8,
     pub(crate) compact: bool,
+    pub(crate) rounding: RoundingMode,
     pub(crate) long_units: bool,
     pub(crate) separators: bool,
     pub(crate) fixed_precision: bool,
@@ -48,6 +52,7 @@ impl NumberOptions<English> {
     /// |---|---|
     /// | precision | `1` |
     /// | compact | `true` |
+    /// | rounding | `HalfUp` |
     /// | long units | `false` (short suffixes: `K`, `M`, …) |
     /// | separators | `false` (no digit grouping) |
     /// | fixed precision | `false` (trailing zeros trimmed) |
@@ -57,6 +62,7 @@ impl NumberOptions<English> {
         Self {
             precision: 1,
             compact: true,
+            rounding: RoundingMode::HalfUp,
             long_units: false,
             separators: false,
             fixed_precision: false,
@@ -71,6 +77,7 @@ impl<L: Locale> Default for NumberOptions<L> {
         Self {
             precision: 1,
             compact: true,
+            rounding: RoundingMode::HalfUp,
             long_units: false,
             separators: false,
             fixed_precision: false,
@@ -134,6 +141,29 @@ impl<L: Locale> NumberOptions<L> {
     #[inline]
     pub fn compact(mut self, enabled: bool) -> Self {
         self.compact = enabled;
+        self
+    }
+
+    /// Sets the rounding direction for values that require precision cutoff.
+    ///
+    /// - `HalfUp` (default): standard mathematical rounding. Ties round away from zero.
+    /// - `Floor`: always round towards negative infinity.
+    /// - `Ceil`: always round towards positive infinity.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{NumberOptions, RoundingMode};
+    ///
+    /// let floor = NumberOptions::new().precision(0).rounding(RoundingMode::Floor);
+    /// assert_eq!(humfmt::number_with(1_900, floor).to_string(), "1K");
+    ///
+    /// let ceil = NumberOptions::new().precision(0).rounding(RoundingMode::Ceil);
+    /// assert_eq!(humfmt::number_with(1_100, ceil).to_string(), "2K");
+    /// ```
+    #[inline]
+    pub fn rounding(mut self, mode: RoundingMode) -> Self {
+        self.rounding = mode;
         self
     }
 
@@ -264,6 +294,7 @@ impl<L: Locale> NumberOptions<L> {
         NumberOptions {
             precision: self.precision,
             compact: self.compact,
+            rounding: self.rounding,
             long_units: self.long_units,
             separators: self.separators,
             fixed_precision: self.fixed_precision,

@@ -16,6 +16,7 @@ pub mod number;
 pub mod ordinal;
 pub mod percent;
 pub mod prelude;
+mod rounding;
 #[cfg(feature = "time")]
 #[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub mod time;
@@ -31,4 +32,5 @@ pub use list::{list, list_with, ListDisplay, ListOptions};
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
 pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};
 pub use percent::{percent, percent_with, PercentDisplay, PercentLike, PercentOptions};
+pub use rounding::RoundingMode;
 pub use traits::Humanize;

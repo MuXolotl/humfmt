@@ -3,6 +3,7 @@ use core::fmt::Write;
 
 use super::{traits::BytesValue, BytesOptions};
 use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
+use crate::RoundingMode;
 
 // Each entry groups short label, long singular, and long plural for one unit tier.
 // Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.
@@ -139,13 +140,14 @@ pub fn format_bytes(
     };
 
     let mut unit = table[idx];
-    let mut parts = decimal_parts_rounded(magnitude, unit, precision);
+    let mut parts =
+        decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
 
     let boundary = if options.binary { 1_024 } else { 1_000 };
     if parts.integer >= boundary && idx < max_idx {
         idx += 1;
         unit = table[idx];
-        parts = decimal_parts_rounded(magnitude, unit, precision);
+        parts = decimal_parts_rounded(magnitude, unit, precision, RoundingMode::HalfUp, negative);
     }
 
     if negative && magnitude != 0 {

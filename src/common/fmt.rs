@@ -142,16 +142,23 @@ impl DecimalParts {
     }
 }
 
-/// Produces rounded decimal parts for `magnitude / unit` using half-up rounding.
+/// Produces rounded decimal parts for `magnitude / unit` using the specified rounding mode.
 ///
 /// Uses long division for fractional digits — safe for the full `u128` range
 /// without any intermediate multiplication overflow.
-pub(crate) fn decimal_parts_rounded(magnitude: u128, unit: u128, precision: u8) -> DecimalParts {
+pub(crate) fn decimal_parts_rounded(
+    magnitude: u128,
+    unit: u128,
+    precision: u8,
+    rounding: crate::RoundingMode,
+    is_negative: bool,
+) -> DecimalParts {
     let precision = precision.min(6);
     let mut integer = magnitude / unit;
     let remainder = magnitude % unit;
 
-    let (frac_digits, mut frac_len, carry) = fractional_digits_rounded(remainder, unit, precision);
+    let (frac_digits, mut frac_len, carry) =
+        fractional_digits_rounded(remainder, unit, precision, rounding, is_negative);
 
     if carry {
         integer = integer.saturating_add(1);
@@ -169,14 +176,21 @@ pub(crate) fn decimal_parts_rounded(magnitude: u128, unit: u128, precision: u8) 
     }
 }
 
-fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8; 6], u8, bool) {
+fn fractional_digits_rounded(
+    remainder: u128,
+    unit: u128,
+    precision: u8,
+    rounding: crate::RoundingMode,
+    is_negative: bool,
+) -> ([u8; 6], u8, bool) {
     let mut digits = [b'0'; 6];
     let mut rem = remainder;
 
     if precision == 0 {
-        rem = rem.saturating_mul(10);
-        let round_digit = rem / unit;
-        return (digits, 0, round_digit >= 5);
+        let has_remainder = rem > 0;
+        let next_digit = rem.saturating_mul(10) / unit;
+        let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
+        return (digits, 0, carry);
     }
 
     for slot in digits.iter_mut().take(precision as usize) {
@@ -186,11 +200,11 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
         *slot = b'0' + digit as u8;
     }
 
-    // One digit beyond precision to decide rounding direction.
-    rem = rem.saturating_mul(10);
-    let round_digit = rem / unit;
+    let has_remainder = rem > 0;
+    let next_digit = rem.saturating_mul(10) / unit;
+    let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
 
-    if round_digit < 5 {
+    if !carry {
         return (digits, precision, false);
     }
 
@@ -208,6 +222,20 @@ fn fractional_digits_rounded(remainder: u128, unit: u128, precision: u8) -> ([u8
 
     // Carry propagated past all fractional digits — increment integer part.
     (digits, precision, true)
+}
+
+#[inline]
+fn evaluate_carry(
+    next_digit: u128,
+    has_remainder: bool,
+    rounding: crate::RoundingMode,
+    is_negative: bool,
+) -> bool {
+    match rounding {
+        crate::RoundingMode::HalfUp => next_digit >= 5,
+        crate::RoundingMode::Floor => is_negative && has_remainder,
+        crate::RoundingMode::Ceil => !is_negative && has_remainder,
+    }
 }
 
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
