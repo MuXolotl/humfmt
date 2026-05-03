@@ -6,30 +6,31 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ---
 
-| Priority | Formatter |
-|-|-|
-| 1 | number |
-| 2 | bytes |
-| 3 | duration + ago |
-| 4 | list |
-| 5 | ordinal |
-| 6 | percentage |
-| ... | other |
+| Priority | Formatter | Progress (Est.) |
+|:---:|---|:---:|
+| 1 | number | ~95% |
+| 2 | bytes | ~70% |
+| 3 | duration + ago | ~75% |
+| 4 | list | ~85% |
+| 5 | percentage | ~85% |
+| 6 | ordinal | ~90% |
+| ... | other | 0% |
 
 ---
 
 ## PLANNED
 
-- [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
-- [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
-- [ ] Significant-digits mode — instead of decimal places, round to N total significant digits. Useful for scientific or telemetry output.
-- [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
-- [ ] Ratio formatter — `0.75 -> "3:4"` or `"75%"` depending on options.
-- [ ] Temperature formatter — `36.6 -> "36.6°C"` / `"97.9°F"`, with configurable unit and locale-aware decimal separator. Low priority, but fits the theme.
-- [ ] Duration formatting: configurable join string between units — let the caller choose between `"1h 2m"` (space-joined, current default), `"1h, 2m"` (comma-joined), or `"1 hour and 2 minutes"` (and-joined in long mode).
 - [ ] Byte formatter: allow forcing a specific unit — e.g. always render in MB regardless of value size, useful for dashboards and log lines where consistent column width matters.
 - [ ] Byte formatter: clamp min/max unit — stop the formatter from jumping all the way to EB when you want output to stay in MB/GB range.
 - [ ] Byte formatter: bits mode — `Kb`, `Mb`, `Gb` using the same 1000-based infrastructure. Useful for network throughput display.
+- [ ] Byte formatter: support `RoundingMode` and `significant_digits` for exact parity with the `number` formatter's API surface.
+- [ ] Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.
+- [ ] `BytesOptions::locale()` semantics — currently copies only `decimal_separator` from the locale, ignoring everything else. Either copy all relevant fields or rename to `decimal_separator_from_locale()` to make the limited scope explicit. Decide before 1.0.
+- [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
+- [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
+- [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
+- [ ] Ratio formatter — `0.75 -> "3:4"` or `"75%"` depending on options.
+- [ ] Duration formatting: configurable join string between units — let the caller choose between `"1h 2m"` (space-joined, current default), `"1h, 2m"` (comma-joined), or `"1 hour and 2 minutes"` (and-joined in long mode).
 - [ ] List formatter: `"or"` conjunction style — `"red, green, or blue"` alongside the existing `"and"` style.
 - [ ] List formatter: better handling of edge cases — single-item and empty-list behavior should be explicitly documented with tests, since they are silent no-ops right now.
 - [ ] More locale packs — German, French, and Spanish are the obvious next additions since they cover a large chunk of real-world users. Native speaker review of plural rules is important before publishing these.
@@ -48,8 +49,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Document the Russian ordinal gender limitation — `ordinal_suffix` for Russian always returns `-й` (masculine). The library has no concept of grammatical gender since it only receives a number. This should be explicitly noted in the Russian locale docs and in the edge-case behavior tables.
 - [ ] Investigate `is_comma_style_separator` Unicode edge cases — the current check finds the first non-whitespace character and compares it to `,`. This works for ASCII separators but will not recognize `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma). Low priority until non-Latin list separators are needed.
 - [ ] Percentage formatter: consider accepting integer inputs (e.g. `42_u8` meaning `42%` directly, without the `* 100` ratio convention). Could be a separate `percent_ratio` vs `percent_value` split, or an option flag. Decide before 1.0.
-- [ ] Percentage formatter: `+` sign option for positive values — `"+42.3%"` style useful for delta/change displays (e.g. portfolio gains).
-- [ ] `BytesOptions::locale()` semantics — currently copies only `decimal_separator` from the locale, ignoring everything else. Either copy all relevant fields or rename to `decimal_separator_from_locale()` to make the limited scope explicit. Decide before 1.0.
 
 ---
 
@@ -59,6 +58,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] `serde` feature — serialize and deserialize options structs, useful for config-file driven formatting. Not needed until someone asks for it.
 - [ ] `num-bigint` integration — compact formatting of arbitrary-precision integers. Very niche.
 - [ ] Human-readable ranges — `"1–5 MB"`, `"~3 hours"` for UI-style approximate output.
+- [ ] Temperature formatter — `36.6 -> "36.6°C"` / `"97.9°F"`, with configurable unit and locale-aware decimal separator. Low priority, but fits the theme.
 - [ ] Scientific notation formatter — `1.23e9`, with locale-aware decimal separator and optional compact form.
 - [ ] Grammar-aware unit forms — case and gender agreement for languages that need it (e.g. Russian genitive after 2–4). The current approach covers most cases but is not linguistically complete.
 - [ ] WASM and embedded target smoke tests in CI.
@@ -69,6 +69,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Significant-digits mode — instead of decimal places, round to N total significant digits.~~
 - [x] ~~Rounding mode control (HalfUp, Floor, Ceil)~~
 - [x] ~~Fraction-aware pluralization: confirmed Polish and Russian boundaries work perfectly with existing tests~~
 - [x] ~~Number formatter: always-on grouping separators option works seamlessly with `compact(false)`~~

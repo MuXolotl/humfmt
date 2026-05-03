@@ -60,6 +60,7 @@ assert_eq!(out.to_string(), "15.32K");
 | Option | Default | Meaning |
 |---|---:|---|
 | precision | 1 | fractional digits for compact values |
+| significant_digits(n) | none | round to N total significant digits |
 | compact | true | enable magnitude scaling (`1.5K` vs `1500`) |
 | rounding | HalfUp | HalfUp, Floor, Ceil behaviour |
 | long_units | false | `K` vs ` thousand` |

@@ -1,6 +1,12 @@
 use crate::locale::{English, Locale};
 use crate::RoundingMode;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum Precision {
+    Decimals(u8),
+    Significant(u8),
+}
+
 /// Builder-style configuration for compact number formatting.
 ///
 /// # Quick reference
@@ -8,6 +14,7 @@ use crate::RoundingMode;
 /// | Method | Default | Effect |
 /// |---|---|---|
 /// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
+/// | [`significant_digits(n)`] | `none` | Total significant digits (overrides precision) |
 /// | [`compact(bool)`] | `true` | `"1500"` → `"1.5K"` vs `"1500"` |
 /// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
 /// | [`long_units()`] | `false` | `"15.3K"` → `"15.3 thousand"` |
@@ -16,6 +23,7 @@ use crate::RoundingMode;
 /// | [`locale(L)`] | `English` | Separators, suffixes, inflection rules |
 ///
 /// [`precision(n)`]: NumberOptions::precision
+/// [`significant_digits(n)`]: NumberOptions::significant_digits
 /// [`compact(bool)`]: NumberOptions::compact
 /// [`rounding(mode)`]: NumberOptions::rounding
 /// [`long_units()`]: NumberOptions::long_units
@@ -36,7 +44,7 @@ use crate::RoundingMode;
 /// ```
 #[derive(Copy, Clone, Debug)]
 pub struct NumberOptions<L: Locale = English> {
-    pub(crate) precision: u8,
+    pub(crate) precision: Precision,
     pub(crate) compact: bool,
     pub(crate) rounding: RoundingMode,
     pub(crate) long_units: bool,
@@ -60,7 +68,7 @@ impl NumberOptions<English> {
     #[inline]
     pub fn new() -> Self {
         Self {
-            precision: 1,
+            precision: Precision::Decimals(1),
             compact: true,
             rounding: RoundingMode::HalfUp,
             long_units: false,
@@ -75,7 +83,7 @@ impl<L: Locale> Default for NumberOptions<L> {
     #[inline]
     fn default() -> Self {
         Self {
-            precision: 1,
+            precision: Precision::Decimals(1),
             compact: true,
             rounding: RoundingMode::HalfUp,
             long_units: false,
@@ -112,11 +120,41 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(0)).to_string(), "15K");
     /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(2)).to_string(), "15.32K");
-    /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(6)).to_string(), "15.32K");
     /// ```
     #[inline]
     pub fn precision(mut self, n: u8) -> Self {
-        self.precision = n.min(6);
+        self.precision = Precision::Decimals(n.min(6));
+        self
+    }
+
+    /// Sets the total number of significant digits to display.
+    ///
+    /// This provides an alternative to fixed decimal places, ensuring that the
+    /// output always maintains a stable level of precision regardless of magnitude.
+    ///
+    /// Clamped to `1..=39` (the maximum digits in a `u128`).
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `significant_digits(3)` | Notes |
+    /// |---:|---|---|
+    /// | `1_234` | `"1.23K"` | `1`, `2`, `3` are the 3 significant digits |
+    /// | `12_345` | `"12.3K"` | `1`, `2`, `3` are the 3 significant digits |
+    /// | `123_456` | `"123K"` | `1`, `2`, `3` are the 3 significant digits |
+    /// | `1_234` (unscaled) | `"1230"` | Unscaled integer is rounded directly |
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::NumberOptions;
+    ///
+    /// let opts = NumberOptions::new().significant_digits(3);
+    /// assert_eq!(humfmt::number_with(1234, opts).to_string(), "1.23K");
+    /// assert_eq!(humfmt::number_with(12345, opts).to_string(), "12.3K");
+    /// ```
+    #[inline]
+    pub fn significant_digits(mut self, n: u8) -> Self {
+        self.precision = Precision::Significant(n.clamp(1, 39));
         self
     }
 

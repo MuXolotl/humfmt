@@ -544,3 +544,35 @@ fn rounding_modes_for_floats() {
         "-1.5"
     );
 }
+
+#[test]
+fn significant_digits_formatting() {
+    let opts = NumberOptions::new().significant_digits(3);
+    assert_eq!(humfmt::number_with(1234, opts).to_string(), "1.23K");
+    assert_eq!(humfmt::number_with(12345, opts).to_string(), "12.3K");
+    assert_eq!(humfmt::number_with(123456, opts).to_string(), "123K");
+    assert_eq!(humfmt::number_with(1234567, opts).to_string(), "1.23M");
+
+    // Edge case: unscaled rounding (rounds the integer directly)
+    let unscaled = NumberOptions::new().compact(false).significant_digits(2);
+    assert_eq!(humfmt::number_with(1234, unscaled).to_string(), "1200");
+    assert_eq!(humfmt::number_with(1250, unscaled).to_string(), "1300");
+
+    // Edge case: floating point values
+    assert_eq!(
+        humfmt::number_with(0.01234_f64, unscaled).to_string(),
+        "0.012"
+    );
+    assert_eq!(humfmt::number_with(123.45_f64, unscaled).to_string(), "120");
+
+    // Edge case: zero
+    assert_eq!(humfmt::number_with(0, opts).to_string(), "0");
+
+    // Fixed precision with sig figs pads zeros intelligently
+    let fixed = NumberOptions::new()
+        .significant_digits(3)
+        .fixed_precision(true);
+    assert_eq!(humfmt::number_with(1, fixed).to_string(), "1.00");
+    assert_eq!(humfmt::number_with(10, fixed).to_string(), "10.0");
+    assert_eq!(humfmt::number_with(100, fixed).to_string(), "100");
+}

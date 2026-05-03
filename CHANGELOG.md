@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
   - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
   - Locale-aware decimal separator via `.locale(locale)`.
+- `NumberOptions::significant_digits(u8)` — allows formatting values to a fixed number of significant digits instead of a fixed number of decimal places (e.g., `1234` with 3 sig figs outputs `"1.23K"`, or `"1230"` if unscaled).
 - `NumberOptions::rounding(RoundingMode)` — control rounding logic via HalfUp (default), Floor or Ceil.
 - `NumberOptions::compact(bool)` — allows completely disabling magnitude scaling (e.g. `1500` → `"1500"` instead of `"1.5K"`). This works perfectly with `separators(true)` to produce fully formatted large numbers like `"1,234,567"`.
 - `NumberOptions`: behaviour tables added to rustdoc for `precision`, `long_units`, `separators`, and `fixed_precision`.
