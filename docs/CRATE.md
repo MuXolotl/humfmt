@@ -273,8 +273,8 @@ Float just below the rescale boundary:
 ```rust
 use humfmt::{number_with, NumberOptions};
 
-// 999_449 at precision=1 stays at 999.9K (does not round to 1M)
-assert_eq!(number_with(999_449.0_f64, NumberOptions::new().precision(1)).to_string(), "999.9K");
+// 999_449 at precision=1 stays at 999.4K (does not round to 1M)
+assert_eq!(number_with(999_449.0_f64, NumberOptions::new().precision(1)).to_string(), "999.4K");
 ```
 
 Float scaling matches integer scaling for round values:
@@ -295,7 +295,7 @@ use humfmt::number;
 
 assert_eq!(number(-1.5_f64).to_string(), "-1.5");
 assert_eq!(number(-1_500.0_f64).to_string(), "-1.5K");
-assert_eq!(number(-1_000_000.0_f64).to_string(), "-1.5M");
+assert_eq!(number(-1_000_000.0_f64).to_string(), "-1M");
 ```
 
 ---

@@ -12,10 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.5.1] - 2026-05-04
+## [0.5.2] - 2026-05-04
 
 ### Changed
-- `README.md` rewritten: added `percent` to Quick Example, `bits` mode, `force_sign`, `significant_digits`, `compact(false)` + `separators`, unit forcing (`ByteUnit`). Added `crates.io` and `docs.rs` badges. Added feature flags table. Added SVG charts section. Simplified and restructured for readability.
+- `README.md` rewritten: added `percent` to Quick Example, `bits` mode, `force_sign`, `significant_digits`, `compact(false)` + `separators`, unit forcing (`ByteUnit`). Added `crates.io` and `docs.rs` badges. Added feature flags table. Simplified and restructured for readability.
 - `docs/CRATE.md` rewritten: added `percent` formatter section with defaults table and edge-case table. Updated `NumberOptions` defaults table with `significant_digits`, `compact`, `force_sign`, `rounding`. Added behaviour tables for `significant_digits`, `compact`, `force_sign`, `rounding` in `NumberOptions` rustdoc. Updated `BytesOptions` defaults table with `bits`, `significant_digits`, `rounding`, `unit`, `min_unit`, `max_unit`. Added bits mode, unit forcing, significant digits, and rounding sections to `BytesOptions` docs. Added edge-case behaviour tables for `bytes`, `percent`, `ordinal`, `duration`, and `list`. Added locale features matrix. Added cookbook examples across all formatters.
 - `src/rounding.rs`: added doc comment with examples and behaviour table for `RoundingMode` enum.
 - `src/number/options.rs`: added behaviour tables to `significant_digits`, `compact`, `force_sign`, and `rounding` methods in rustdoc.
