@@ -233,14 +233,14 @@ assert_eq!(relative.to_string(), "1 tick 30 tocks back");
 
 ```toml
 [dependencies]
-humfmt = "0.4"
+humfmt = "0.5"
 ```
 
 For `no_std` targets:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.4", default-features = false }
+humfmt = { version = "0.5", default-features = false }
 ```
 
 ---

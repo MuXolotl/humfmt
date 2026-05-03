@@ -63,7 +63,10 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## DONE
 
-### (Unreleased → 0.5.0)
+### (Unreleased → 0.6.0)
+...
+
+### v0.5.0 released
 - [x] ~~Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.~~
 - [x] ~~Byte formatter: bits mode (Kb, Mb, Gb) for bandwidth and throughput display.~~
 - [x] ~~Byte formatter: support RoundingMode and significant_digits for API parity.~~
