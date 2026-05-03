@@ -66,6 +66,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Byte formatter: support RoundingMode and significant_digits for API parity.~~
 - [x] ~~Byte formatter: unit forcing and min/max clamping.~~
 - [x] ~~Significant-digits mode — instead of decimal places, round to N total significant digits.~~
 - [x] ~~Rounding mode control (HalfUp, Floor, Ceil)~~
