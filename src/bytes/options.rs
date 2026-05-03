@@ -52,6 +52,7 @@ pub struct BytesOptions {
     pub(crate) precision: Precision,
     pub(crate) rounding: RoundingMode,
     pub(crate) binary: bool,
+    pub(crate) bits: bool,
     pub(crate) long_units: bool,
     pub(crate) decimal_separator: char,
     pub(crate) space: bool,
@@ -79,6 +80,7 @@ impl BytesOptions {
             precision: Precision::Decimals(1),
             rounding: RoundingMode::HalfUp,
             binary: false,
+            bits: false,
             long_units: false,
             decimal_separator: '.',
             space: false,
@@ -163,6 +165,24 @@ impl BytesOptions {
     #[inline]
     pub fn binary(mut self) -> Self {
         self.binary = true;
+        self
+    }
+
+    /// Formats the input value as bits rather than bytes.
+    ///
+    /// Internally multiplies the value by 8 and uses lowercase suffixes (`Kb`, `Mb`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let opts = BytesOptions::new().bits(true);
+    /// assert_eq!(humfmt::bytes_with(1000_u64, opts).to_string(), "8Kb");
+    /// ```
+    #[inline]
+    pub fn bits(mut self, enabled: bool) -> Self {
+        self.bits = enabled;
         self
     }
 

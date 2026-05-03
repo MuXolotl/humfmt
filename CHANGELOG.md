@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
   - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
   - Locale-aware decimal separator via `.locale(locale)`.
+- `BytesOptions::bits(bool)` — multiplies the input by 8 and formats it using bit units (`b`, `Kb`, `Mb`, etc.). Useful for network speeds and bandwidth formatting.
 - `BytesOptions::rounding(RoundingMode)` and `BytesOptions::significant_digits(u8)` — bringing exact API parity and feature alignment between the `bytes` and `number` formatters.
 - `BytesOptions::unit(ByteUnit)` (along with `min_unit` and `max_unit`) — allows forcing the output to a specific magnitude (e.g. always `MB`) or clamping the range of automatic scaling.
 - `NumberOptions::significant_digits(u8)` — allows formatting values to a fixed number of significant digits instead of a fixed number of decimal places (e.g., `1234` with 3 sig figs outputs `"1.23K"`, or `"1230"` if unscaled).

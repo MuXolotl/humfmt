@@ -241,3 +241,30 @@ fn supports_rounding_modes() {
         "-1KB"
     );
 }
+
+#[test]
+fn supports_bits_mode_decimal() {
+    let opts = BytesOptions::new().bits(true);
+    // 1000 Bytes = 8000 bits = 8 Kb
+    assert_eq!(humfmt::bytes_with(1000_u64, opts).to_string(), "8Kb");
+
+    // 1_500_000 Bytes = 12_000_000 bits = 12 Mb
+    assert_eq!(humfmt::bytes_with(1_500_000_u64, opts).to_string(), "12Mb");
+}
+
+#[test]
+fn supports_bits_mode_binary() {
+    let opts = BytesOptions::new().bits(true).binary();
+    // 1024 Bytes = 8192 bits = 8 Kib
+    assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "8Kib");
+}
+
+#[test]
+fn supports_bits_mode_long_units() {
+    let opts = BytesOptions::new().bits(true).long_units();
+    // 1 Byte = 8 bits
+    assert_eq!(humfmt::bytes_with(1_u64, opts).to_string(), "8 bits");
+
+    // 125 Bytes = 1000 bits = 1 kilobit
+    assert_eq!(humfmt::bytes_with(125_u64, opts).to_string(), "1 kilobit");
+}

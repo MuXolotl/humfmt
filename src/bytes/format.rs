@@ -13,6 +13,8 @@ struct UnitLabels {
     long_plural: &'static str,
 }
 
+// --- Byte Labels ---
+
 const DECIMAL_LABELS: [UnitLabels; 7] = [
     UnitLabels {
         short: "B",
@@ -89,6 +91,84 @@ const BINARY_LABELS: [UnitLabels; 7] = [
     },
 ];
 
+// --- Bit Labels ---
+
+const DECIMAL_BIT_LABELS: [UnitLabels; 7] = [
+    UnitLabels {
+        short: "b",
+        long_singular: "bit",
+        long_plural: "bits",
+    },
+    UnitLabels {
+        short: "Kb",
+        long_singular: "kilobit",
+        long_plural: "kilobits",
+    },
+    UnitLabels {
+        short: "Mb",
+        long_singular: "megabit",
+        long_plural: "megabits",
+    },
+    UnitLabels {
+        short: "Gb",
+        long_singular: "gigabit",
+        long_plural: "gigabits",
+    },
+    UnitLabels {
+        short: "Tb",
+        long_singular: "terabit",
+        long_plural: "terabits",
+    },
+    UnitLabels {
+        short: "Pb",
+        long_singular: "petabit",
+        long_plural: "petabits",
+    },
+    UnitLabels {
+        short: "Eb",
+        long_singular: "exabit",
+        long_plural: "exabits",
+    },
+];
+
+const BINARY_BIT_LABELS: [UnitLabels; 7] = [
+    UnitLabels {
+        short: "b",
+        long_singular: "bit",
+        long_plural: "bits",
+    },
+    UnitLabels {
+        short: "Kib",
+        long_singular: "kibibit",
+        long_plural: "kibibits",
+    },
+    UnitLabels {
+        short: "Mib",
+        long_singular: "mebibit",
+        long_plural: "mebibits",
+    },
+    UnitLabels {
+        short: "Gib",
+        long_singular: "gibibit",
+        long_plural: "gibibits",
+    },
+    UnitLabels {
+        short: "Tib",
+        long_singular: "tebibit",
+        long_plural: "tebibits",
+    },
+    UnitLabels {
+        short: "Pib",
+        long_singular: "pebibit",
+        long_plural: "pebibits",
+    },
+    UnitLabels {
+        short: "Eib",
+        long_singular: "exbibit",
+        long_plural: "exbibits",
+    },
+];
+
 const DECIMAL_UNITS: [u128; 7] = [
     1,
     1_000,
@@ -114,11 +194,16 @@ pub fn format_bytes(
     value: BytesValue,
     options: &BytesOptions,
 ) -> fmt::Result {
-    let (negative, magnitude) = match value {
+    let (negative, mut magnitude) = match value {
         BytesValue::Int(v) if v < 0 => (true, v.unsigned_abs()),
         BytesValue::Int(v) => (false, v as u128),
         BytesValue::UInt(v) => (false, v),
     };
+
+    if options.bits {
+        // Handle potential overflow if formatting extreme u128s in bits mode.
+        magnitude = magnitude.saturating_mul(8);
+    }
 
     let min_unit = options.min_unit as usize;
     let max_unit = (options.max_unit as usize).min(6).max(min_unit);
@@ -184,10 +269,11 @@ pub fn format_bytes(
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
 
-    let labels = if options.binary {
-        &BINARY_LABELS
-    } else {
-        &DECIMAL_LABELS
+    let labels = match (options.bits, options.binary) {
+        (false, false) => &DECIMAL_LABELS,
+        (false, true) => &BINARY_LABELS,
+        (true, false) => &DECIMAL_BIT_LABELS,
+        (true, true) => &BINARY_BIT_LABELS,
     };
 
     if options.long_units {

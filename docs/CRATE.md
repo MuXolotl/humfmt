@@ -88,6 +88,7 @@ assert_eq!(bytes_with(1536_u64, BytesOptions::new().binary()).to_string(), "1.5K
 |---|---:|---|
 | precision | 1 | fractional digits for scaled values |
 | binary | false | SI (1000) vs IEC (1024) |
+| bits | false | multiply by 8 and use bit units (`Mb`) |
 | long_units | false | `KB` vs ` kilobytes` |
 | decimal_separator | `.` | decimal separator for scaled output |
 | space | `false` | add a space before short unit labels |

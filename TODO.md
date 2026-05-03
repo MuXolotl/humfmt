@@ -20,7 +20,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## PLANNED
 
-- [ ] Byte formatter: bits mode — `Kb`, `Mb`, `Gb` using the same 1000-based infrastructure. Useful for network throughput display.
 - [ ] Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.
 - [ ] `BytesOptions::locale()` semantics — currently copies only `decimal_separator` from the locale, ignoring everything else. Either copy all relevant fields or rename to `decimal_separator_from_locale()` to make the limited scope explicit. Decide before 1.0.
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
@@ -66,6 +65,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Byte formatter: bits mode (Kb, Mb, Gb) for bandwidth and throughput display.~~
 - [x] ~~Byte formatter: support RoundingMode and significant_digits for API parity.~~
 - [x] ~~Byte formatter: unit forcing and min/max clamping.~~
 - [x] ~~Significant-digits mode — instead of decimal places, round to N total significant digits.~~
