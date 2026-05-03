@@ -13,6 +13,7 @@ use crate::locale::{English, Locale};
 #[derive(Copy, Clone, Debug)]
 pub struct PercentOptions<L: Locale = English> {
     pub(crate) precision: u8,
+    pub(crate) force_sign: bool,
     pub(crate) fixed_precision: bool,
     pub(crate) locale: L,
 }
@@ -22,12 +23,14 @@ impl PercentOptions<English> {
     ///
     /// Defaults:
     /// - precision: `1`
+    /// - force sign: `false`
     /// - fixed precision: `false` (trailing zeros are trimmed)
     /// - locale: `English`
     #[inline]
     pub fn new() -> Self {
         Self {
             precision: 1,
+            force_sign: false,
             fixed_precision: false,
             locale: English,
         }
@@ -39,6 +42,7 @@ impl<L: Locale> Default for PercentOptions<L> {
     fn default() -> Self {
         Self {
             precision: 1,
+            force_sign: false,
             fixed_precision: false,
             locale: L::default(),
         }
@@ -61,6 +65,27 @@ impl<L: Locale> PercentOptions<L> {
     #[inline]
     pub fn precision(mut self, n: u8) -> Self {
         self.precision = n.min(6);
+        self
+    }
+
+    /// Forces the output of a `+` sign for strictly positive values.
+    ///
+    /// Values that round to exactly zero will output `0%` without a sign.
+    /// Useful for deltas and change indicators.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::PercentOptions;
+    ///
+    /// let opts = PercentOptions::new().force_sign(true);
+    /// assert_eq!(humfmt::percent_with(0.42, opts).to_string(), "+42%");
+    /// assert_eq!(humfmt::percent_with(-0.42, opts).to_string(), "-42%");
+    /// assert_eq!(humfmt::percent_with(0.0, opts).to_string(), "0%");
+    /// ```
+    #[inline]
+    pub fn force_sign(mut self, yes: bool) -> Self {
+        self.force_sign = yes;
         self
     }
 
@@ -106,6 +131,7 @@ impl<L: Locale> PercentOptions<L> {
     pub fn locale<N: Locale>(self, locale: N) -> PercentOptions<N> {
         PercentOptions {
             precision: self.precision,
+            force_sign: self.force_sign,
             fixed_precision: self.fixed_precision,
             locale,
         }

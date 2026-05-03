@@ -576,3 +576,19 @@ fn significant_digits_formatting() {
     assert_eq!(humfmt::number_with(10, fixed).to_string(), "10.0");
     assert_eq!(humfmt::number_with(100, fixed).to_string(), "100");
 }
+
+#[test]
+fn force_sign_renders_plus_for_positive_numbers() {
+    let opts = NumberOptions::new().force_sign(true);
+    assert_eq!(humfmt::number_with(1500, opts).to_string(), "+1.5K");
+    assert_eq!(humfmt::number_with(42, opts).to_string(), "+42");
+    assert_eq!(humfmt::number_with(0, opts).to_string(), "0");
+    assert_eq!(humfmt::number_with(-1500, opts).to_string(), "-1.5K");
+}
+
+#[test]
+fn force_sign_with_floats_avoids_plus_zero() {
+    let opts = NumberOptions::new().force_sign(true).precision(1);
+    assert_eq!(humfmt::number_with(0.004_f64, opts).to_string(), "0");
+    assert_eq!(humfmt::number_with(1.5_f64, opts).to_string(), "+1.5");
+}

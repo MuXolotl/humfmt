@@ -8,11 +8,11 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 | Priority | Formatter | Progress (Est.) |
 |:---:|---|:---:|
-| 1 | number | ~95% |
-| 2 | bytes | ~70% |
+| 1 | number | ~100% |
+| 2 | bytes | ~100% |
 | 3 | duration + ago | ~75% |
 | 4 | list | ~85% |
-| 5 | percentage | ~85% |
+| 5 | percentage | ~100% |
 | 6 | ordinal | ~90% |
 | ... | other | 0% |
 
@@ -20,7 +20,6 @@ Contributions are welcome — if you want to work on something, open an issue or
 
 ## PLANNED
 
-- [ ] Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.
 - [ ] `BytesOptions::locale()` semantics — currently copies only `decimal_separator` from the locale, ignoring everything else. Either copy all relevant fields or rename to `decimal_separator_from_locale()` to make the limited scope explicit. Decide before 1.0.
 - [ ] Add future-time support to `ago` — right now it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style, with a clean locale hook for the "in" word.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
@@ -65,6 +64,7 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Number & Percent formatters: `+` sign option for positive values — `"+1.5K"`, `"+42.3%"` style useful for delta/change displays.~~
 - [x] ~~Byte formatter: bits mode (Kb, Mb, Gb) for bandwidth and throughput display.~~
 - [x] ~~Byte formatter: support RoundingMode and significant_digits for API parity.~~
 - [x] ~~Byte formatter: unit forcing and min/max clamping.~~

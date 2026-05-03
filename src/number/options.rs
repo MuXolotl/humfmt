@@ -16,6 +16,7 @@ pub(crate) enum Precision {
 /// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
 /// | [`significant_digits(n)`] | `none` | Total significant digits (overrides precision) |
 /// | [`compact(bool)`] | `true` | `"1500"` → `"1.5K"` vs `"1500"` |
+/// | [`force_sign(bool)`] | `false` | `1500` → `"+1.5K"` |
 /// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
 /// | [`long_units()`] | `false` | `"15.3K"` → `"15.3 thousand"` |
 /// | [`separators(bool)`] | `false` | `"1234"` → `"1,234"` (when unscaled or uncompacted) |
@@ -25,6 +26,7 @@ pub(crate) enum Precision {
 /// [`precision(n)`]: NumberOptions::precision
 /// [`significant_digits(n)`]: NumberOptions::significant_digits
 /// [`compact(bool)`]: NumberOptions::compact
+/// [`force_sign(bool)`]: NumberOptions::force_sign
 /// [`rounding(mode)`]: NumberOptions::rounding
 /// [`long_units()`]: NumberOptions::long_units
 /// [`separators(bool)`]: NumberOptions::separators
@@ -46,6 +48,7 @@ pub(crate) enum Precision {
 pub struct NumberOptions<L: Locale = English> {
     pub(crate) precision: Precision,
     pub(crate) compact: bool,
+    pub(crate) force_sign: bool,
     pub(crate) rounding: RoundingMode,
     pub(crate) long_units: bool,
     pub(crate) separators: bool,
@@ -60,6 +63,7 @@ impl NumberOptions<English> {
     /// |---|---|
     /// | precision | `1` |
     /// | compact | `true` |
+    /// | force sign | `false` |
     /// | rounding | `HalfUp` |
     /// | long units | `false` (short suffixes: `K`, `M`, …) |
     /// | separators | `false` (no digit grouping) |
@@ -70,6 +74,7 @@ impl NumberOptions<English> {
         Self {
             precision: Precision::Decimals(1),
             compact: true,
+            force_sign: false,
             rounding: RoundingMode::HalfUp,
             long_units: false,
             separators: false,
@@ -85,6 +90,7 @@ impl<L: Locale> Default for NumberOptions<L> {
         Self {
             precision: Precision::Decimals(1),
             compact: true,
+            force_sign: false,
             rounding: RoundingMode::HalfUp,
             long_units: false,
             separators: false,
@@ -179,6 +185,27 @@ impl<L: Locale> NumberOptions<L> {
     #[inline]
     pub fn compact(mut self, enabled: bool) -> Self {
         self.compact = enabled;
+        self
+    }
+
+    /// Forces the output of a `+` sign for strictly positive values.
+    ///
+    /// Values that round to exactly zero will output `0` without a sign.
+    /// Useful for deltas and change indicators.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::NumberOptions;
+    ///
+    /// let opts = NumberOptions::new().force_sign(true);
+    /// assert_eq!(humfmt::number_with(1500, opts).to_string(), "+1.5K");
+    /// assert_eq!(humfmt::number_with(-1500, opts).to_string(), "-1.5K");
+    /// assert_eq!(humfmt::number_with(0, opts).to_string(), "0");
+    /// ```
+    #[inline]
+    pub fn force_sign(mut self, yes: bool) -> Self {
+        self.force_sign = yes;
         self
     }
 
@@ -332,6 +359,7 @@ impl<L: Locale> NumberOptions<L> {
         NumberOptions {
             precision: self.precision,
             compact: self.compact,
+            force_sign: self.force_sign,
             rounding: self.rounding,
             long_units: self.long_units,
             separators: self.separators,

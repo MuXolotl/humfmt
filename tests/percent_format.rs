@@ -163,3 +163,18 @@ fn sign_symmetry() {
         assert_eq!(neg, format!("-{pos}"), "sign symmetry failed for {v}");
     }
 }
+
+#[test]
+fn force_sign_renders_plus_for_positive_percents() {
+    let opts = PercentOptions::new().force_sign(true);
+    assert_eq!(percent_with(0.42_f64, opts).to_string(), "+42%");
+    assert_eq!(percent_with(0.0_f64, opts).to_string(), "0%");
+    assert_eq!(percent_with(-0.42_f64, opts).to_string(), "-42%");
+}
+
+#[test]
+fn force_sign_avoids_plus_zero_when_rounding() {
+    let opts = PercentOptions::new().force_sign(true).precision(1);
+    // 0.0004 * 100 = 0.04% -> rounds to 0.0% -> displays as "0%"
+    assert_eq!(percent_with(0.0004_f64, opts).to_string(), "0%");
+}

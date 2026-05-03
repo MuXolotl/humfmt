@@ -17,6 +17,7 @@ use humfmt::Humanize;
 assert_eq!(humfmt::bytes(1536).to_string(), "1.5KB");
 assert_eq!(humfmt::number(15320).to_string(), "15.3K");
 assert_eq!(1_500_000.human_number().to_string(), "1.5M");
+assert_eq!(0.423_f64.human_percent().to_string(), "42.3%");
 assert_eq!(humfmt::ordinal(21).to_string(), "21st");
 assert_eq!(humfmt::duration(core::time::Duration::from_secs(3661)).to_string(), "1h 1m");
 assert_eq!(humfmt::ago(core::time::Duration::from_secs(90)).to_string(), "1m 30s ago");
@@ -60,16 +61,17 @@ assert_eq!(out.to_string(), "15.32K");
 | Option | Default | Meaning |
 |---|---:|---|
 | precision | 1 | fractional digits for compact values |
-| significant_digits(n) | none | round to N total significant digits |
+| significant_digits | none | round to N total significant digits |
 | compact | true | enable magnitude scaling (`1.5K` vs `1500`) |
-| rounding | HalfUp | HalfUp, Floor, Ceil behaviour |
+| force_sign | false | output `+` for positive numbers |
+| rounding | `HalfUp` | HalfUp, Floor, Ceil behaviour |
 | long_units | false | `K` vs ` thousand` |
 | separators | false | group separator for unscaled output |
 
 #### Notes / edge cases
 - Integers support full `i128` / `u128` range.
 - Floats support `f32` / `f64`. Non-finite values render as `inf`, `-inf`, `NaN`.
-- Small negative floats that round to zero render as `0` (never `-0`).
+- Small negative floats that round to zero render as `0` (never `-0` or `+0`).
 - Rounding may rescale across a boundary (e.g. `999_950 -> 1M`).
 
 ### Byte sizes (`bytes`, `BytesOptions`)
@@ -130,6 +132,26 @@ assert_eq!(humfmt::bytes_with(999_u64, opts).to_string(), "999 B");
 - Signed inputs are supported (e.g. `-1536 -> -1.5KB`).
 - Precision is clamped to a small maximum to keep formatting cheap and predictable.
 - The unit ceiling is `EB` / `EiB`.
+
+### Percentages (`percent`, `PercentOptions`)
+
+Converts a ratio (e.g. `0.423`) into a human-readable percentage (`"42.3%"`).
+
+```rust
+use humfmt::{percent_with, PercentOptions};
+
+assert_eq!(humfmt::percent(0.423).to_string(), "42.3%");
+
+let opts = PercentOptions::new().force_sign(true);
+assert_eq!(percent_with(0.15_f64, opts).to_string(), "+15%");
+```
+
+#### Defaults (English)
+| Option | Default | Meaning |
+|---|---:|---|
+| precision | 1 | fractional digits |
+| force_sign | false | output `+` for positive percentages |
+| fixed_precision | false | keep trailing zeros (`42.50%`) |
 
 ### Ordinals (`ordinal`)
 

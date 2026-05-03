@@ -116,6 +116,9 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
 
     if negative {
         f.write_char('-')?;
+    } else if options.force_sign && magnitude != 0 {
+        // Since integers >= 1 never round to 0, magnitude != 0 is safe here.
+        f.write_char('+')?;
     }
 
     // Digit grouping separators only apply when the value is unscaled (idx == 0).
@@ -171,10 +174,11 @@ fn format_float<L: crate::locale::Locale>(
     let (idx, decimals, scaled_abs) =
         compact_unit_for_f64(abs, &options.precision, max_idx, options.rounding, negative);
 
-    // Suppress negative zero
     let is_zero = scaled_abs == 0.0;
     if negative && !is_zero {
         f.write_char('-')?;
+    } else if options.force_sign && !negative && !is_zero {
+        f.write_char('+')?;
     }
 
     // Stack buffer expanded to 512 bytes to safely support compact(false)

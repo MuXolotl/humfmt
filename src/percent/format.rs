@@ -36,10 +36,12 @@ pub fn format_percent<L: Locale>(
         abs
     };
 
-    // Suppress negative zero.
+    // Suppress negative zero and handle forced sign.
     let is_zero = rounded == 0.0;
     if negative && !is_zero {
         f.write_char('-')?;
+    } else if options.force_sign && !negative && !is_zero {
+        f.write_char('+')?;
     }
 
     // Split into integer and fractional parts.

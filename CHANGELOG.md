@@ -13,24 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Percentage formatter: `percent(0.423) → "42.3%"`.
   - Free functions `percent(value)` and `percent_with(value, options)`.
   - `PercentDisplay<L>` implements `Display` with zero intermediate allocation.
-  - `PercentOptions<L>` builder with `precision`, `fixed_precision`, and `locale`.
+  - `PercentOptions<L>` builder with `precision`, `fixed_precision`, `force_sign`, and `locale`.
   - `PercentLike` sealed trait implemented for `f32` and `f64`.
   - `.human_percent()` / `.human_percent_with()` extension methods on `Humanize`.
   - Input is a ratio (`1.0 = 100%`); values outside `0.0..=1.0` are accepted.
   - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
   - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
   - Locale-aware decimal separator via `.locale(locale)`.
-- `BytesOptions::bits(bool)` — multiplies the input by 8 and formats it using bit units (`b`, `Kb`, `Mb`, etc.). Useful for network speeds and bandwidth formatting.
-- `BytesOptions::rounding(RoundingMode)` and `BytesOptions::significant_digits(u8)` — bringing exact API parity and feature alignment between the `bytes` and `number` formatters.
-- `BytesOptions::unit(ByteUnit)` (along with `min_unit` and `max_unit`) — allows forcing the output to a specific magnitude (e.g. always `MB`) or clamping the range of automatic scaling.
-- `NumberOptions::significant_digits(u8)` — allows formatting values to a fixed number of significant digits instead of a fixed number of decimal places (e.g., `1234` with 3 sig figs outputs `"1.23K"`, or `"1230"` if unscaled).
-- `NumberOptions::rounding(RoundingMode)` — control rounding logic via HalfUp (default), Floor or Ceil.
 - `NumberOptions::compact(bool)` — allows completely disabling magnitude scaling (e.g. `1500` → `"1500"` instead of `"1.5K"`). This works perfectly with `separators(true)` to produce fully formatted large numbers like `"1,234,567"`.
+- `NumberOptions::significant_digits(u8)` — allows formatting values to a fixed number of significant digits instead of a fixed number of decimal places (e.g., `1234` with 3 sig figs outputs `"1.23K"`, or `"1230"` if unscaled).
+- `NumberOptions::rounding(RoundingMode)` — control rounding logic via `HalfUp` (default), `Floor` or `Ceil`.
+- `NumberOptions::force_sign(bool)` and `PercentOptions::force_sign(bool)` — strictly force a `+` sign for positive values.
+- `BytesOptions::rounding(RoundingMode)` and `BytesOptions::significant_digits(u8)` — bringing exact API parity and feature alignment between the `bytes` and `number` formatters.
+- `BytesOptions::unit(ByteUnit)`, `min_unit(ByteUnit)`, and `max_unit(ByteUnit)` — allows forcing the output to a specific magnitude (e.g. always `MB`) or clamping the range of automatic scaling.
+- `BytesOptions::bits(bool)` — multiplies the input by 8 and formats it using bit units (`b`, `Kb`, `Mb`, etc.). Useful for network speeds and bandwidth formatting.
 - `NumberOptions`: behaviour tables added to rustdoc for `precision`, `long_units`, `separators`, and `fixed_precision`.
 - `number` module: edge case and rounding behaviour table added to module docs.
 
 ### Changed
 - `NumberOptions::separators()`: digit grouping separators apply only when the value is not compacted (suffix index 0). Documentation clarified, and it can now be effectively used with `compact(false)`.
+- Extracted core sig-figs logic (`compute_sigfigs_u128`) into `common::fmt` to be cleanly shared between formatters.
+- Floating point math in `number`, `bytes`, and `percent` formatters has been completely rewritten to use internal custom functions (`f64_log10_floor`, `f64_pow10`) to avoid pulling `libm` or `std` math functions, guaranteeing blazing fast and pure `no_std` execution.
 
 ### Fixed
 - `number` formatter float path: removed unreachable fallback (`write_float_direct`) that silently ignored the locale decimal separator on `StackString` overflow. The buffer is always sufficient for `precision <= 6` so the fallback was never reached.
