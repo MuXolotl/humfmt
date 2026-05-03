@@ -84,7 +84,11 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
 ) -> fmt::Result {
     let locale = &options.locale;
     let precision = options.precision;
-    let max_idx = locale.max_compact_suffix_index().min(POW1000.len() - 1);
+    let max_idx = if options.compact {
+        locale.max_compact_suffix_index().min(POW1000.len() - 1)
+    } else {
+        0
+    };
 
     let (mut idx, unit) = compact_unit_for_u128(magnitude, max_idx);
     let mut parts = decimal_parts_rounded(magnitude, unit, precision);
@@ -146,7 +150,11 @@ fn format_float<L: crate::locale::Locale>(
 
     let locale = &options.locale;
     let precision = options.precision;
-    let max_idx = locale.max_compact_suffix_index().min(POW1000_F64.len() - 1);
+    let max_idx = if options.compact {
+        locale.max_compact_suffix_index().min(POW1000_F64.len() - 1)
+    } else {
+        0
+    };
 
     let negative = raw.is_sign_negative();
     let abs = raw.abs();

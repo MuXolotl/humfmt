@@ -38,6 +38,16 @@ fn supports_precision_override() {
 }
 
 #[test]
+fn supports_disabling_compact_scaling() {
+    let opts = NumberOptions::new().compact(false);
+    assert_eq!(humfmt::number_with(1_500_000, opts).to_string(), "1500000");
+    assert_eq!(
+        humfmt::number_with(1_500_000.5_f64, opts).to_string(),
+        "1500000.5"
+    );
+}
+
+#[test]
 fn rescales_after_rounding_boundary() {
     assert_eq!(number(999_950).to_string(), "1M");
     assert_eq!(number(999_999).to_string(), "1M");
@@ -213,9 +223,7 @@ fn separators_apply_only_when_unscaled() {
 
 #[test]
 fn separators_apply_when_scaling_disabled() {
-    use humfmt::locale::CustomLocale;
-    let locale = CustomLocale::english().max_compact_suffix_index(0);
-    let opts = NumberOptions::new().locale(locale).separators(true);
+    let opts = NumberOptions::new().compact(false).separators(true);
     assert_eq!(humfmt::number_with(12_345, opts).to_string(), "12,345");
     assert_eq!(
         humfmt::number_with(1_234_567, opts).to_string(),
@@ -323,9 +331,7 @@ fn fixed_precision_and_long_units_together() {
 
 #[test]
 fn separators_with_negative_unscaled_values() {
-    use humfmt::locale::CustomLocale;
-    let locale = CustomLocale::english().max_compact_suffix_index(0);
-    let opts = NumberOptions::new().locale(locale).separators(true);
+    let opts = NumberOptions::new().compact(false).separators(true);
     assert_eq!(humfmt::number_with(-12_345, opts).to_string(), "-12,345");
     assert_eq!(
         humfmt::number_with(-1_234_567, opts).to_string(),
@@ -394,9 +400,11 @@ fn polish_long_units_inflection_via_number_with() {
 #[cfg(feature = "russian")]
 #[test]
 fn russian_separators_use_space_as_group_separator() {
-    use humfmt::locale::CustomLocale;
-    let locale = CustomLocale::russian().max_compact_suffix_index(0);
-    let opts = NumberOptions::new().locale(locale).separators(true);
+    use humfmt::locale::Russian;
+    let opts = NumberOptions::new()
+        .compact(false)
+        .locale(Russian)
+        .separators(true);
     assert_eq!(
         humfmt::number_with(1_234_567, opts).to_string(),
         "1 234 567"
@@ -406,9 +414,11 @@ fn russian_separators_use_space_as_group_separator() {
 #[cfg(feature = "polish")]
 #[test]
 fn polish_separators_use_space_as_group_separator() {
-    use humfmt::locale::CustomLocale;
-    let locale = CustomLocale::polish().max_compact_suffix_index(0);
-    let opts = NumberOptions::new().locale(locale).separators(true);
+    use humfmt::locale::Polish;
+    let opts = NumberOptions::new()
+        .compact(false)
+        .locale(Polish)
+        .separators(true);
     assert_eq!(
         humfmt::number_with(1_234_567, opts).to_string(),
         "1 234 567"

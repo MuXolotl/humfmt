@@ -152,6 +152,12 @@ impl CustomLocale {
     }
 
     /// Overrides the maximum compact unit index used for scaling.
+    ///
+    /// Useful for capping the output to a specific maximum unit (e.g. stopping at
+    /// millions so 1 billion renders as `1000M`).
+    ///
+    /// To completely disable compact scaling, use [`crate::NumberOptions::compact`]
+    /// instead.
     pub fn max_compact_suffix_index(mut self, idx: usize) -> Self {
         self.max_compact_suffix_index = idx.min(COMPACT_SUFFIX_CAPACITY - 1);
         self

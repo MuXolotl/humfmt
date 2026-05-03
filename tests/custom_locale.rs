@@ -46,17 +46,14 @@ fn supports_custom_value_aware_compact_suffixes() {
 }
 
 #[test]
-fn can_force_unscaled_rendering_with_custom_locale_limits() {
-    let locale = CustomLocale::english()
-        .max_compact_suffix_index(0)
-        .separators(',', '_');
+fn can_cap_compact_scaling_with_custom_locale_limits() {
+    // Capping the maximum suffix index to 1 (thousands).
+    // 12,345,678 will be rendered as 12345.7K instead of 12.3M
+    let locale = CustomLocale::english().max_compact_suffix_index(1);
 
-    let opts = NumberOptions::new()
-        .locale(locale)
-        .precision(2)
-        .separators(true);
+    let opts = NumberOptions::new().locale(locale).precision(1);
 
-    assert_eq!(number_with(12_345.67, opts).to_string(), "12_345,67");
+    assert_eq!(number_with(12_345_678, opts).to_string(), "12345.7K");
 }
 
 #[cfg(feature = "russian")]

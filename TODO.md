@@ -27,13 +27,10 @@ Contributions are welcome — if you want to work on something, open an issue or
 - [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
 - [ ] Ratio formatter — `0.75 -> "3:4"` or `"75%"` depending on options.
 - [ ] Temperature formatter — `36.6 -> "36.6°C"` / `"97.9°F"`, with configurable unit and locale-aware decimal separator. Low priority, but fits the theme.
-- [ ] Fraction-aware pluralization — floats like `1.0` and `1.5` should behave correctly across locales. Right now `1.5 тысячи` works but the boundary conditions for e.g. Polish need edge-case testing.
 - [ ] Duration formatting: configurable join string between units — let the caller choose between `"1h 2m"` (space-joined, current default), `"1h, 2m"` (comma-joined), or `"1 hour and 2 minutes"` (and-joined in long mode).
 - [ ] Byte formatter: allow forcing a specific unit — e.g. always render in MB regardless of value size, useful for dashboards and log lines where consistent column width matters.
 - [ ] Byte formatter: clamp min/max unit — stop the formatter from jumping all the way to EB when you want output to stay in MB/GB range.
 - [ ] Byte formatter: bits mode — `Kb`, `Mb`, `Gb` using the same 1000-based infrastructure. Useful for network throughput display.
-- [ ] Number formatter: fully disable compact scaling cleanly — currently achievable via `CustomLocale::max_compact_suffix_index(0)` but not obvious from the API surface. Consider a dedicated `NumberOptions::no_compact()` method.
-- [ ] Number formatter: always-on grouping separators option — `separators(true)` only applies when the value is not compacted. Add a way to show `1,234` instead of `1.2K` when the caller explicitly wants raw grouped output. Related to `no_compact()` above.
 - [ ] List formatter: `"or"` conjunction style — `"red, green, or blue"` alongside the existing `"and"` style.
 - [ ] List formatter: better handling of edge cases — single-item and empty-list behavior should be explicitly documented with tests, since they are silent no-ops right now.
 - [ ] More locale packs — German, French, and Spanish are the obvious next additions since they cover a large chunk of real-world users. Native speaker review of plural rules is important before publishing these.
@@ -73,6 +70,9 @@ Contributions are welcome — if you want to work on something, open an issue or
 ## DONE
 
 ### (Unreleased → 0.5.0)
+- [x] ~~Fraction-aware pluralization: confirmed Polish and Russian boundaries work perfectly with existing tests~~
+- [x] ~~Number formatter: always-on grouping separators option works seamlessly with `compact(false)`~~
+- [x] ~~Number formatter: fully disable compact scaling cleanly via `NumberOptions::compact(bool)`~~
 - [x] ~~Fix `report.rs`: `io::Error::other`, hardcoded hex colors in raw strings~~
 - [x] ~~Expand `compare_numbers` benchmark: allocating_int, allocating_float, reused_buffer, locale overhead groups~~
 - [x] ~~Expand `number` tests: small types, usize/isize, f32, very small floats, fixed_precision+long_units, separators+negatives, precision clamping, Russian/Polish inflection, space group separator~~

@@ -20,11 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Non-finite inputs render with a `%` suffix (`inf%`, `NaN%`).
   - Negative zero is suppressed (`-0.0004 → "0%"`, never `"-0%"`).
   - Locale-aware decimal separator via `.locale(locale)`.
+- `NumberOptions::compact(bool)` — allows completely disabling magnitude scaling (e.g. `1500` → `"1500"` instead of `"1.5K"`). This works perfectly with `separators(true)` to produce fully formatted large numbers like `"1,234,567"`.
 - `NumberOptions`: behaviour tables added to rustdoc for `precision`, `long_units`, `separators`, and `fixed_precision`.
 - `number` module: edge case and rounding behaviour table added to module docs.
 
 ### Changed
-- `NumberOptions::separators()`: digit grouping separators apply only when the value is not compacted (suffix index 0). Documentation clarified.
+- `NumberOptions::separators()`: digit grouping separators apply only when the value is not compacted (suffix index 0). Documentation clarified, and it can now be effectively used with `compact(false)`.
 
 ### Fixed
 - `number` formatter float path: removed unreachable fallback (`write_float_direct`) that silently ignored the locale decimal separator on `StackString` overflow. The buffer is always sufficient for `precision <= 6` so the fallback was never reached.
