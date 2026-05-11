@@ -3,11 +3,11 @@
 //! Crates under comparison and their key properties:
 //!
 //!   - humfmt:    `std::time::Duration`, configurable unit count and labels,
-//!                locale-aware (EN/RU/PL), long/short unit labels, max-units cap,
-//!                no_std compatible, writes via `Display`.
+//!     locale-aware (EN/RU/PL), long/short unit labels, max-units cap,
+//!     no_std compatible, writes via `Display`.
 //!   - humantime: `std::time::Duration`, English-only formatting,
-//!                renders all non-zero units (no max-units cap),
-//!                returns a `FormattedDuration` wrapper that implements `Display`.
+//!     renders all non-zero units (no max-units cap),
+//!     returns a `FormattedDuration` wrapper that implements `Display`.
 //!
 //! Note: semantic output differs. `humfmt` caps at 2 units by default ("1h 1m"),
 //! while `humantime` emits all non-zero units ("1h 1m 5s 123ms ...").

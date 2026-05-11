@@ -3,11 +3,11 @@
 //! Crates under comparison and their key limitations:
 //!
 //!   - humfmt:   std::time::Duration, locale-aware (EN/RU/PL), configurable
-//!               unit count and labels, zero allocations during Display,
-//!               no_std compatible.
+//!     unit count and labels, zero allocations during Display,
+//!     no_std compatible.
 //!   - timeago:  std::time::Duration, locale-aware (many languages via trait),
-//!               configurable unit range and item count, always allocates a
-//!               String on convert().
+//!     configurable unit range and item count, always allocates a
+//!     String on convert().
 //!
 //! Semantic difference: humfmt shows "1m 30s ago" (two units by default),
 //! timeago shows "1 minute ago" (one unit by default, long-form English).

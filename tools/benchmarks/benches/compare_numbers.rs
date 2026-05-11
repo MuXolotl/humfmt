@@ -3,10 +3,10 @@
 //! Crates under comparison and their key properties:
 //!
 //!   - humfmt:       all integer primitives + f32/f64, locale-aware (EN/RU/PL),
-//!                   long/short suffixes, configurable precision, no_std compatible,
-//!                   writes via Display (zero-alloc path available).
+//!     long/short suffixes, configurable precision, no_std compatible,
+//!     writes via Display (zero-alloc path available).
 //!   - human_format: f64 only, English only, configurable decimals and separator,
-//!                   always returns an owned String.
+//!     always returns an owned String.
 //!
 //! Note: no other crate on crates.io produces compact "K/M/B" style output
 //! comparable to humfmt. human-repr's human_count and readable's Unsigned
@@ -20,7 +20,7 @@
 //!   - numbers/reused_buffer      — write! into pre-allocated String, u64 inputs
 //!   - numbers/locale             — locale overhead (humfmt EN / RU / PL)
 
-use std::fmt::Write as _;
+use std::fmt::Write;
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use humfmt::{number, number_with, NumberOptions};

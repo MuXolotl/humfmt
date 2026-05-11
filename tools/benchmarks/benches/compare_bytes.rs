@@ -6,15 +6,15 @@
 //!
 //! We keep two comparison groups for honesty:
 //! - `bytes/allocating` + `bytes/reused_buffer`:
-//!     SI/decimal, close to humfmt's default output style.
+//!   SI/decimal, close to humfmt's default output style.
 //! - `bytes/allocating_aligned` + `bytes/reused_buffer_aligned`:
-//!     IEC/binary + space + "precision 2" where supported, aligned to common CLI output styles.
+//!   IEC/binary + space + "precision 2" where supported, aligned to common CLI output styles.
 //!
 //! IMPORTANT: Some crates keep a fixed number of decimal digits when precision is set,
 //! while humfmt trims trailing zeros by design. The report generator includes output
 //! examples to make these differences explicit.
 
-use std::fmt::Write as _;
+use std::fmt::Write;
 
 use byte_unit::{Byte, UnitType};
 use bytesize::ByteSize;

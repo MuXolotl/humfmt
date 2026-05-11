@@ -104,8 +104,8 @@ fn supports_f32_input() {
 
 #[test]
 fn supports_locale_decimal_separator() {
-    let locale = humfmt::locale::CustomLocale::english().decimal_separator(',');
-    let opts = PercentOptions::new().precision(1).locale(locale);
+    let custom_locale = humfmt::locale::CustomLocale::english().decimal_separator(',');
+    let opts = PercentOptions::new().precision(1).locale(custom_locale);
     assert_eq!(percent_with(0.423_f64, opts).to_string(), "42,3%");
 }
 
@@ -156,8 +156,8 @@ fn half_up_rounding() {
 
 #[test]
 fn sign_symmetry() {
-    let pairs: &[f64] = &[0.1, 0.25, 0.5, 0.75, 1.0, 1.5];
-    for &v in pairs {
+    let test_values: &[f64] = &[0.1, 0.25, 0.5, 0.75, 1.0, 1.5];
+    for &v in test_values {
         let pos = percent(v).to_string();
         let neg = percent(-v).to_string();
         assert_eq!(neg, format!("-{pos}"), "sign symmetry failed for {v}");
