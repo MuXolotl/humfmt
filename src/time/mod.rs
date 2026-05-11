@@ -254,6 +254,10 @@ pub fn ago_since_with_checked<L: Locale>(
     ago_with_checked(now - then, options)
 }
 
+/// Converts a `time::Duration` into `core::time::Duration`.
+///
+/// Returns [`DurationConversionError::NegativeDuration`] if `value` is negative,
+/// since `core::time::Duration` cannot represent negative durations.
 fn to_std_checked(
     value: ::time::Duration,
 ) -> Result<core::time::Duration, DurationConversionError> {
