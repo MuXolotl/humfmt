@@ -39,22 +39,15 @@ fn supports_ago_since_for_chrono_datetimes() {
     );
 }
 
-#[cfg(feature = "russian")]
 #[test]
-fn supports_locale_aware_ago_since_for_chrono_datetimes() {
+fn supports_ago_since_with_long_options() {
     let then = ::chrono::DateTime::from_timestamp(0, 0).unwrap();
     let now = ::chrono::DateTime::from_timestamp(3665, 0).unwrap();
-    let out = humchrono::ago_since_with(
-        then,
-        now,
-        DurationOptions::new()
-            .locale(humfmt::locale::Russian)
-            .long_units()
-            .max_units(3),
-    )
-    .unwrap();
+    let out =
+        humchrono::ago_since_with(then, now, DurationOptions::new().long_units().max_units(3))
+            .unwrap();
 
-    assert_eq!(out.to_string(), "1 час 1 минута 5 секунд назад");
+    assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
 }
 
 #[test]

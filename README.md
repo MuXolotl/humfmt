@@ -49,7 +49,7 @@ All formatters implement `Display` — no intermediate heap strings. Write direc
 
 ```toml
 [dependencies]
-humfmt = "0.5"
+humfmt = "0.6"
 ```
 
 ```rust
@@ -137,6 +137,16 @@ let floor = 1_900.human_number_with(
 );
 println!("{floor}"); // 1K
 
+// Numbers: custom separators
+let european = 1_234_567.human_number_with(
+    NumberOptions::new()
+        .compact(false)
+        .separators(true)
+        .decimal_separator(',')
+        .group_separator(' ')
+);
+println!("{european}"); // 1 234 567
+
 // Percentages: 2 decimal places, fixed precision
 let ratio = 0.425_f64.human_percent_with(
     PercentOptions::new().precision(2).fixed_precision(true)
@@ -185,46 +195,16 @@ assert_eq!(no_oxford.to_string(), "red, green and blue");
 // Custom conjunction
 let plus = list_with(
     &["red", "green", "blue"],
-    ListOptions::new().conjunction("plus"),
+    ListOptions::new().conjunction("plus").no_serial_comma(),
 );
-assert_eq!(plus.to_string(), "red, green, plus blue");
-```
+assert_eq!(plus.to_string(), "red, green plus blue");
 
----
-
-## Locales
-
-English is the default. Russian and Polish are available behind feature flags:
-
-```toml
-[dependencies]
-humfmt = { version = "0.5", features = ["russian", "polish"] }
-```
-
-```rust
-use humfmt::{number_with, ordinal_with, NumberOptions};
-use humfmt::locale::{Russian, Polish};
-
-// Russian: comma decimal separator, space group separator, inflected suffixes
-println!("{}", number_with(15_320, NumberOptions::new().locale(Russian)));             // 15,3 тыс.
-println!("{}", number_with(1_000, NumberOptions::new().locale(Russian).long_units())); // 1 тысяча
-println!("{}", number_with(5_000, NumberOptions::new().locale(Russian).long_units())); // 5 тысяч
-
-// Polish
-println!("{}", number_with(15_320, NumberOptions::new().locale(Polish))); // 15,3 tys.
-println!("{}", ordinal_with(21, Polish));                                 // 21.
-```
-
-Custom locale for anything else:
-
-```rust
-use humfmt::{number_with, NumberOptions, locale::CustomLocale};
-
-let locale = CustomLocale::english()
-    .short_suffix(1, "k")
-    .separators(',', '.');
-
-println!("{}", number_with(15_320, NumberOptions::new().locale(locale))); // 15,3k
+// Custom separator
+let piped = list_with(
+    &["red", "green", "blue"],
+    ListOptions::new().separator(" | ").conjunction("&"),
+);
+assert_eq!(piped.to_string(), "red | green & blue");
 ```
 
 ---
@@ -238,7 +218,9 @@ println!("{}", number_with(15_320, NumberOptions::new().locale(locale))); // 15,
 - **`no_std`** — works without the standard library
 - **No dependencies** — core crate has zero required dependencies
 
-See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`, `bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `humantime`, `timeago`, and others.
+See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`,
+`bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `numfmt`,
+`humantime`, `timeago`, and others.
 
 <details>
 <summary>Charts</summary>
@@ -264,9 +246,6 @@ See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`, `byt
 | Feature | Default | Description |
 |---|:---:|---|
 | `std` | ✓ | Standard library build |
-| `english` | ✓ | English locale |
-| `russian` | | Russian locale pack |
-| `polish` | | Polish locale pack |
 | `chrono` | | `chrono::TimeDelta` / `DateTime` adapters |
 | `time` | | `time::Duration` / `OffsetDateTime` adapters |
 
@@ -274,14 +253,14 @@ For `no_std` targets:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.5", default-features = false }
+humfmt = { version = "0.6", default-features = false }
 ```
 
-With all locales:
+With ecosystem integrations:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.5", features = ["russian", "polish"] }
+humfmt = { version = "0.6", features = ["chrono", "time"] }
 ```
 
 ---

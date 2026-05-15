@@ -1,4 +1,3 @@
-use crate::locale::Locale;
 use crate::RoundingMode;
 
 /// Represents a magnitude of bytes.
@@ -40,15 +39,14 @@ pub(crate) enum Precision {
 /// | [`significant_digits(n)`] | `none` | Total significant digits (overrides precision) |
 /// | [`binary()`] | `false` | SI (1000) vs IEC (1024) units |
 /// | [`bits(bool)`] | `false` | Multiply by 8, use bit units (`Kb`, `Mb`) |
-/// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
-/// | [`long_units()`] | `false` | `"KB"` → `" kilobytes"` |
-/// | [`space(bool)`] | `false` | `"1.5KB"` → `"1.5 KB"` |
-/// | [`decimal_separator(c)`] | `'.'` | Decimal separator for scaled output |
-/// | [`fixed_precision(bool)`] | `false` | `"1.5KB"` → `"1.50KB"` |
+/// | [`rounding(mode)`] | `HalfUp` | `HalfUp`, `Floor`, `Ceil` |
+/// | [`long_units()`] | `false` | `"KB"` -> `" kilobytes"` |
+/// | [`space(bool)`] | `false` | `"1.5KB"` -> `"1.5 KB"` |
+/// | [`decimal_separator(c)`] | `'.'` | Decimal separator character |
+/// | [`fixed_precision(bool)`] | `false` | `"1.5KB"` -> `"1.50KB"` |
 /// | [`min_unit(u)`] | `B` | Clamp minimum unit |
 /// | [`max_unit(u)`] | `EB` | Clamp maximum unit |
 /// | [`unit(u)`] | auto | Force specific unit |
-/// | [`locale(L)`] | — | Copy decimal separator from locale |
 ///
 /// [`precision(n)`]: BytesOptions::precision
 /// [`significant_digits(n)`]: BytesOptions::significant_digits
@@ -62,7 +60,6 @@ pub(crate) enum Precision {
 /// [`min_unit(u)`]: BytesOptions::min_unit
 /// [`max_unit(u)`]: BytesOptions::max_unit
 /// [`unit(u)`]: BytesOptions::unit
-/// [`locale(L)`]: BytesOptions::locale
 ///
 /// # Examples
 ///
@@ -107,7 +104,7 @@ impl BytesOptions {
     /// - min unit: `ByteUnit::B`
     /// - max unit: `ByteUnit::EB`
     #[inline]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             precision: Precision::Decimals(1),
             rounding: RoundingMode::HalfUp,
@@ -142,15 +139,13 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.54KB");
     /// ```
     #[inline]
-    pub fn precision(mut self, n: u8) -> Self {
-        self.precision = Precision::Decimals(n.min(6));
+    pub const fn precision(mut self, n: u8) -> Self {
+        let n = if n > 6 { 6 } else { n };
+        self.precision = Precision::Decimals(n);
         self
     }
 
     /// Sets the total number of significant digits to display.
-    ///
-    /// This provides an alternative to fixed decimal places, ensuring that the
-    /// output always maintains a stable level of precision regardless of magnitude.
     ///
     /// Clamped to `1..=39` (the maximum digits in a `u128`).
     ///
@@ -171,8 +166,15 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.54KB");
     /// ```
     #[inline]
-    pub fn significant_digits(mut self, n: u8) -> Self {
-        self.precision = Precision::Significant(n.clamp(1, 39));
+    pub const fn significant_digits(mut self, n: u8) -> Self {
+        let n = if n < 1 {
+            1
+        } else if n > 39 {
+            39
+        } else {
+            n
+        };
+        self.precision = Precision::Significant(n);
         self
     }
 
@@ -201,7 +203,7 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1_100_u64, ceil).to_string(), "2KB");
     /// ```
     #[inline]
-    pub fn rounding(mut self, mode: RoundingMode) -> Self {
+    pub const fn rounding(mut self, mode: RoundingMode) -> Self {
         self.rounding = mode;
         self
     }
@@ -217,7 +219,7 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1024_u64, opts).to_string(), "1KiB");
     /// ```
     #[inline]
-    pub fn binary(mut self) -> Self {
+    pub const fn binary(mut self) -> Self {
         self.binary = true;
         self
     }
@@ -225,6 +227,10 @@ impl BytesOptions {
     /// Formats the input value as bits rather than bytes.
     ///
     /// Internally multiplies the value by 8 and uses lowercase suffixes (`Kb`, `Mb`).
+    ///
+    /// Note: for inputs near `u128::MAX`, the multiplication saturates at
+    /// `u128::MAX`. This is a documented limit; in practice no real byte count
+    /// approaches this magnitude.
     ///
     /// # Behaviour table
     ///
@@ -243,7 +249,7 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1000_u64, opts).to_string(), "8Kb");
     /// ```
     #[inline]
-    pub fn bits(mut self, enabled: bool) -> Self {
+    pub const fn bits(mut self, enabled: bool) -> Self {
         self.bits = enabled;
         self
     }
@@ -251,7 +257,7 @@ impl BytesOptions {
     /// Uses long unit labels like `kilobytes` instead of `KB`.
     ///
     /// Long labels always include a separating space. When enabled,
-    /// the `space(...)` option has no effect.
+    /// the [`space(...)`](BytesOptions::space) option has no effect.
     ///
     /// # Examples
     ///
@@ -262,7 +268,7 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1_u64, opts).to_string(), "1 byte");
     /// ```
     #[inline]
-    pub fn long_units(mut self) -> Self {
+    pub const fn long_units(mut self) -> Self {
         self.long_units = true;
         self
     }
@@ -272,7 +278,7 @@ impl BytesOptions {
     /// - `false` (default): `1.5KB`, `999B`
     /// - `true`: `1.5 KB`, `999 B`
     ///
-    /// Has no effect when `long_units` is enabled.
+    /// Has no effect when [`long_units`](BytesOptions::long_units) is enabled.
     ///
     /// # Examples
     ///
@@ -284,7 +290,7 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1.5 KB");
     /// ```
     #[inline]
-    pub fn space(mut self, enabled: bool) -> Self {
+    pub const fn space(mut self, enabled: bool) -> Self {
         self.space = enabled;
         self
     }
@@ -302,15 +308,15 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
     /// ```
     #[inline]
-    pub fn decimal_separator(mut self, separator: char) -> Self {
+    pub const fn decimal_separator(mut self, separator: char) -> Self {
         self.decimal_separator = separator;
         self
     }
 
     /// Controls whether trailing fractional zeros are preserved.
     ///
-    /// - `false` (default): trailing zeros are trimmed — `1.50 KiB` becomes `1.5 KiB`
-    /// - `true`: trailing zeros are kept — `1.50 KiB` stays `1.50 KiB`
+    /// - `false` (default): trailing zeros are trimmed (`1.50 KiB` -> `1.5 KiB`).
+    /// - `true`: trailing zeros are kept (`1.50 KiB` stays `1.50 KiB`).
     ///
     /// Useful when you need consistent column widths in tables or dashboards.
     ///
@@ -326,14 +332,14 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1536_u64, fixed).to_string(), "1.50 KiB");
     /// ```
     #[inline]
-    pub fn fixed_precision(mut self, yes: bool) -> Self {
+    pub const fn fixed_precision(mut self, yes: bool) -> Self {
         self.fixed_precision = yes;
         self
     }
 
     /// Clamps the minimum unit used for formatting.
     ///
-    /// Useful to avoid switching down to Bytes when formatting columns that
+    /// Useful to avoid switching down to bytes when formatting columns that
     /// should remain in KB or higher.
     ///
     /// If the natural unit is below `min_unit`, the value is scaled down
@@ -345,11 +351,10 @@ impl BytesOptions {
     /// use humfmt::{BytesOptions, ByteUnit};
     ///
     /// let opts = BytesOptions::new().min_unit(ByteUnit::KB).precision(3);
-    /// // 500 bytes is formatted as 0.5 KB
     /// assert_eq!(humfmt::bytes_with(500_u64, opts).to_string(), "0.5KB");
     /// ```
     #[inline]
-    pub fn min_unit(mut self, unit: ByteUnit) -> Self {
+    pub const fn min_unit(mut self, unit: ByteUnit) -> Self {
         self.min_unit = unit;
         self
     }
@@ -368,18 +373,17 @@ impl BytesOptions {
     /// use humfmt::{BytesOptions, ByteUnit};
     ///
     /// let opts = BytesOptions::new().max_unit(ByteUnit::GB);
-    /// // 2,000,000,000,000 bytes is formatted as 2000 GB instead of 2 TB
     /// assert_eq!(humfmt::bytes_with(2_000_000_000_000_u64, opts).to_string(), "2000GB");
     /// ```
     #[inline]
-    pub fn max_unit(mut self, unit: ByteUnit) -> Self {
+    pub const fn max_unit(mut self, unit: ByteUnit) -> Self {
         self.max_unit = unit;
         self
     }
 
     /// Forces the formatter to always use a specific unit.
     ///
-    /// This is equivalent to setting both `min_unit` and `max_unit` to the same value.
+    /// Equivalent to setting both `min_unit` and `max_unit` to the same value.
     ///
     /// # Examples
     ///
@@ -392,32 +396,9 @@ impl BytesOptions {
     /// assert_eq!(humfmt::bytes_with(1_500_000_000_u64, opts).to_string(), "1500MB");
     /// ```
     #[inline]
-    pub fn unit(mut self, unit: ByteUnit) -> Self {
+    pub const fn unit(mut self, unit: ByteUnit) -> Self {
         self.min_unit = unit;
         self.max_unit = unit;
-        self
-    }
-
-    /// Applies the decimal separator from the provided locale.
-    ///
-    /// Currently copies only the `decimal_separator` from the locale.
-    /// Other locale fields (group separator, suffixes, etc.) are not used
-    /// by the byte formatter.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use humfmt::{bytes_with, BytesOptions};
-    /// use humfmt::locale::CustomLocale;
-    ///
-    /// let locale = CustomLocale::english().decimal_separator(',');
-    /// let opts = BytesOptions::new().locale(locale);
-    ///
-    /// assert_eq!(bytes_with(1536_u64, opts).to_string(), "1,5KB");
-    /// ```
-    #[inline]
-    pub fn locale<L: Locale>(mut self, locale: L) -> Self {
-        self.decimal_separator = locale.decimal_separator();
         self
     }
 }

@@ -46,7 +46,7 @@ jobs:
       # dependencies that require editions newer than what Rust 1.70 supports.
       # Correctness is covered by the Test Suite job on stable.
       - name: Check library on MSRV
-        run: cargo check --features std,english,russian,polish
+        run: cargo check
 
   minimal:
     name: Minimal feature check
@@ -68,22 +68,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - label: default
+            args: ""
+          - label: no-default
+            args: --no-default-features
           - label: std-only
             args: --no-default-features --features std
-          - label: alloc-placeholder
-            args: --no-default-features --features alloc
-          - label: english-placeholder
-            args: --no-default-features --features english
-          - label: russian-locale
-            args: --no-default-features --features russian
-          - label: polish-locale
-            args: --no-default-features --features polish
-          - label: chrono-placeholder
+          - label: chrono
             args: --no-default-features --features chrono
-          - label: time-placeholder
+          - label: time
             args: --no-default-features --features time
-          - label: chrono-time-placeholders
+          - label: chrono-time
             args: --no-default-features --features chrono,time
+          - label: all-features
+            args: --all-features
 
     steps:
       - uses: actions/checkout@v4

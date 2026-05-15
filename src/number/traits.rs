@@ -3,7 +3,7 @@ use crate::common::{numeric::NumericValue, sealed::Sealed};
 /// Trait for inputs accepted by [`crate::number`] / [`crate::number_with`].
 ///
 /// Implemented for:
-/// - all integer primitives (`i*`, `u*`, `isize`, `usize`)
+/// - all integer primitives (`i8`..`i128`, `u8`..`u128`, `isize`, `usize`)
 /// - floats (`f32`, `f64`)
 ///
 /// This trait is sealed and cannot be implemented outside this crate.
@@ -16,6 +16,7 @@ macro_rules! impl_signed {
     ($($t:ty),* $(,)?) => {
         $(
             impl NumberLike for $t {
+                #[inline]
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::Int(self as i128)
                 }
@@ -28,6 +29,7 @@ macro_rules! impl_unsigned {
     ($($t:ty),* $(,)?) => {
         $(
             impl NumberLike for $t {
+                #[inline]
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::UInt(self as u128)
                 }
@@ -40,6 +42,7 @@ macro_rules! impl_float {
     ($($t:ty),* $(,)?) => {
         $(
             impl NumberLike for $t {
+                #[inline]
                 fn into_numeric(self) -> NumericValue {
                     NumericValue::Float(self as f64)
                 }

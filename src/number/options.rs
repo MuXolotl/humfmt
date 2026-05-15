@@ -1,4 +1,3 @@
-use crate::locale::{English, Locale};
 use crate::RoundingMode;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -15,13 +14,14 @@ pub(crate) enum Precision {
 /// |---|---|---|
 /// | [`precision(n)`] | `1` | Decimal places for the scaled fractional part |
 /// | [`significant_digits(n)`] | `none` | Total significant digits (overrides precision) |
-/// | [`compact(bool)`] | `true` | `"1500"` → `"1.5K"` vs `"1500"` |
-/// | [`force_sign(bool)`] | `false` | `1500` → `"+1.5K"` |
-/// | [`rounding(mode)`] | `HalfUp` | HalfUp, Floor, Ceil behaviour |
-/// | [`long_units()`] | `false` | `"15.3K"` → `"15.3 thousand"` |
-/// | [`separators(bool)`] | `false` | `"1234"` → `"1,234"` (when unscaled or uncompacted) |
-/// | [`fixed_precision(bool)`] | `false` | `"1.5K"` → `"1.50K"` |
-/// | [`locale(L)`] | `English` | Separators, suffixes, inflection rules |
+/// | [`compact(bool)`] | `true` | `1500` -> `"1.5K"` vs `"1500"` |
+/// | [`force_sign(bool)`] | `false` | `1500` -> `"+1.5K"` |
+/// | [`rounding(mode)`] | `HalfUp` | `HalfUp`, `Floor`, `Ceil` |
+/// | [`long_units()`] | `false` | `"15.3K"` -> `"15.3 thousand"` |
+/// | [`separators(bool)`] | `false` | `"1234"` -> `"1,234"` (when uncompacted) |
+/// | [`fixed_precision(bool)`] | `false` | `"1.5K"` -> `"1.50K"` |
+/// | [`decimal_separator(c)`] | `'.'` | Decimal separator character |
+/// | [`group_separator(c)`] | `','` | Digit grouping separator character |
 ///
 /// [`precision(n)`]: NumberOptions::precision
 /// [`significant_digits(n)`]: NumberOptions::significant_digits
@@ -31,21 +31,19 @@ pub(crate) enum Precision {
 /// [`long_units()`]: NumberOptions::long_units
 /// [`separators(bool)`]: NumberOptions::separators
 /// [`fixed_precision(bool)`]: NumberOptions::fixed_precision
-/// [`locale(L)`]: NumberOptions::locale
+/// [`decimal_separator(c)`]: NumberOptions::decimal_separator
+/// [`group_separator(c)`]: NumberOptions::group_separator
 ///
 /// # Examples
 ///
 /// ```rust
 /// use humfmt::NumberOptions;
 ///
-/// let opts = NumberOptions::new()
-///     .precision(2)
-///     .long_units();
-///
+/// let opts = NumberOptions::new().precision(2).long_units();
 /// assert_eq!(humfmt::number_with(15_320, opts).to_string(), "15.32 thousand");
 /// ```
 #[derive(Copy, Clone, Debug)]
-pub struct NumberOptions<L: Locale = English> {
+pub struct NumberOptions {
     pub(crate) precision: Precision,
     pub(crate) compact: bool,
     pub(crate) force_sign: bool,
@@ -53,11 +51,12 @@ pub struct NumberOptions<L: Locale = English> {
     pub(crate) long_units: bool,
     pub(crate) separators: bool,
     pub(crate) fixed_precision: bool,
-    pub(crate) locale: L,
+    pub(crate) decimal_separator: char,
+    pub(crate) group_separator: char,
 }
 
-impl NumberOptions<English> {
-    /// Creates default English formatting options.
+impl NumberOptions {
+    /// Creates default formatting options.
     ///
     /// | Option | Default |
     /// |---|---|
@@ -65,12 +64,13 @@ impl NumberOptions<English> {
     /// | compact | `true` |
     /// | force sign | `false` |
     /// | rounding | `HalfUp` |
-    /// | long units | `false` (short suffixes: `K`, `M`, …) |
+    /// | long units | `false` (short suffixes: `K`, `M`, ...) |
     /// | separators | `false` (no digit grouping) |
     /// | fixed precision | `false` (trailing zeros trimmed) |
-    /// | locale | `English` |
+    /// | decimal separator | `'.'` |
+    /// | group separator | `','` |
     #[inline]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             precision: Precision::Decimals(1),
             compact: true,
@@ -79,28 +79,11 @@ impl NumberOptions<English> {
             long_units: false,
             separators: false,
             fixed_precision: false,
-            locale: English,
+            decimal_separator: '.',
+            group_separator: ',',
         }
     }
-}
 
-impl<L: Locale> Default for NumberOptions<L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            precision: Precision::Decimals(1),
-            compact: true,
-            force_sign: false,
-            rounding: RoundingMode::HalfUp,
-            long_units: false,
-            separators: false,
-            fixed_precision: false,
-            locale: L::default(),
-        }
-    }
-}
-
-impl<L: Locale> NumberOptions<L> {
     /// Sets the number of decimal places shown in the scaled fractional part.
     ///
     /// Precision is clamped to `0..=6`.
@@ -128,15 +111,13 @@ impl<L: Locale> NumberOptions<L> {
     /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().precision(2)).to_string(), "15.32K");
     /// ```
     #[inline]
-    pub fn precision(mut self, n: u8) -> Self {
-        self.precision = Precision::Decimals(n.min(6));
+    pub const fn precision(mut self, n: u8) -> Self {
+        let n = if n > 6 { 6 } else { n };
+        self.precision = Precision::Decimals(n);
         self
     }
 
     /// Sets the total number of significant digits to display.
-    ///
-    /// This provides an alternative to fixed decimal places, ensuring that the
-    /// output always maintains a stable level of precision regardless of magnitude.
     ///
     /// Clamped to `1..=39` (the maximum digits in a `u128`).
     ///
@@ -149,14 +130,15 @@ impl<L: Locale> NumberOptions<L> {
     /// | `123_456` | `"123K"` | `1`, `2`, `3` are the 3 significant digits |
     /// | `1_234` (unscaled) | `"1230"` | Unscaled integer is rounded directly |
     ///
-    /// With `fixed_precision(true)`, trailing zeros are padded to fill the
-    /// significant digit count:
+    /// With [`fixed_precision(true)`], trailing zeros are padded:
     ///
     /// | Input | `significant_digits(3)` + `fixed_precision` |
     /// |---:|---|
     /// | `1` | `"1.00"` |
     /// | `10` | `"10.0"` |
     /// | `100` | `"100"` |
+    ///
+    /// [`fixed_precision(true)`]: NumberOptions::fixed_precision
     ///
     /// # Examples
     ///
@@ -168,18 +150,26 @@ impl<L: Locale> NumberOptions<L> {
     /// assert_eq!(humfmt::number_with(12345, opts).to_string(), "12.3K");
     /// ```
     #[inline]
-    pub fn significant_digits(mut self, n: u8) -> Self {
-        self.precision = Precision::Significant(n.clamp(1, 39));
+    pub const fn significant_digits(mut self, n: u8) -> Self {
+        let n = if n < 1 {
+            1
+        } else if n > 39 {
+            39
+        } else {
+            n
+        };
+        self.precision = Precision::Significant(n);
         self
     }
 
-    /// Controls whether the number should be compacted using magnitude suffixes (e.g. `K`, `M`).
+    /// Controls whether the number should be compacted using magnitude suffixes.
     ///
-    /// - `true` (default): Values >= 1,000 are compacted (`1500` → `"1.5K"`).
-    /// - `false`: Values are rendered fully unscaled (`1500` → `"1500"`).
+    /// - `true` (default): Values >= 1,000 are compacted (`1500` -> `"1.5K"`).
+    /// - `false`: Values are rendered fully unscaled (`1500` -> `"1500"`).
     ///
-    /// Disabling compaction is extremely useful when combined with [`separators(true)`]
-    /// to output fully formatted large numbers like `"1,234,567"`.
+    /// Disabling compaction is extremely useful when combined with
+    /// [`separators(true)`] to output fully formatted large numbers like
+    /// `"1,234,567"`.
     ///
     /// [`separators(true)`]: NumberOptions::separators
     ///
@@ -201,7 +191,7 @@ impl<L: Locale> NumberOptions<L> {
     /// assert_eq!(humfmt::number_with(1_234_567, opts).to_string(), "1,234,567");
     /// ```
     #[inline]
-    pub fn compact(mut self, enabled: bool) -> Self {
+    pub const fn compact(mut self, enabled: bool) -> Self {
         self.compact = enabled;
         self
     }
@@ -232,7 +222,7 @@ impl<L: Locale> NumberOptions<L> {
     /// assert_eq!(humfmt::number_with(0, opts).to_string(), "0");
     /// ```
     #[inline]
-    pub fn force_sign(mut self, yes: bool) -> Self {
+    pub const fn force_sign(mut self, yes: bool) -> Self {
         self.force_sign = yes;
         self
     }
@@ -263,23 +253,16 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// let floor = NumberOptions::new().precision(0).rounding(RoundingMode::Floor);
     /// assert_eq!(humfmt::number_with(1_900, floor).to_string(), "1K");
-    ///
-    /// let ceil = NumberOptions::new().precision(0).rounding(RoundingMode::Ceil);
-    /// assert_eq!(humfmt::number_with(1_100, ceil).to_string(), "2K");
     /// ```
     #[inline]
-    pub fn rounding(mut self, mode: RoundingMode) -> Self {
+    pub const fn rounding(mut self, mode: RoundingMode) -> Self {
         self.rounding = mode;
         self
     }
 
     /// Uses long-form suffix labels instead of short ones.
     ///
-    /// Long suffixes come from the active locale. For English:
-    /// `"K"` → `" thousand"`, `"M"` → `" million"`, and so on.
-    ///
-    /// For non-English locales, long suffixes may also be inflected based on
-    /// the rendered value (e.g. Russian: `"2 тысячи"`, `"5 тысяч"`).
+    /// `"K"` -> `" thousand"`, `"M"` -> `" million"`, and so on.
     ///
     /// # Behaviour table
     ///
@@ -296,10 +279,9 @@ impl<L: Locale> NumberOptions<L> {
     /// use humfmt::NumberOptions;
     ///
     /// assert_eq!(humfmt::number_with(15_320, NumberOptions::new().long_units()).to_string(), "15.3 thousand");
-    /// assert_eq!(humfmt::number_with(1_000_000, NumberOptions::new().long_units()).to_string(), "1 million");
     /// ```
     #[inline]
-    pub fn long_units(mut self) -> Self {
+    pub const fn long_units(mut self) -> Self {
         self.long_units = true;
         self
     }
@@ -308,17 +290,13 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// **Important:** grouping separators apply **only when the value is not
     /// compacted** — that is, when the output has no suffix.
-    /// For compacted output like `"15.3K"` the integer part is always small
-    /// (`15`) and grouping would never trigger anyway.
+    /// For compacted output like `"15.3K"` the integer part is always small (`15`)
+    /// and grouping would never trigger anyway.
     ///
-    /// To show grouped digits for large numbers, you should disable compact scaling
+    /// To show grouped digits for large numbers, disable compact scaling
     /// via [`compact(false)`].
     ///
     /// [`compact(false)`]: NumberOptions::compact
-    ///
-    /// Separator characters come from the active locale:
-    /// - English: group separator `','`, decimal separator `'.'`
-    /// - Russian / Polish: group separator `' '`, decimal separator `','`
     ///
     /// # Behaviour table
     ///
@@ -327,28 +305,27 @@ impl<L: Locale> NumberOptions<L> {
     /// | `999` | `"999"` | `"999"` |
     /// | `1_234` | `"1.2K"` | `"1.2K"` (compacted, grouping has no effect) |
     /// | `1_234` with `compact(false)` | `"1234"` | `"1,234"` |
-    /// | `1_234_567` with `compact(false)`| `"1234567"` | `"1,234,567"` |
-    /// | `-1_234_567` with `compact(false)`| `"-1234567"` | `"-1,234,567"` |
+    /// | `1_234_567` with `compact(false)` | `"1234567"` | `"1,234,567"` |
+    /// | `-1_234_567` with `compact(false)` | `"-1234567"` | `"-1,234,567"` |
     ///
     /// # Examples
     ///
     /// ```rust
     /// use humfmt::{number_with, NumberOptions};
     ///
-    /// // Disable compact scaling to show grouped digits.
     /// let opts = NumberOptions::new().compact(false).separators(true);
     /// assert_eq!(number_with(1_234_567, opts).to_string(), "1,234,567");
     /// ```
     #[inline]
-    pub fn separators(mut self, yes: bool) -> Self {
+    pub const fn separators(mut self, yes: bool) -> Self {
         self.separators = yes;
         self
     }
 
     /// Controls whether trailing fractional zeros are preserved.
     ///
-    /// - `false` (default): trailing zeros are trimmed — `"1.50K"` → `"1.5K"`
-    /// - `true`: trailing zeros are kept — `"1.50K"` stays `"1.50K"`
+    /// - `false` (default): trailing zeros are trimmed (`"1.50K"` -> `"1.5K"`).
+    /// - `true`: trailing zeros are kept (`"1.50K"` stays `"1.50K"`).
     ///
     /// Useful for consistent column widths in tables, logs, and dashboards.
     ///
@@ -368,45 +345,62 @@ impl<L: Locale> NumberOptions<L> {
     ///
     /// let trimmed = NumberOptions::new().precision(2);
     /// assert_eq!(humfmt::number_with(1_500, trimmed).to_string(), "1.5K");
-    /// assert_eq!(humfmt::number_with(1_000, trimmed).to_string(), "1K");
     ///
     /// let fixed = NumberOptions::new().precision(2).fixed_precision(true);
     /// assert_eq!(humfmt::number_with(1_500, fixed).to_string(), "1.50K");
-    /// assert_eq!(humfmt::number_with(1_000, fixed).to_string(), "1.00K");
     /// ```
     #[inline]
-    pub fn fixed_precision(mut self, yes: bool) -> Self {
+    pub const fn fixed_precision(mut self, yes: bool) -> Self {
         self.fixed_precision = yes;
         self
     }
 
-    /// Switches the active locale.
+    /// Overrides the decimal separator.
     ///
-    /// Locale affects:
-    /// - decimal and grouping separator characters
-    /// - compact suffix labels (short and long)
-    /// - suffix inflection rules (Russian, Polish)
-    /// - maximum compact scaling index
+    /// Default is `'.'`.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use humfmt::{number_with, NumberOptions};
-    /// use humfmt::locale::English;
+    /// use humfmt::NumberOptions;
     ///
-    /// assert_eq!(number_with(15_320, NumberOptions::new().locale(English)).to_string(), "15.3K");
+    /// let opts = NumberOptions::new().precision(2).decimal_separator(',');
+    /// assert_eq!(humfmt::number_with(1.5_f64, opts).to_string(), "1,5");
     /// ```
     #[inline]
-    pub fn locale<N: Locale>(self, locale: N) -> NumberOptions<N> {
-        NumberOptions {
-            precision: self.precision,
-            compact: self.compact,
-            force_sign: self.force_sign,
-            rounding: self.rounding,
-            long_units: self.long_units,
-            separators: self.separators,
-            fixed_precision: self.fixed_precision,
-            locale,
-        }
+    pub const fn decimal_separator(mut self, sep: char) -> Self {
+        self.decimal_separator = sep;
+        self
+    }
+
+    /// Overrides the digit grouping separator.
+    ///
+    /// Default is `','`. Only takes effect when [`separators(true)`] is also set
+    /// and the value is uncompacted.
+    ///
+    /// [`separators(true)`]: NumberOptions::separators
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::NumberOptions;
+    ///
+    /// let opts = NumberOptions::new()
+    ///     .compact(false)
+    ///     .separators(true)
+    ///     .group_separator(' ');
+    /// assert_eq!(humfmt::number_with(1_234_567, opts).to_string(), "1 234 567");
+    /// ```
+    #[inline]
+    pub const fn group_separator(mut self, sep: char) -> Self {
+        self.group_separator = sep;
+        self
+    }
+}
+
+impl Default for NumberOptions {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }

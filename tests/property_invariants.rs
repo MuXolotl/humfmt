@@ -4,7 +4,7 @@ use humfmt::{ago_with, bytes, duration_with, list_with, number, number_with};
 use humfmt::{DurationOptions, ListOptions, NumberOptions};
 use proptest::prelude::*;
 
-const EN_SHORT_SUFFIXES: [&str; 12] = [
+const SHORT_SUFFIXES: [&str; 12] = [
     "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
 ];
 const BYTE_SUFFIXES: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
@@ -23,7 +23,7 @@ fn count_rendered_units(rendered: &str) -> usize {
 }
 
 fn number_suffix_index(rendered: &str) -> usize {
-    EN_SHORT_SUFFIXES
+    SHORT_SUFFIXES
         .iter()
         .enumerate()
         .rfind(|(_, suffix)| rendered.ends_with(*suffix))
@@ -86,7 +86,6 @@ proptest! {
         prop_assert!(!rendered.contains("  "));
         prop_assert!(!rendered.ends_with(' '));
         prop_assert!(unit_count >= 1);
-        // max_units is clamped to 1..=7 (7 is the total number of supported units).
         prop_assert!(unit_count <= usize::from(max_units.clamp(1, 7)));
     }
 
@@ -107,7 +106,7 @@ proptest! {
     }
 
     #[test]
-    fn english_lists_preserve_item_order_and_joining(
+    fn lists_preserve_item_order_and_joining(
         values in prop::collection::vec(0u16..=9999, 0..6),
         serial_comma in any::<bool>(),
     ) {
@@ -174,45 +173,5 @@ proptest! {
         let b_idx = byte_suffix_index(&b);
 
         prop_assert!(a_idx <= b_idx);
-    }
-
-    #[cfg(feature = "russian")]
-    #[test]
-    fn russian_number_output_uses_russian_decimal_separator(
-        whole in 0u64..=1_000_000_000_000u64,
-    ) {
-        let raw = whole as f64 + 0.5;
-        let rendered = number_with(
-            raw,
-            NumberOptions::new()
-                .locale(humfmt::locale::Russian)
-                .separators(true)
-                .precision(2),
-        )
-        .to_string();
-
-        prop_assert!(!rendered.contains('.'));
-        prop_assert!(!rendered.contains(".."));
-        prop_assert!(!rendered.contains(",,"));
-    }
-
-    #[cfg(feature = "polish")]
-    #[test]
-    fn polish_number_output_uses_polish_decimal_separator(
-        whole in 0u64..=1_000_000_000_000u64,
-    ) {
-        let raw = whole as f64 + 0.5;
-        let rendered = number_with(
-            raw,
-            NumberOptions::new()
-                .locale(humfmt::locale::Polish)
-                .separators(true)
-                .precision(2),
-        )
-        .to_string();
-
-        prop_assert!(!rendered.contains('.'));
-        prop_assert!(!rendered.contains(".."));
-        prop_assert!(!rendered.contains(",,"));
     }
 }

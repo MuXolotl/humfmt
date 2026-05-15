@@ -1,7 +1,19 @@
 //! Compact number formatting.
 //!
-//! Turns large integers and floats into short or long human-readable forms
-//! while respecting locale-specific separators and suffix rules.
+//! Turns large integers and floats into short or long human-readable forms.
+//!
+//! # Quick start
+//!
+//! ```rust
+//! use humfmt::{number, number_with, NumberOptions};
+//!
+//! assert_eq!(number(15_320).to_string(), "15.3K");
+//! assert_eq!(number(1_500_000).to_string(), "1.5M");
+//! assert_eq!(number(-12_500).to_string(), "-12.5K");
+//!
+//! let opts = NumberOptions::new().long_units();
+//! assert_eq!(number_with(15_320, opts).to_string(), "15.3 thousand");
+//! ```
 //!
 //! # Edge case behaviour
 //!
@@ -19,22 +31,26 @@
 //! | `0.0` | `"0"` | |
 //! | `-0.0` | `"0"` | Negative zero suppressed |
 //! | `-0.004` | `"0"` | Rounds to zero, sign suppressed |
-//! | `f64::INFINITY` | `"inf"` | Locale-agnostic |
-//! | `f64::NEG_INFINITY` | `"-inf"` | Locale-agnostic |
-//! | `f64::NAN` | `"NaN"` | Locale-agnostic |
+//! | `f64::INFINITY` | `"inf"` | |
+//! | `f64::NEG_INFINITY` | `"-inf"` | |
+//! | `f64::NAN` | `"NaN"` | |
 //!
-//! # Rounding
+//! # Suffix table
 //!
-//! All rounding uses half-up (round half away from zero). The integer path
-//! uses exact `u128` long-division arithmetic. The float path uses
-//! integer-cast rounding (`(x * 10^p + 0.5) as u64 / 10^p`) which is
-//! equivalent for values in the safe range and avoids `std`-only float APIs.
-//!
-//! # Suffix rescaling
-//!
-//! When rounding pushes the scaled integer part to `1_000` or above, the
-//! formatter rescales to the next suffix automatically:
-//! `999_950` at `precision(1)` → `999.95K` → rounds to `1000K` → rescales to `1M`.
+//! | Index | Magnitude | Short | Long |
+//! |:---:|---:|---|---|
+//! | 0 | 1 | `""` | `""` |
+//! | 1 | 10^3 | `K` | ` thousand` |
+//! | 2 | 10^6 | `M` | ` million` |
+//! | 3 | 10^9 | `B` | ` billion` |
+//! | 4 | 10^12 | `T` | ` trillion` |
+//! | 5 | 10^15 | `Qa` | ` quadrillion` |
+//! | 6 | 10^18 | `Qi` | ` quintillion` |
+//! | 7 | 10^21 | `Sx` | ` sextillion` |
+//! | 8 | 10^24 | `Sp` | ` septillion` |
+//! | 9 | 10^27 | `Oc` | ` octillion` |
+//! | 10 | 10^30 | `No` | ` nonillion` |
+//! | 11 | 10^33 | `Dc` | ` decillion` |
 //!
 //! # Float precision limits
 //!
@@ -52,11 +68,9 @@ pub use display::NumberDisplay;
 pub use options::NumberOptions;
 pub use traits::NumberLike;
 
-use crate::locale::{English, Locale};
-
 /// Creates a human-readable compact number formatter using default options.
 ///
-/// Accepts all integer primitives (`i8`–`i128`, `u8`–`u128`, `isize`, `usize`)
+/// Accepts all integer primitives (`i8`..`i128`, `u8`..`u128`, `isize`, `usize`)
 /// and floats (`f32`, `f64`).
 ///
 /// # Examples
@@ -68,7 +82,7 @@ use crate::locale::{English, Locale};
 /// assert_eq!(humfmt::number(0).to_string(), "0");
 /// assert_eq!(humfmt::number(f64::NAN).to_string(), "NaN");
 /// ```
-pub fn number<T: NumberLike>(value: T) -> NumberDisplay<English> {
+pub fn number<T: NumberLike>(value: T) -> NumberDisplay {
     NumberDisplay::new(value.into_numeric(), NumberOptions::new())
 }
 
@@ -85,9 +99,6 @@ pub fn number<T: NumberLike>(value: T) -> NumberDisplay<English> {
 /// let out = humfmt::number_with(15_320, NumberOptions::new().precision(2));
 /// assert_eq!(out.to_string(), "15.32K");
 /// ```
-pub fn number_with<T: NumberLike, L: Locale>(
-    value: T,
-    options: NumberOptions<L>,
-) -> NumberDisplay<L> {
+pub fn number_with<T: NumberLike>(value: T, options: NumberOptions) -> NumberDisplay {
     NumberDisplay::new(value.into_numeric(), options)
 }

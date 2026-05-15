@@ -1,4 +1,4 @@
-use humfmt::{list, list_with, locale::CustomLocale, ListOptions};
+use humfmt::{list, list_with, ListOptions};
 
 #[test]
 fn formats_empty_lists() {
@@ -16,7 +16,7 @@ fn formats_two_item_lists() {
 }
 
 #[test]
-fn formats_three_item_lists_with_english_serial_comma() {
+fn formats_three_item_lists_with_serial_comma() {
     assert_eq!(
         list(&["red", "green", "blue"]).to_string(),
         "red, green, and blue"
@@ -38,59 +38,37 @@ fn supports_non_string_display_items() {
     assert_eq!(list(&[1, 2, 3]).to_string(), "1, 2, and 3");
 }
 
-#[cfg(feature = "russian")]
 #[test]
-fn uses_russian_conjunction_without_serial_comma() {
+fn supports_custom_conjunction() {
     let out = list_with(
-        &["яблоки", "груши", "сливы"],
-        ListOptions::new().locale(humfmt::locale::Russian),
+        &["red", "green", "blue"],
+        ListOptions::new().conjunction("plus").no_serial_comma(),
     );
-
-    assert_eq!(out.to_string(), "яблоки, груши и сливы");
-}
-
-#[cfg(feature = "polish")]
-#[test]
-fn uses_polish_conjunction_without_serial_comma() {
-    let out = list_with(
-        &["jabłka", "gruszki", "śliwki"],
-        ListOptions::new().locale(humfmt::locale::Polish),
-    );
-
-    assert_eq!(out.to_string(), "jabłka, gruszki i śliwki");
-}
-
-#[test]
-fn supports_custom_conjunction_and_serial_comma_style() {
-    let locale = CustomLocale::english().and_word("plus").serial_comma(false);
-    let out = list_with(&["red", "green", "blue"], ListOptions::new().locale(locale));
 
     assert_eq!(out.to_string(), "red, green plus blue");
 }
 
 #[test]
-fn supports_custom_list_separator() {
-    let locale = CustomLocale::english()
-        .list_separator(" | ")
-        .and_word("&")
-        .serial_comma(false);
-    let out = list_with(&["red", "green", "blue"], ListOptions::new().locale(locale));
+fn supports_custom_separator() {
+    let out = list_with(
+        &["red", "green", "blue"],
+        ListOptions::new().separator(" | ").conjunction("&"),
+    );
 
     assert_eq!(out.to_string(), "red | green & blue");
 }
 
 #[test]
 fn serial_comma_is_ignored_for_non_comma_separators() {
-    // Serial comma is a comma-specific stylistic rule. If the user overrides the
-    // list separator away from commas, injecting a literal comma becomes surprising.
-    let locale = CustomLocale::english()
-        .list_separator(" | ")
-        .and_word("&")
-        .serial_comma(true);
-
+    // Serial comma is a comma-specific stylistic rule. If the user overrides
+    // the list separator away from commas, injecting a literal comma becomes
+    // surprising.
     let out = list_with(
         &["red", "green", "blue"],
-        ListOptions::new().locale(locale).serial_comma_enabled(true),
+        ListOptions::new()
+            .separator(" | ")
+            .conjunction("&")
+            .serial_comma_enabled(true),
     );
 
     assert_eq!(out.to_string(), "red | green & blue");
@@ -112,11 +90,13 @@ fn supports_explicit_serial_comma_boolean_setter() {
 }
 
 #[test]
-fn supports_conjunction_override_without_custom_locale() {
+fn conjunction_alone_keeps_default_serial_comma() {
+    // After replacing locales with direct fields, conjunction() no longer
+    // implicitly affects serial_comma. Verify the default is preserved.
     let out = list_with(
         &["red", "green", "blue"],
-        ListOptions::new().conjunction("plus").no_serial_comma(),
+        ListOptions::new().conjunction("plus"),
     );
 
-    assert_eq!(out.to_string(), "red, green plus blue");
+    assert_eq!(out.to_string(), "red, green, plus blue");
 }

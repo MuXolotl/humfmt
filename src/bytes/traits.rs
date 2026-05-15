@@ -1,14 +1,20 @@
 use crate::common::sealed::Sealed;
 
+/// Internal byte input representation.
+///
+/// Created via the [`BytesLike`] trait implementations.
 #[derive(Copy, Clone, Debug)]
 pub enum BytesValue {
+    /// Signed integer input.
     Int(i128),
+    /// Unsigned integer input.
     UInt(u128),
 }
 
 /// Trait for inputs accepted by [`crate::bytes`] / [`crate::bytes_with`].
 ///
-/// Implemented for all integer primitives (`i*`, `u*`, `isize`, `usize`).
+/// Implemented for all integer primitives (`i8`..`i128`, `u8`..`u128`,
+/// `isize`, `usize`).
 /// This trait is sealed and cannot be implemented outside this crate.
 pub trait BytesLike: Sealed + Copy {
     /// Converts the input value into the internal byte representation.
@@ -16,9 +22,10 @@ pub trait BytesLike: Sealed + Copy {
 }
 
 macro_rules! impl_signed {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
             impl BytesLike for $t {
+                #[inline]
                 fn into_bytes(self) -> BytesValue {
                     BytesValue::Int(self as i128)
                 }
@@ -28,9 +35,10 @@ macro_rules! impl_signed {
 }
 
 macro_rules! impl_unsigned {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
             impl BytesLike for $t {
+                #[inline]
                 fn into_bytes(self) -> BytesValue {
                     BytesValue::UInt(self as u128)
                 }

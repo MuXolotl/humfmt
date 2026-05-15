@@ -11,7 +11,6 @@ pub mod chrono;
 pub mod duration;
 mod error;
 pub mod list;
-pub mod locale;
 pub mod number;
 pub mod ordinal;
 pub mod percent;
@@ -30,7 +29,7 @@ pub use duration::{duration, duration_with, DurationDisplay, DurationLike, Durat
 pub use error::{DurationConversionError, NegativeDurationError};
 pub use list::{list, list_with, ListDisplay, ListOptions};
 pub use number::{number, number_with, NumberDisplay, NumberOptions};
-pub use ordinal::{ordinal, ordinal_with, OrdinalDisplay, OrdinalLike};
+pub use ordinal::{ordinal, OrdinalDisplay, OrdinalLike};
 pub use percent::{percent, percent_with, PercentDisplay, PercentLike, PercentOptions};
 pub use rounding::RoundingMode;
 pub use traits::Humanize;

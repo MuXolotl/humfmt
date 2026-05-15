@@ -27,7 +27,6 @@ const POW1000: [u128; 12] = [
 ];
 
 // Powers of 1000 as f64, for O(1) float compact-unit selection.
-// Stored separately because f64 cannot exactly represent large u128 values.
 const POW1000_F64: [f64; 12] = [
     1.0,
     1_000.0,
@@ -44,13 +43,47 @@ const POW1000_F64: [f64; 12] = [
 ];
 
 // Powers of 10 as f64, indexed by precision (0..=6).
-// Used for rounding floats to a fixed number of decimal places.
 const POW10_F64: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
 
-pub fn format_number<L: crate::locale::Locale>(
+const SHORT_SUFFIXES: [&str; 12] = [
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+];
+
+const LONG_SUFFIXES: [&str; 12] = [
+    "",
+    " thousand",
+    " million",
+    " billion",
+    " trillion",
+    " quadrillion",
+    " quintillion",
+    " sextillion",
+    " septillion",
+    " octillion",
+    " nonillion",
+    " decillion",
+];
+
+const MAX_SUFFIX_INDEX: usize = 11;
+
+#[inline]
+fn suffix_for(idx: usize, long: bool) -> &'static str {
+    let table = if long {
+        &LONG_SUFFIXES
+    } else {
+        &SHORT_SUFFIXES
+    };
+    if idx < table.len() {
+        table[idx]
+    } else {
+        ""
+    }
+}
+
+pub fn format_number(
     f: &mut fmt::Formatter<'_>,
     value: NumericValue,
-    options: &NumberOptions<L>,
+    options: &NumberOptions,
 ) -> fmt::Result {
     match value {
         NumericValue::Int(v) => format_int(f, v, options),
@@ -59,36 +92,23 @@ pub fn format_number<L: crate::locale::Locale>(
     }
 }
 
-fn format_int<L: crate::locale::Locale>(
-    f: &mut fmt::Formatter<'_>,
-    value: i128,
-    options: &NumberOptions<L>,
-) -> fmt::Result {
+fn format_int(f: &mut fmt::Formatter<'_>, value: i128, options: &NumberOptions) -> fmt::Result {
     let negative = value.is_negative();
     let magnitude = value.unsigned_abs();
     format_u128_magnitude(f, negative && magnitude != 0, magnitude, options)
 }
 
-fn format_uint<L: crate::locale::Locale>(
-    f: &mut fmt::Formatter<'_>,
-    value: u128,
-    options: &NumberOptions<L>,
-) -> fmt::Result {
+fn format_uint(f: &mut fmt::Formatter<'_>, value: u128, options: &NumberOptions) -> fmt::Result {
     format_u128_magnitude(f, false, value, options)
 }
 
-fn format_u128_magnitude<L: crate::locale::Locale>(
+fn format_u128_magnitude(
     f: &mut fmt::Formatter<'_>,
     negative: bool,
     magnitude: u128,
-    options: &NumberOptions<L>,
+    options: &NumberOptions,
 ) -> fmt::Result {
-    let locale = &options.locale;
-    let max_idx = if options.compact {
-        locale.max_compact_suffix_index().min(POW1000.len() - 1)
-    } else {
-        0
-    };
+    let max_idx = if options.compact { MAX_SUFFIX_INDEX } else { 0 };
 
     let (mut idx, mut unit) = compact_unit_for_u128(magnitude, max_idx);
 
@@ -105,7 +125,7 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
     let (mut decimals, mut parts) = get_parts(unit);
 
     // Rounding can push the integer part to the next threshold (e.g. 999_950
-    // at precision=1 rounds to 1000K → rescale to 1M). Adjust once.
+    // at precision=1 rounds to 1000K -> rescale to 1M). Adjust once.
     if parts.integer >= 1_000 && idx < max_idx {
         idx += 1;
         unit = POW1000[idx];
@@ -117,7 +137,7 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
     if negative {
         f.write_char('-')?;
     } else if options.force_sign && magnitude != 0 {
-        // Since integers >= 1 never round to 0, magnitude != 0 is safe here.
+        // Integers >= 1 never round to 0, so magnitude != 0 is sufficient.
         f.write_char('+')?;
     }
 
@@ -126,7 +146,7 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
         f,
         parts.integer,
         options.separators && idx == 0,
-        locale.group_separator(),
+        options.group_separator,
     )?;
 
     write_int_frac(
@@ -134,11 +154,10 @@ fn format_u128_magnitude<L: crate::locale::Locale>(
         &parts,
         decimals,
         options.fixed_precision,
-        locale.decimal_separator(),
+        options.decimal_separator,
     )?;
 
-    let suffix = locale.compact_suffix_for(idx, parts.as_f64(), options.long_units);
-    f.write_str(suffix)
+    f.write_str(suffix_for(idx, options.long_units))
 }
 
 // Selects the compact scale index for a u128 magnitude in O(1) via ilog10.
@@ -152,21 +171,12 @@ fn compact_unit_for_u128(magnitude: u128, max_idx: usize) -> (usize, u128) {
     (idx, POW1000[idx])
 }
 
-fn format_float<L: crate::locale::Locale>(
-    f: &mut fmt::Formatter<'_>,
-    raw: f64,
-    options: &NumberOptions<L>,
-) -> fmt::Result {
+fn format_float(f: &mut fmt::Formatter<'_>, raw: f64, options: &NumberOptions) -> fmt::Result {
     if !raw.is_finite() {
         return write!(f, "{raw}");
     }
 
-    let locale = &options.locale;
-    let max_idx = if options.compact {
-        locale.max_compact_suffix_index().min(POW1000_F64.len() - 1)
-    } else {
-        0
-    };
+    let max_idx = if options.compact { MAX_SUFFIX_INDEX } else { 0 };
 
     let negative = raw.is_sign_negative();
     let abs = raw.abs();
@@ -181,23 +191,22 @@ fn format_float<L: crate::locale::Locale>(
         f.write_char('+')?;
     }
 
-    // Stack buffer expanded to 512 bytes to safely support compact(false)
-    // with very large non-exponential f64 values (up to 10^308).
-    let mut buf = StackString::<512>::new();
+    // Stack buffer sized to safely fit any non-exponential f64.
+    // f64::MAX ~= 1.8e308 -> ~309 integer digits + '.' + up to 6 fractional + headroom.
+    let mut buf = StackString::<384>::new();
     write!(&mut buf, "{:.*}", decimals as usize, scaled_abs)
-        .expect("StackString<512> overflow is impossible for valid display f64");
+        .expect("StackString<384> overflow is impossible for valid display f64");
 
     write_localized_float_str(
         f,
         buf.as_str(),
         options.separators && idx == 0,
         options.fixed_precision,
-        locale.decimal_separator(),
-        locale.group_separator(),
+        options.decimal_separator,
+        options.group_separator,
     )?;
 
-    let suffix = locale.compact_suffix_for(idx, scaled_abs, options.long_units);
-    f.write_str(suffix)
+    f.write_str(suffix_for(idx, options.long_units))
 }
 
 // Selects the compact scale index and the rounded scaled value for a
@@ -298,7 +307,7 @@ fn compute_sigfigs_f64(
     }
 }
 
-// A no_std compatible base-10 exponentiation implementation.
+// no_std-compatible base-10 exponentiation by squaring.
 #[inline]
 fn f64_pow10(mut exp: i32) -> f64 {
     let mut res = 1.0;
@@ -321,7 +330,7 @@ fn f64_pow10(mut exp: i32) -> f64 {
     }
 }
 
-// A no_std compatible base-10 logarithmic approximation based on IEEE 754 exponents.
+// no_std-compatible base-10 logarithm floor based on IEEE 754 exponents.
 #[inline]
 fn f64_log10_floor(val: f64) -> i32 {
     if val <= 0.0 {
@@ -331,11 +340,9 @@ fn f64_log10_floor(val: f64) -> i32 {
     let bits = val.to_bits();
     let exp = ((bits >> 52) & 0x7FF) as i32 - 1023;
 
-    // Use standard math constant for log10(2) to satisfy clippy
     let log2_val = exp as f64 * core::f64::consts::LOG10_2;
     let mut approx = log2_val as i32;
 
-    // Adjust for truncation of negative numbers.
     if log2_val < 0.0 && log2_val != approx as f64 {
         approx -= 1;
     }
@@ -352,10 +359,7 @@ fn f64_log10_floor(val: f64) -> i32 {
     approx
 }
 
-// Rounds a non-negative finite f64 to `precision` decimal places based on the `RoundingMode`.
-//
-// Uses integer-cast rounding instead of f64::round() because round() is not
-// available in core on stable no_std at MSRV 1.70.
+// Rounds a non-negative finite f64 to `precision` decimal places.
 #[inline]
 fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negative: bool) -> f64 {
     debug_assert!(value.is_finite() && value >= 0.0);
@@ -390,7 +394,6 @@ fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negati
 }
 
 // Writes the fractional part of a DecimalParts value (integer path).
-// Handles both trimmed (default) and fixed_precision modes.
 fn write_int_frac(
     f: &mut fmt::Formatter<'_>,
     parts: &crate::common::fmt::DecimalParts,
@@ -415,7 +418,7 @@ fn write_int_frac(
 }
 
 // Writes a float string (produced by Rust's "{:.*}" formatter) with:
-// - locale-aware decimal separator substitution
+// - decimal separator substitution
 // - optional digit grouping on the integer part
 // - trailing-zero trimming (unless fixed_precision is set)
 fn write_localized_float_str(

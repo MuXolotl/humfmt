@@ -1,7 +1,6 @@
 use core::fmt;
 
 use crate::common::numeric::NumericValue;
-use crate::locale::{English, Locale};
 
 use super::{format::format_number, NumberOptions};
 
@@ -10,20 +9,20 @@ use super::{format::format_number, NumberOptions};
 /// Instances of this type are created via [`crate::number`] and [`crate::number_with`].
 ///
 /// This type does not allocate by itself; allocation only happens if the caller
-/// requests an owned `String`.
+/// requests an owned `String` via `.to_string()` or `format!(...)`.
 #[derive(Copy, Clone, Debug)]
-pub struct NumberDisplay<L: Locale = English> {
+pub struct NumberDisplay {
     value: NumericValue,
-    options: NumberOptions<L>,
+    options: NumberOptions,
 }
 
-impl<L: Locale> NumberDisplay<L> {
-    pub(crate) fn new(value: NumericValue, options: NumberOptions<L>) -> Self {
+impl NumberDisplay {
+    pub(crate) fn new(value: NumericValue, options: NumberOptions) -> Self {
         Self { value, options }
     }
 }
 
-impl<L: Locale> fmt::Display for NumberDisplay<L> {
+impl fmt::Display for NumberDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         format_number(f, self.value, &self.options)
     }

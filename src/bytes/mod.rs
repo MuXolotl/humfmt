@@ -1,8 +1,5 @@
 //! Human-readable byte-size formatting.
 //!
-//! Use this module when you want decimal or binary byte units without pulling
-//! formatting logic into application code.
-//!
 //! # Quick start
 //!
 //! ```rust
@@ -35,7 +32,7 @@
 //! All rounding uses the selected [`RoundingMode`](crate::RoundingMode)
 //! (default: `HalfUp`). The integer path uses exact `u128` long-division
 //! arithmetic. When rounding pushes the scaled integer part to the next
-//! threshold (e.g. `999_950` at `precision(0)` → `1000KB`), the formatter
+//! threshold (e.g. `999_950` at `precision(0)` -> `1000KB`), the formatter
 //! rescales to the next unit automatically.
 
 mod display;

@@ -2,15 +2,13 @@
 //!
 //! Crates under comparison and their key limitations:
 //!
-//!   - humfmt:   std::time::Duration, locale-aware (EN/RU/PL), configurable
-//!     unit count and labels, zero allocations during Display,
-//!     no_std compatible.
-//!   - timeago:  std::time::Duration, locale-aware (many languages via trait),
-//!     configurable unit range and item count, always allocates a
-//!     String on convert().
+//!   - humfmt: std::time::Duration, configurable unit count and labels,
+//!     zero allocations during Display, no_std compatible.
+//!   - timeago: std::time::Duration, configurable unit range and item count,
+//!     always allocates a String on convert().
 //!
 //! Semantic difference: humfmt shows "1m 30s ago" (two units by default),
-//! timeago shows "1 minute ago" (one unit by default, long-form English).
+//! timeago shows "1 minute ago" (one unit by default, long-form).
 //! We benchmark both under their natural defaults and under num_items(2) for
 //! timeago to produce output comparable to humfmt's default two-unit mode.
 
@@ -33,8 +31,6 @@ const VALUES: [Duration; 8] = [
 fn bench_ago(c: &mut Criterion) {
     let mut group = c.benchmark_group("ago/allocating");
 
-    // --- Default (humfmt: 2 short units, timeago: 1 long unit) ---
-
     group.bench_function("humfmt/short/default", |b| {
         b.iter(|| {
             for &v in &VALUES {
@@ -43,7 +39,6 @@ fn bench_ago(c: &mut Criterion) {
         })
     });
 
-    // timeago default: 1 unit, long-form English, always allocates.
     group.bench_function("timeago/default/1_unit", |b| {
         let f = timeago::Formatter::new();
         b.iter(|| {
@@ -52,8 +47,6 @@ fn bench_ago(c: &mut Criterion) {
             }
         })
     });
-
-    // --- Aligned comparison: 2 units each ---
 
     let humfmt_2 = DurationOptions::new().max_units(2);
     group.bench_function("humfmt/short/2_units", |b| {
@@ -64,7 +57,6 @@ fn bench_ago(c: &mut Criterion) {
         })
     });
 
-    // timeago with num_items(2) — closest equivalent to humfmt's 2-unit default.
     group.bench_function("timeago/2_units", |b| {
         let mut f = timeago::Formatter::new();
         f.num_items(2);
@@ -74,8 +66,6 @@ fn bench_ago(c: &mut Criterion) {
             }
         })
     });
-
-    // --- Long-form labels ---
 
     let humfmt_long = DurationOptions::new().long_units().max_units(2);
     group.bench_function("humfmt/long/2_units", |b| {

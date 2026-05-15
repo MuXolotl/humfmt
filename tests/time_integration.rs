@@ -39,22 +39,14 @@ fn supports_ago_since_for_offset_datetimes() {
     );
 }
 
-#[cfg(feature = "polish")]
 #[test]
-fn supports_locale_aware_ago_since_for_offset_datetimes() {
+fn supports_ago_since_with_long_options() {
     let then = ::time::OffsetDateTime::from_unix_timestamp(0).unwrap();
     let now = ::time::OffsetDateTime::from_unix_timestamp(3665).unwrap();
-    let out = humtime::ago_since_with(
-        then,
-        now,
-        DurationOptions::new()
-            .locale(humfmt::locale::Polish)
-            .long_units()
-            .max_units(3),
-    )
-    .unwrap();
+    let out = humtime::ago_since_with(then, now, DurationOptions::new().long_units().max_units(3))
+        .unwrap();
 
-    assert_eq!(out.to_string(), "1 godzina 1 minuta 5 sekund temu");
+    assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
 }
 
 #[test]

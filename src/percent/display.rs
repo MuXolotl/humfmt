@@ -1,28 +1,27 @@
 use core::fmt;
 
-use crate::locale::{English, Locale};
-
 use super::{format::format_percent, PercentOptions};
 
 /// `Display` wrapper for percentage formatting (e.g. `"42.3%"`).
 ///
-/// Instances of this type are created via [`crate::percent`] and [`crate::percent_with`].
+/// Instances of this type are created via [`crate::percent`] and
+/// [`crate::percent_with`].
 ///
 /// This type does not allocate on its own; allocation only happens if the caller
 /// requests an owned `String` via `.to_string()` or `format!(...)`.
 #[derive(Copy, Clone, Debug)]
-pub struct PercentDisplay<L: Locale = English> {
+pub struct PercentDisplay {
     value: f64,
-    options: PercentOptions<L>,
+    options: PercentOptions,
 }
 
-impl<L: Locale> PercentDisplay<L> {
-    pub(crate) fn new(value: f64, options: PercentOptions<L>) -> Self {
+impl PercentDisplay {
+    pub(crate) fn new(value: f64, options: PercentOptions) -> Self {
         Self { value, options }
     }
 }
 
-impl<L: Locale> fmt::Display for PercentDisplay<L> {
+impl fmt::Display for PercentDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         format_percent(f, self.value, &self.options)
     }

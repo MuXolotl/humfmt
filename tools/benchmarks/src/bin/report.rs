@@ -123,10 +123,6 @@ fn main() -> io::Result<()> {
                 title: "Numbers — reused buffer (write!) — lower is better",
                 items: numbers_reused_buffer_items(),
             },
-            SvgSection {
-                title: "Numbers — locale overhead — lower is better",
-                items: numbers_locale_items(),
-            },
         ],
         &medians,
     )?;
@@ -326,8 +322,13 @@ fn numbers_allocating_items() -> Vec<SvgItem> {
             NUMBERS_MIXED_PER_ITER,
         ),
         SvgItem::other(
-            "human_format  f64 only, EN only, precision=2, returns String",
+            "human_format  f64 only, precision=2, returns String",
             BenchKey::new("numbers/allocating", "human_format/f64/precision2"),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::other(
+            "numfmt  i64, short scale, precision=2",
+            BenchKey::new("numbers/allocating", "numfmt/i64/short_scale_precision2"),
             NUMBERS_MIXED_PER_ITER,
         ),
     ]
@@ -361,6 +362,14 @@ fn numbers_allocating_int_items() -> Vec<SvgItem> {
             ),
             NUMBERS_U64_PER_ITER,
         ),
+        SvgItem::other(
+            "numfmt  u64, short scale, precision=2",
+            BenchKey::new(
+                "numbers/allocating_int",
+                "numfmt/u64/short_scale_precision2",
+            ),
+            NUMBERS_U64_PER_ITER,
+        ),
     ]
 }
 
@@ -374,6 +383,14 @@ fn numbers_allocating_float_items() -> Vec<SvgItem> {
         SvgItem::other(
             "human_format  f64, precision=2, returns String",
             BenchKey::new("numbers/allocating_float", "human_format/f64/precision2"),
+            NUMBERS_F64_PER_ITER,
+        ),
+        SvgItem::other(
+            "numfmt  f64, short scale, precision=2",
+            BenchKey::new(
+                "numbers/allocating_float",
+                "numfmt/f64/short_scale_precision2",
+            ),
             NUMBERS_F64_PER_ITER,
         ),
     ]
@@ -400,39 +417,13 @@ fn numbers_reused_buffer_items() -> Vec<SvgItem> {
             .with_param("32"),
             NUMBERS_U64_PER_ITER,
         ),
-    ]
-}
-
-fn numbers_locale_items() -> Vec<SvgItem> {
-    vec![
-        SvgItem::humfmt(
-            "humfmt  English, short",
-            BenchKey::new("numbers/locale", "humfmt/english/short"),
-            NUMBERS_U64_PER_ITER,
-        ),
-        SvgItem::humfmt(
-            "humfmt  English, long",
-            BenchKey::new("numbers/locale", "humfmt/english/long"),
-            NUMBERS_U64_PER_ITER,
-        ),
-        SvgItem::humfmt(
-            "humfmt  Russian, short",
-            BenchKey::new("numbers/locale", "humfmt/russian/short"),
-            NUMBERS_U64_PER_ITER,
-        ),
-        SvgItem::humfmt(
-            "humfmt  Russian, long (plural selection)",
-            BenchKey::new("numbers/locale", "humfmt/russian/long"),
-            NUMBERS_U64_PER_ITER,
-        ),
-        SvgItem::humfmt(
-            "humfmt  Polish, short",
-            BenchKey::new("numbers/locale", "humfmt/polish/short"),
-            NUMBERS_U64_PER_ITER,
-        ),
-        SvgItem::humfmt(
-            "humfmt  Polish, long (plural selection)",
-            BenchKey::new("numbers/locale", "humfmt/polish/long"),
+        SvgItem::other(
+            "numfmt  u64, short scale, precision=2, push_str (returns &str)",
+            BenchKey::new(
+                "numbers/reused_buffer",
+                "numfmt/u64/short_scale_precision2/write",
+            )
+            .with_param("32"),
             NUMBERS_U64_PER_ITER,
         ),
     ]
@@ -456,7 +447,7 @@ fn duration_items() -> Vec<SvgItem> {
             DURATION_PER_ITER,
         ),
         SvgItem::other(
-            "humantime  EN only, all non-zero units",
+            "humantime  all non-zero units",
             BenchKey::new("duration/allocating", "humantime/default"),
             DURATION_PER_ITER,
         ),
@@ -481,12 +472,12 @@ fn ago_items() -> Vec<SvgItem> {
             AGO_PER_ITER,
         ),
         SvgItem::other(
-            "timeago  EN, 1 unit (default), returns String",
+            "timeago  1 unit (default), returns String",
             BenchKey::new("ago/allocating", "timeago/default/1_unit"),
             AGO_PER_ITER,
         ),
         SvgItem::other(
-            "timeago  EN, 2 units, returns String",
+            "timeago  2 units, returns String",
             BenchKey::new("ago/allocating", "timeago/2_units"),
             AGO_PER_ITER,
         ),
@@ -530,8 +521,8 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
          while humfmt trims trailing zeros by design.\n",
     );
     out.push_str(
-        "- No crate other than humfmt and human_format produces compact `K/M/B` style \
-         number output; human-repr and readable produce grouped digits (`1,000`) instead.\n\n",
+        "- Compact `K/M/B` style number output is produced by humfmt, human_format, and numfmt; \
+         human-repr and readable produce grouped digits (`1,000`) instead.\n\n",
     );
     out.push_str("---\n\n");
 
@@ -609,13 +600,13 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
     ));
     out.push('\n');
 
-    // Numbers sections
     push_md_group(
         &mut out,
         "Numbers — allocating (`to_string`), mixed i64 inputs",
         Some(
             "> human_format accepts f64 only and always returns an owned `String`. \
-             humfmt accepts all integer and float primitives and implements `Display`.",
+             humfmt accepts all integer and float primitives and implements `Display`. \
+             numfmt accepts u64/i64/f64 and returns a borrowed `&str` from an internal buffer.",
         ),
         &numbers_allocating_items(),
         medians,
@@ -626,7 +617,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         "Numbers — allocating (`to_string`), u64 inputs (apples-to-apples)",
         Some(
             "> human_format receives u64 cast to f64. \
-             Both crates produce compact `K/M/B` style output.",
+             All three crates produce compact `K/M/B` style output.",
         ),
         &numbers_allocating_int_items(),
         medians,
@@ -648,20 +639,10 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         "Numbers — reused buffer (`write!` into `String`), u64 inputs",
         Some(
             "> humfmt writes via `Display` with no intermediate allocation. \
-             human_format always allocates a `String`; we `push_str` it into the buffer.",
+             human_format always allocates a `String`; we `push_str` it into the buffer. \
+             numfmt returns a `&str` from its internal buffer; we `push_str` it.",
         ),
         &numbers_reused_buffer_items(),
-        medians,
-    );
-
-    push_md_group(
-        &mut out,
-        "Numbers — locale overhead (humfmt only)",
-        Some(
-            "> Measures the cost of locale-aware formatting. \
-             Russian and Polish require plural form selection based on the rendered value.",
-        ),
-        &numbers_locale_items(),
         medians,
     );
 
@@ -904,26 +885,25 @@ fn format_md_row_single(
 // ---------------------------------------------------------------------------
 
 const CAPABILITY_MATRIX: &str = "\
-| Feature | humfmt | humansize | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Byte sizes | yes | yes | yes | yes | yes | yes | yes | no | no | no |
-| Compact numbers | yes | no | no | no | no | no | no | no | no | yes |
-| Duration formatting | yes | no | no | no | no | no | yes | yes | yes | no |
-| Relative time (ago) | yes | no | no | no | no | no | no | no | yes | no |
-| Ordinals | yes | no | no | no | no | no | no | no | no | no |
-| List formatting | yes | no | no | no | no | no | no | no | no | no |
-| Percentage | yes | no | no | no | no | no | no | no | no | no |
-| Signed input (negatives) | yes | yes | no | no | no | no | yes | — | — | no |
-| u128 / i128 range | yes | no | no | partial | no | no | yes | — | — | no |
-| Float input | yes | no | no | no | no | no | yes | — | — | yes |
-| Long-form labels | yes | yes | no | yes | no | no | no | yes | yes | yes |
-| Max-units cap | yes | — | — | — | — | — | — | no | yes | — |
-| Binary (IEC) units | yes | yes | yes | yes | yes | yes | yes | — | — | — |
-| Configurable precision | yes | yes | no | yes | no | no | no | — | — | yes |
-| Locale-aware | yes | no | no | no | no | no | no | no | yes | no |
-| Custom locale builder | yes | no | no | no | no | no | no | no | no | no |
-| no_std compatible | yes | yes | no | no | yes | no | no | no | no | no |
-| Zero-alloc Display | yes | yes | yes | no | yes | yes | yes | yes | no | no |";
+| Feature | humfmt | humansize | bytesize | byte-unit | prettier-bytes | indicatif (HumanBytes) | human-repr | humantime | timeago | human_format | numfmt |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Byte sizes | yes | yes | yes | yes | yes | yes | yes | no | no | no | no |
+| Compact numbers | yes | no | no | no | no | no | no | no | no | yes | yes |
+| Duration formatting | yes | no | no | no | no | no | yes | yes | yes | no | no |
+| Relative time (ago) | yes | no | no | no | no | no | no | no | yes | no | no |
+| Ordinals | yes | no | no | no | no | no | no | no | no | no | no |
+| List formatting | yes | no | no | no | no | no | no | no | no | no | no |
+| Percentage | yes | no | no | no | no | no | no | no | no | no | no |
+| Signed input (negatives) | yes | yes | no | no | no | no | yes | — | — | no | yes |
+| u128 / i128 range | yes | no | no | partial | no | no | yes | — | — | no | no |
+| Float input | yes | no | no | no | no | no | yes | — | — | yes | yes |
+| Long-form labels | yes | yes | no | yes | no | no | no | yes | yes | yes | no |
+| Max-units cap | yes | — | — | — | — | — | — | no | yes | — | — |
+| Binary (IEC) units | yes | yes | yes | yes | yes | yes | yes | — | — | — | — |
+| Configurable precision | yes | yes | no | yes | no | no | no | — | — | yes | yes |
+| Custom decimal/group separators | yes | no | no | no | no | no | no | no | no | yes | yes |
+| no_std compatible | yes | yes | no | no | yes | no | no | no | no | no | no |
+| Zero-alloc Display | yes | yes | yes | no | yes | yes | yes | yes | no | no | partial |";
 
 // ---------------------------------------------------------------------------
 // BenchKey

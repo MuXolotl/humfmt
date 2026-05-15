@@ -1,6 +1,8 @@
 use humfmt::RoundingMode;
 use humfmt::{number, NumberOptions};
 
+// --- Basic rendering ---
+
 #[test]
 fn formats_small_numbers_without_suffix() {
     assert_eq!(number(999).to_string(), "999");
@@ -268,8 +270,6 @@ fn sign_symmetry_for_floats() {
     }
 }
 
-// --- New tests ---
-
 #[test]
 fn formats_small_integer_types() {
     assert_eq!(number(u8::MAX).to_string(), "255");
@@ -281,8 +281,6 @@ fn formats_small_integer_types() {
 
 #[test]
 fn formats_usize_and_isize() {
-    // usize/isize are platform-dependent in size but always at least 32-bit.
-    // We test values that fit on all platforms.
     assert_eq!(number(0_usize).to_string(), "0");
     assert_eq!(number(1_000_usize).to_string(), "1K");
     assert_eq!(number(0_isize).to_string(), "0");
@@ -291,7 +289,6 @@ fn formats_usize_and_isize() {
 
 #[test]
 fn formats_f32_input() {
-    // f32 has ~7 significant digits. For compact display purposes this is fine.
     assert_eq!(number(0.0_f32).to_string(), "0");
     assert_eq!(number(1_000.0_f32).to_string(), "1K");
     assert_eq!(number(1_500.0_f32).to_string(), "1.5K");
@@ -302,7 +299,6 @@ fn formats_f32_input() {
 
 #[test]
 fn very_small_floats_round_to_zero() {
-    // Values so small they round to zero at default precision=1.
     assert_eq!(number(0.001_f64).to_string(), "0");
     assert_eq!(number(0.04_f64).to_string(), "0");
     assert_eq!(number(0.05_f64).to_string(), "0.1");
@@ -342,7 +338,6 @@ fn separators_with_negative_unscaled_values() {
 
 #[test]
 fn precision_six_is_maximum() {
-    // precision is clamped to 6; passing 10 is the same as passing 6.
     let opts_6 = NumberOptions::new().precision(6);
     let opts_10 = NumberOptions::new().precision(10);
     assert_eq!(
@@ -353,85 +348,56 @@ fn precision_six_is_maximum() {
 
 #[test]
 fn float_precision_zero_at_rescale_boundary() {
-    // 999_500.0 at precision(0) → 1000K → rescales to 1M.
     let opts = NumberOptions::new().precision(0);
     assert_eq!(humfmt::number_with(999_500.0_f64, opts).to_string(), "1M");
-    // 999_499.0 at precision(0) → 999K → stays.
     assert_eq!(humfmt::number_with(999_499.0_f64, opts).to_string(), "999K");
 }
 
-#[cfg(feature = "russian")]
+// --- Custom separators (replaces locale tests) ---
+
 #[test]
-fn russian_long_units_inflection_via_number_with() {
-    use humfmt::locale::Russian;
-    let opts = NumberOptions::new().locale(Russian).long_units();
-    // 1 → singular
-    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1 тысяча");
-    // 2 → few
-    assert_eq!(humfmt::number_with(2_000, opts).to_string(), "2 тысячи");
-    // 5 → many
-    assert_eq!(humfmt::number_with(5_000, opts).to_string(), "5 тысяч");
-    // 11 → many (teen exception)
-    assert_eq!(humfmt::number_with(11_000, opts).to_string(), "11 тысяч");
-    // 21 → singular (ends in 1, not teen)
-    assert_eq!(humfmt::number_with(21_000, opts).to_string(), "21 тысяча");
-    // fractional → few (genitive singular)
-    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1,5 тысячи");
+fn custom_decimal_separator() {
+    let opts = NumberOptions::new().precision(2).decimal_separator(',');
+    assert_eq!(humfmt::number_with(1.5_f64, opts).to_string(), "1,5");
+    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1,5K");
 }
 
-#[cfg(feature = "polish")]
 #[test]
-fn polish_long_units_inflection_via_number_with() {
-    use humfmt::locale::Polish;
-    let opts = NumberOptions::new().locale(Polish).long_units();
-    // 1 → one
-    assert_eq!(humfmt::number_with(1_000, opts).to_string(), "1 tysiąc");
-    // 2 → few
-    assert_eq!(humfmt::number_with(2_000, opts).to_string(), "2 tysiące");
-    // 5 → many
-    assert_eq!(humfmt::number_with(5_000, opts).to_string(), "5 tysięcy");
-    // 12 → many (teen exception)
-    assert_eq!(humfmt::number_with(12_000, opts).to_string(), "12 tysięcy");
-    // 22 → few (ends in 2, not teen)
-    assert_eq!(humfmt::number_with(22_000, opts).to_string(), "22 tysiące");
-    // fractional → fraction form
-    assert_eq!(humfmt::number_with(1_500, opts).to_string(), "1,5 tysiąca");
+fn custom_decimal_separator_with_compact_value() {
+    let opts = NumberOptions::new().decimal_separator(',');
+    assert_eq!(humfmt::number_with(15_320, opts).to_string(), "15,3K");
 }
 
-#[cfg(feature = "russian")]
 #[test]
-fn russian_separators_use_space_as_group_separator() {
-    use humfmt::locale::Russian;
+fn custom_group_separator_when_uncompacted() {
     let opts = NumberOptions::new()
         .compact(false)
-        .locale(Russian)
-        .separators(true);
+        .separators(true)
+        .group_separator(' ');
     assert_eq!(
         humfmt::number_with(1_234_567, opts).to_string(),
         "1 234 567"
     );
 }
 
-#[cfg(feature = "polish")]
 #[test]
-fn polish_separators_use_space_as_group_separator() {
-    use humfmt::locale::Polish;
+fn combined_custom_separators() {
     let opts = NumberOptions::new()
         .compact(false)
-        .locale(Polish)
-        .separators(true);
+        .separators(true)
+        .decimal_separator(',')
+        .group_separator(' ');
+    // Float path with grouping + custom decimal separator.
     assert_eq!(
-        humfmt::number_with(1_234_567, opts).to_string(),
-        "1 234 567"
+        humfmt::number_with(1_234_567.5_f64, opts).to_string(),
+        "1 234 567,5"
     );
 }
+
+// --- Rounding modes ---
 
 #[test]
 fn rounding_modes_for_positive_integers() {
-    // 1234 -> 1.234K. At precision 2, remainder is 4.
-    // HalfUp: 1.234 -> 1.23 (since 4 < 5)
-    // Floor: 1.234 -> 1.23
-    // Ceil: 1.234 -> 1.24
     let base = NumberOptions::new().precision(2);
     assert_eq!(
         humfmt::number_with(1234, base.rounding(RoundingMode::HalfUp)).to_string(),
@@ -449,10 +415,6 @@ fn rounding_modes_for_positive_integers() {
 
 #[test]
 fn rounding_modes_for_negative_integers() {
-    // -1234 -> -1.234K.
-    // HalfUp: -1.234 -> -1.23 (magnitude 1.23)
-    // Floor: -1.234 -> -1.24 (magnitude increases, rounds towards negative infinity)
-    // Ceil: -1.234 -> -1.23 (magnitude truncates, rounds towards positive infinity)
     let base = NumberOptions::new().precision(2);
     assert_eq!(
         humfmt::number_with(-1234, base.rounding(RoundingMode::HalfUp)).to_string(),
@@ -470,11 +432,6 @@ fn rounding_modes_for_negative_integers() {
 
 #[test]
 fn rounding_modes_near_suffix_boundary() {
-    // 999_500 -> 999.5K
-    // Precision 0.
-    // HalfUp: 999.5 -> 1000K -> 1M
-    // Floor: 999.5 -> 999K
-    // Ceil: 999.5 -> 1000K -> 1M
     let base = NumberOptions::new().precision(0);
     assert_eq!(
         humfmt::number_with(999_500, base.rounding(RoundingMode::HalfUp)).to_string(),
@@ -489,10 +446,6 @@ fn rounding_modes_near_suffix_boundary() {
         "1M"
     );
 
-    // Negative: -999_500 -> -999.5K
-    // HalfUp: -1000K -> -1M
-    // Floor: -1000K -> -1M
-    // Ceil: -999K
     assert_eq!(
         humfmt::number_with(-999_500, base.rounding(RoundingMode::HalfUp)).to_string(),
         "-1M"
@@ -510,10 +463,6 @@ fn rounding_modes_near_suffix_boundary() {
 #[test]
 fn rounding_modes_for_floats() {
     let base = NumberOptions::new().precision(1);
-    // 1.55
-    // HalfUp: 1.6
-    // Floor: 1.5
-    // Ceil: 1.6
     assert_eq!(
         humfmt::number_with(1.55_f64, base.rounding(RoundingMode::HalfUp)).to_string(),
         "1.6"
@@ -527,10 +476,6 @@ fn rounding_modes_for_floats() {
         "1.6"
     );
 
-    // -1.55
-    // HalfUp: -1.6
-    // Floor: -1.6
-    // Ceil: -1.5
     assert_eq!(
         humfmt::number_with(-1.55_f64, base.rounding(RoundingMode::HalfUp)).to_string(),
         "-1.6"
@@ -553,22 +498,18 @@ fn significant_digits_formatting() {
     assert_eq!(humfmt::number_with(123456, opts).to_string(), "123K");
     assert_eq!(humfmt::number_with(1234567, opts).to_string(), "1.23M");
 
-    // Edge case: unscaled rounding (rounds the integer directly)
     let unscaled = NumberOptions::new().compact(false).significant_digits(2);
     assert_eq!(humfmt::number_with(1234, unscaled).to_string(), "1200");
     assert_eq!(humfmt::number_with(1250, unscaled).to_string(), "1300");
 
-    // Edge case: floating point values
     assert_eq!(
         humfmt::number_with(0.01234_f64, unscaled).to_string(),
         "0.012"
     );
     assert_eq!(humfmt::number_with(123.45_f64, unscaled).to_string(), "120");
 
-    // Edge case: zero
     assert_eq!(humfmt::number_with(0, opts).to_string(), "0");
 
-    // Fixed precision with sig figs pads zeros intelligently
     let fixed = NumberOptions::new()
         .significant_digits(3)
         .fixed_precision(true);

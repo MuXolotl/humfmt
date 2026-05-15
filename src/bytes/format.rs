@@ -13,8 +13,6 @@ struct UnitLabels {
     long_plural: &'static str,
 }
 
-// --- Byte Labels ---
-
 const DECIMAL_LABELS: [UnitLabels; 7] = [
     UnitLabels {
         short: "B",
@@ -90,8 +88,6 @@ const BINARY_LABELS: [UnitLabels; 7] = [
         long_plural: "exbibytes",
     },
 ];
-
-// --- Bit Labels ---
 
 const DECIMAL_BIT_LABELS: [UnitLabels; 7] = [
     UnitLabels {
@@ -201,7 +197,7 @@ pub fn format_bytes(
     };
 
     if options.bits {
-        // Handle potential overflow if formatting extreme u128s in bits mode.
+        // Saturating: documented edge case for inputs near u128::MAX.
         magnitude = magnitude.saturating_mul(8);
     }
 

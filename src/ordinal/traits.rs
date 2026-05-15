@@ -1,14 +1,20 @@
 use crate::common::sealed::Sealed;
 
+/// Internal ordinal input representation.
+///
+/// Created via the [`OrdinalLike`] trait implementations.
 #[derive(Copy, Clone, Debug)]
 pub enum OrdinalValue {
+    /// Signed integer input.
     Int(i128),
+    /// Unsigned integer input.
     UInt(u128),
 }
 
-/// Trait for inputs accepted by [`crate::ordinal`] / [`crate::ordinal_with`].
+/// Trait for inputs accepted by [`crate::ordinal`].
 ///
-/// Implemented for all integer primitives (`i*`, `u*`, `isize`, `usize`).
+/// Implemented for all integer primitives (`i8`..`i128`, `u8`..`u128`,
+/// `isize`, `usize`).
 /// This trait is sealed and cannot be implemented outside this crate.
 pub trait OrdinalLike: Sealed + Copy {
     /// Converts the input value into the internal ordinal representation.
@@ -16,9 +22,10 @@ pub trait OrdinalLike: Sealed + Copy {
 }
 
 macro_rules! impl_signed {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
             impl OrdinalLike for $t {
+                #[inline]
                 fn into_ordinal(self) -> OrdinalValue {
                     OrdinalValue::Int(self as i128)
                 }
@@ -28,9 +35,10 @@ macro_rules! impl_signed {
 }
 
 macro_rules! impl_unsigned {
-    ($($t:ty),*) => {
+    ($($t:ty),* $(,)?) => {
         $(
             impl OrdinalLike for $t {
+                #[inline]
                 fn into_ordinal(self) -> OrdinalValue {
                     OrdinalValue::UInt(self as u128)
                 }

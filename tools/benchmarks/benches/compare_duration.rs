@@ -2,9 +2,8 @@
 //!
 //! Crates under comparison and their key properties:
 //!
-//!   - humfmt:    `std::time::Duration`, configurable unit count and labels,
-//!     locale-aware (EN/RU/PL), long/short unit labels, max-units cap,
-//!     no_std compatible, writes via `Display`.
+//!   - humfmt: `std::time::Duration`, configurable unit count and labels,
+//!     long/short unit labels, max-units cap, no_std compatible, writes via `Display`.
 //!   - humantime: `std::time::Duration`, English-only formatting,
 //!     renders all non-zero units (no max-units cap),
 //!     returns a `FormattedDuration` wrapper that implements `Display`.
@@ -32,8 +31,6 @@ const VALUES: [Duration; 8] = [
 fn bench_duration(c: &mut Criterion) {
     let mut group = c.benchmark_group("duration/allocating");
 
-    // --- Default short format (humfmt) ---
-
     group.bench_function("humfmt/short/default", |b| {
         b.iter(|| {
             for &v in &VALUES {
@@ -42,7 +39,6 @@ fn bench_duration(c: &mut Criterion) {
         })
     });
 
-    // humantime default: long form, all non-zero units (no max-units equivalent).
     group.bench_function("humantime/default", |b| {
         b.iter(|| {
             for &v in &VALUES {
@@ -50,8 +46,6 @@ fn bench_duration(c: &mut Criterion) {
             }
         })
     });
-
-    // --- Long-form labels (humfmt) ---
 
     let long_opts = DurationOptions::new().long_units();
     group.bench_function("humfmt/long/default", |b| {
@@ -61,8 +55,6 @@ fn bench_duration(c: &mut Criterion) {
             }
         })
     });
-
-    // --- More precision (humfmt max 3 units) ---
 
     let max3_opts = DurationOptions::new().max_units(3);
     group.bench_function("humfmt/short/max3", |b| {
@@ -77,7 +69,7 @@ fn bench_duration(c: &mut Criterion) {
 }
 
 fn bench_duration_reused_buffer(c: &mut Criterion) {
-    use std::fmt::Write as _;
+    use std::fmt::Write;
 
     let mut group = c.benchmark_group("duration/reused_buffer");
 

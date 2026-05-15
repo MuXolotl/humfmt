@@ -1,5 +1,3 @@
-use crate::locale::{English, Locale};
-
 /// Builder-style configuration for percentage formatting.
 ///
 /// # Quick reference
@@ -7,14 +5,14 @@ use crate::locale::{English, Locale};
 /// | Method | Default | Effect |
 /// |---|---|---|
 /// | [`precision(n)`] | `1` | Decimal places for the percentage value |
-/// | [`force_sign(bool)`] | `false` | `0.42` → `"+42%"` |
-/// | [`fixed_precision(bool)`] | `false` | `"42.5%"` → `"42.50%"` |
-/// | [`locale(L)`] | `English` | Decimal separator |
+/// | [`force_sign(bool)`] | `false` | `0.42` -> `"+42%"` |
+/// | [`fixed_precision(bool)`] | `false` | `"42.5%"` -> `"42.50%"` |
+/// | [`decimal_separator(c)`] | `'.'` | Decimal separator character |
 ///
 /// [`precision(n)`]: PercentOptions::precision
 /// [`force_sign(bool)`]: PercentOptions::force_sign
 /// [`fixed_precision(bool)`]: PercentOptions::fixed_precision
-/// [`locale(L)`]: PercentOptions::locale
+/// [`decimal_separator(c)`]: PercentOptions::decimal_separator
 ///
 /// # Examples
 ///
@@ -25,45 +23,31 @@ use crate::locale::{English, Locale};
 /// assert_eq!(humfmt::percent_with(0.4236, opts).to_string(), "42.36%");
 /// ```
 #[derive(Copy, Clone, Debug)]
-pub struct PercentOptions<L: Locale = English> {
+pub struct PercentOptions {
     pub(crate) precision: u8,
     pub(crate) force_sign: bool,
     pub(crate) fixed_precision: bool,
-    pub(crate) locale: L,
+    pub(crate) decimal_separator: char,
 }
 
-impl PercentOptions<English> {
+impl PercentOptions {
     /// Creates default percentage formatting options.
     ///
     /// Defaults:
     /// - precision: `1`
     /// - force sign: `false`
     /// - fixed precision: `false` (trailing zeros are trimmed)
-    /// - locale: `English`
+    /// - decimal separator: `'.'`
     #[inline]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             precision: 1,
             force_sign: false,
             fixed_precision: false,
-            locale: English,
+            decimal_separator: '.',
         }
     }
-}
 
-impl<L: Locale> Default for PercentOptions<L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            precision: 1,
-            force_sign: false,
-            fixed_precision: false,
-            locale: L::default(),
-        }
-    }
-}
-
-impl<L: Locale> PercentOptions<L> {
     /// Sets decimal precision for the percentage value.
     ///
     /// Precision is clamped to `0..=6`.
@@ -86,14 +70,15 @@ impl<L: Locale> PercentOptions<L> {
     /// assert_eq!(humfmt::percent_with(0.4236, opts).to_string(), "42.36%");
     /// ```
     #[inline]
-    pub fn precision(mut self, n: u8) -> Self {
-        self.precision = n.min(6);
+    pub const fn precision(mut self, n: u8) -> Self {
+        let n = if n > 6 { 6 } else { n };
+        self.precision = n;
         self
     }
 
     /// Forces the output of a `+` sign for strictly positive values.
     ///
-    /// Values that round to exactly zero will output `0%` without a sign.
+    /// Values that round to exactly zero output `0%` without a sign.
     /// Useful for deltas and change indicators.
     ///
     /// # Behaviour table
@@ -116,15 +101,15 @@ impl<L: Locale> PercentOptions<L> {
     /// assert_eq!(humfmt::percent_with(0.0_f64, opts).to_string(), "0%");
     /// ```
     #[inline]
-    pub fn force_sign(mut self, yes: bool) -> Self {
+    pub const fn force_sign(mut self, yes: bool) -> Self {
         self.force_sign = yes;
         self
     }
 
     /// Controls whether trailing fractional zeros are preserved.
     ///
-    /// - `false` (default): trailing zeros are trimmed — `42.50%` becomes `42.5%`
-    /// - `true`: trailing zeros are kept — `42.50%` stays `42.50%`
+    /// - `false` (default): trailing zeros are trimmed (`42.50%` -> `42.5%`).
+    /// - `true`: trailing zeros are kept (`42.50%` stays `42.50%`).
     ///
     /// Useful for consistent column widths in tables or dashboards.
     ///
@@ -148,32 +133,33 @@ impl<L: Locale> PercentOptions<L> {
     /// assert_eq!(humfmt::percent_with(0.425, fixed).to_string(), "42.50%");
     /// ```
     #[inline]
-    pub fn fixed_precision(mut self, yes: bool) -> Self {
+    pub const fn fixed_precision(mut self, yes: bool) -> Self {
         self.fixed_precision = yes;
         self
     }
 
-    /// Switches the active locale.
+    /// Overrides the decimal separator.
     ///
-    /// Affects the decimal separator used in the output.
+    /// Default is `'.'`.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// use humfmt::{percent_with, PercentOptions};
-    /// use humfmt::locale::CustomLocale;
+    /// use humfmt::PercentOptions;
     ///
-    /// let locale = CustomLocale::english().decimal_separator(',');
-    /// let opts = PercentOptions::new().precision(1).locale(locale);
-    /// assert_eq!(percent_with(0.423, opts).to_string(), "42,3%");
+    /// let opts = PercentOptions::new().precision(1).decimal_separator(',');
+    /// assert_eq!(humfmt::percent_with(0.423_f64, opts).to_string(), "42,3%");
     /// ```
     #[inline]
-    pub fn locale<N: Locale>(self, locale: N) -> PercentOptions<N> {
-        PercentOptions {
-            precision: self.precision,
-            force_sign: self.force_sign,
-            fixed_precision: self.fixed_precision,
-            locale,
-        }
+    pub const fn decimal_separator(mut self, sep: char) -> Self {
+        self.decimal_separator = sep;
+        self
+    }
+}
+
+impl Default for PercentOptions {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }

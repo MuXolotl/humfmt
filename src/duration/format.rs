@@ -1,61 +1,77 @@
 use core::fmt;
 
-use crate::locale::{DurationUnit, Locale};
-
 use super::DurationOptions;
 
 #[derive(Copy, Clone)]
 struct Unit {
     nanos: u128,
-    kind: DurationUnit,
+    short: &'static str,
+    long_singular: &'static str,
+    long_plural: &'static str,
 }
 
 const UNITS: [Unit; 7] = [
     Unit {
         nanos: 86_400_000_000_000,
-        kind: DurationUnit::Day,
+        short: "d",
+        long_singular: "day",
+        long_plural: "days",
     },
     Unit {
         nanos: 3_600_000_000_000,
-        kind: DurationUnit::Hour,
+        short: "h",
+        long_singular: "hour",
+        long_plural: "hours",
     },
     Unit {
         nanos: 60_000_000_000,
-        kind: DurationUnit::Minute,
+        short: "m",
+        long_singular: "minute",
+        long_plural: "minutes",
     },
     Unit {
         nanos: 1_000_000_000,
-        kind: DurationUnit::Second,
+        short: "s",
+        long_singular: "second",
+        long_plural: "seconds",
     },
     Unit {
         nanos: 1_000_000,
-        kind: DurationUnit::Millisecond,
+        short: "ms",
+        long_singular: "millisecond",
+        long_plural: "milliseconds",
     },
     Unit {
         nanos: 1_000,
-        kind: DurationUnit::Microsecond,
+        short: "us",
+        long_singular: "microsecond",
+        long_plural: "microseconds",
     },
     Unit {
         nanos: 1,
-        kind: DurationUnit::Nanosecond,
+        short: "ns",
+        long_singular: "nanosecond",
+        long_plural: "nanoseconds",
     },
 ];
 
-pub fn format_duration<L: Locale>(
+// Index of the "second" unit, used as the placeholder for zero durations.
+const SECOND_UNIT_IDX: usize = 3;
+
+pub fn format_duration(
     f: &mut fmt::Formatter<'_>,
     value: core::time::Duration,
-    options: &DurationOptions<L>,
+    options: &DurationOptions,
 ) -> fmt::Result {
     let mut remaining = value.as_nanos();
     let mut written = 0u8;
     let max_units = options.max_units;
-    let locale = &options.locale;
 
     if remaining == 0 {
-        return write_unit(f, 0, UNITS[3], options.long_units, locale);
+        return write_unit(f, 0, &UNITS[SECOND_UNIT_IDX], options.long_units);
     }
 
-    for unit in UNITS {
+    for unit in &UNITS {
         if remaining < unit.nanos {
             continue;
         }
@@ -67,7 +83,7 @@ pub fn format_duration<L: Locale>(
             f.write_str(" ")?;
         }
 
-        write_unit(f, count, unit, options.long_units, locale)?;
+        write_unit(f, count, unit, options.long_units)?;
         written += 1;
 
         if written >= max_units {
@@ -78,18 +94,21 @@ pub fn format_duration<L: Locale>(
     Ok(())
 }
 
-fn write_unit<L: Locale>(
+fn write_unit(
     f: &mut fmt::Formatter<'_>,
     count: u128,
-    unit: Unit,
+    unit: &Unit,
     long_units: bool,
-    locale: &L,
 ) -> fmt::Result {
-    let label = locale.duration_unit(unit.kind, count, long_units);
-
     if long_units {
+        let label = if count == 1 {
+            unit.long_singular
+        } else {
+            unit.long_plural
+        };
         write!(f, "{count} {label}")
     } else {
-        write!(f, "{count}{label}")
+        let short = unit.short;
+        write!(f, "{count}{short}")
     }
 }

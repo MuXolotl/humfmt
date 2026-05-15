@@ -45,7 +45,6 @@ fn supports_max_unit_override() {
 
 #[test]
 fn supports_max_units_up_to_seven() {
-    // 1s 1ms 1us 1ns — four distinct non-zero units below second boundary.
     let value = Duration::from_nanos(1_001_001_001);
     let opts = DurationOptions::new().max_units(7).long_units();
     assert_eq!(
@@ -68,5 +67,37 @@ fn supports_extension_trait_usage() {
     assert_eq!(
         Duration::from_secs(90).human_duration().to_string(),
         "1m 30s"
+    );
+}
+
+#[test]
+fn long_units_singular_vs_plural() {
+    let opts = DurationOptions::new().long_units().max_units(3);
+
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(60), opts).to_string(),
+        "1 minute"
+    );
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(120), opts).to_string(),
+        "2 minutes"
+    );
+
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(3600), opts).to_string(),
+        "1 hour"
+    );
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(7200), opts).to_string(),
+        "2 hours"
+    );
+
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(86_400), opts).to_string(),
+        "1 day"
+    );
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(86_400 * 2), opts).to_string(),
+        "2 days"
     );
 }

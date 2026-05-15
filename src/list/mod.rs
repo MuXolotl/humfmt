@@ -1,8 +1,5 @@
 //! Natural-language list formatting.
 //!
-//! This module joins slices into readable lists while respecting locale-aware
-//! conjunctions and serial-comma preferences.
-//!
 //! # Quick start
 //!
 //! ```rust
@@ -42,7 +39,7 @@ mod options;
 pub use display::ListDisplay;
 pub use options::ListOptions;
 
-/// Creates a natural-language list formatter using the default locale.
+/// Creates a natural-language list formatter using default options.
 ///
 /// # Examples
 ///
@@ -69,9 +66,6 @@ pub fn list<T: core::fmt::Display>(items: &[T]) -> ListDisplay<'_, T> {
 /// );
 /// assert_eq!(out.to_string(), "red, green plus blue");
 /// ```
-pub fn list_with<T: core::fmt::Display, L: crate::locale::Locale>(
-    items: &[T],
-    options: ListOptions<L>,
-) -> ListDisplay<'_, T, L> {
+pub fn list_with<T: core::fmt::Display>(items: &[T], options: ListOptions) -> ListDisplay<'_, T> {
     ListDisplay::new(items, options)
 }

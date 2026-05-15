@@ -20,9 +20,11 @@ impl<const N: usize> StackString<N> {
 
     #[inline]
     pub(crate) fn as_str(&self) -> &str {
-        // Safety: the buffer is only written via `fmt::Write::write_str`, which
-        // only accepts valid UTF-8 `&str` input. Therefore the resulting bytes
-        // are always valid UTF-8.
+        // Invariant: the buffer is only ever written via `fmt::Write::write_str`,
+        // which only accepts valid UTF-8 `&str` input. The bytes therefore form
+        // valid UTF-8 by construction.
+        debug_assert!(core::str::from_utf8(&self.buf[..self.len]).is_ok());
+        // SAFETY: see invariant above.
         unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
     }
 }
@@ -47,7 +49,7 @@ impl<const N: usize> fmt::Write for StackString<N> {
 
 /// Writes an ASCII digit string with grouping separators every 3 digits from the right.
 ///
-/// Example with separator `','`: `"12345"` → `"12,345"`.
+/// Example with separator `','`: `"12345"` -> `"12,345"`.
 pub(crate) fn write_grouped_ascii_digits(
     f: &mut fmt::Formatter<'_>,
     digits: &str,
@@ -100,6 +102,7 @@ pub(crate) fn write_u128(
         fwd[i] = rev[len - 1 - i];
     }
 
+    // SAFETY: bytes are ASCII '0'..='9' produced above, valid UTF-8.
     let digits = unsafe { core::str::from_utf8_unchecked(&fwd[..len]) };
 
     if group {
@@ -125,20 +128,6 @@ impl DecimalParts {
     /// Used for English singular/plural selection in byte labels.
     pub(crate) fn is_exactly_one(&self) -> bool {
         self.integer == 1 && self.frac_len == 0
-    }
-
-    /// Converts the parts to `f64` for locale suffix inflection hooks.
-    ///
-    /// Note: precision is limited to 6 decimal places and f64 cannot exactly
-    /// represent all large integers, but for display purposes this is sufficient.
-    pub(crate) fn as_f64(&self) -> f64 {
-        let mut value = self.integer as f64;
-        let mut denom = 10.0;
-        for i in 0..(self.frac_len as usize) {
-            value += (self.frac_digits[i] - b'0') as f64 / denom;
-            denom *= 10.0;
-        }
-        value
     }
 }
 
@@ -292,7 +281,8 @@ pub(crate) fn compute_sigfigs_u128(
 
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
 pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
-    // Safety: digits are always ASCII bytes in '0'..='9', produced by
+    debug_assert!(digits.iter().all(|b| b.is_ascii_digit()));
+    // SAFETY: digits are always ASCII bytes in '0'..='9', produced by
     // fractional_digits_rounded. They are valid UTF-8 by construction.
     let s = unsafe { core::str::from_utf8_unchecked(digits) };
     f.write_str(s)

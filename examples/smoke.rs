@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use humfmt::{
-    locale::CustomLocale, BytesOptions, DurationOptions, Humanize, ListOptions, NumberOptions,
-};
+use humfmt::{BytesOptions, DurationOptions, Humanize, ListOptions, NumberOptions};
 
 fn main() {
     println!("{}", humfmt::number(15320));
@@ -50,55 +48,32 @@ fn main() {
         15_320.human_number_with(NumberOptions::new().long_units())
     );
 
-    let custom_locale = CustomLocale::english()
-        .short_suffix(1, "k")
-        .separators(',', '.')
-        .and_word("plus")
-        .serial_comma(false);
+    // Custom separators: replaces the old custom-locale demonstration.
     println!(
         "{}",
-        humfmt::number_with(15_320, NumberOptions::new().locale(custom_locale))
+        humfmt::number_with(
+            15_320,
+            NumberOptions::new()
+                .decimal_separator(',')
+                .group_separator('.')
+        )
     );
     println!(
         "{}",
         humfmt::list_with(
             &["red", "green", "blue"],
-            ListOptions::new().locale(custom_locale)
+            ListOptions::new().conjunction("plus").no_serial_comma()
         )
     );
 
-    #[cfg(feature = "russian")]
-    {
-        println!(
-            "{}",
-            humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Russian))
-        );
-        println!(
-            "{}",
-            humfmt::duration_with(
-                Duration::from_secs(3665),
-                DurationOptions::new()
-                    .locale(humfmt::locale::Russian)
-                    .long_units()
-                    .max_units(3)
-            )
-        );
-    }
-
-    #[cfg(feature = "polish")]
-    {
-        println!(
-            "{}",
-            humfmt::number_with(15_320, NumberOptions::new().locale(humfmt::locale::Polish))
-        );
-        println!(
-            "{}",
-            humfmt::ago_with(
-                Duration::from_secs(90),
-                DurationOptions::new()
-                    .locale(humfmt::locale::Polish)
-                    .long_units()
-            )
-        );
-    }
+    // Percentage formatting.
+    println!("{}", humfmt::percent(0.423));
+    println!(
+        "{}",
+        0.5_f64.human_percent_with(
+            humfmt::PercentOptions::new()
+                .precision(2)
+                .fixed_precision(true)
+        )
+    );
 }

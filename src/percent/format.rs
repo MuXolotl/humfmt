@@ -2,17 +2,16 @@ use core::fmt;
 use core::fmt::Write;
 
 use crate::common::fmt::write_u128;
-use crate::locale::Locale;
 
 use super::PercentOptions;
 
 // Powers of 10 used for rounding, indexed by precision (0..=6).
 const POW10: [u64; 7] = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000];
 
-pub fn format_percent<L: Locale>(
+pub fn format_percent(
     f: &mut fmt::Formatter<'_>,
     value: f64,
-    options: &PercentOptions<L>,
+    options: &PercentOptions,
 ) -> fmt::Result {
     // Non-finite values render as-is with a percent sign.
     if !value.is_finite() {
@@ -23,11 +22,9 @@ pub fn format_percent<L: Locale>(
     let negative = percent.is_sign_negative();
     let abs = percent.abs();
     let precision = options.precision;
-    let decimal_sep = options.locale.decimal_separator();
+    let decimal_sep = options.decimal_separator;
 
     // Round to the requested precision using half-up integer arithmetic.
-    // Mirrors round_f64 in number/format.rs but stays local to avoid
-    // coupling the two modules.
     let factor = POW10[precision as usize] as f64;
     let rounded = if abs * factor + 0.5 < u64::MAX as f64 {
         let shifted = (abs * factor + 0.5) as u64;
@@ -48,7 +45,8 @@ pub fn format_percent<L: Locale>(
     let int_part = rounded as u128;
     let frac_f = rounded - int_part as f64;
 
-    write_u128(f, int_part, false, options.locale.group_separator())?;
+    // The percent formatter has no digit grouping; pass `false`.
+    write_u128(f, int_part, false, ',')?;
 
     if precision > 0 {
         let p = precision as usize;
@@ -65,6 +63,7 @@ pub fn format_percent<L: Locale>(
 
         if options.fixed_precision {
             f.write_char(decimal_sep)?;
+            // SAFETY: bytes are ASCII digits produced above.
             let s = unsafe { core::str::from_utf8_unchecked(&buf[..p]) };
             f.write_str(s)?;
         } else {
@@ -75,6 +74,7 @@ pub fn format_percent<L: Locale>(
             }
             if end > 0 {
                 f.write_char(decimal_sep)?;
+                // SAFETY: bytes are ASCII digits produced above.
                 let s = unsafe { core::str::from_utf8_unchecked(&buf[..end]) };
                 f.write_str(s)?;
             }

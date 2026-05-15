@@ -1,10 +1,16 @@
 /// Extension trait providing ergonomic `.human_*()` methods.
 ///
-/// This trait is implemented for all types (`impl<T> Humanize for T {}`),
-/// but each method is only available when the receiver implements the
-/// corresponding `*Like` trait (`BytesLike`, `NumberLike`, etc.).
+/// This trait is implemented for **all** types via a blanket impl
+/// (`impl<T> Humanize for T {}`), but each method is only available when the
+/// receiver implements the corresponding `*Like` trait (`BytesLike`,
+/// `NumberLike`, etc.) — enforced via per-method `where` bounds.
 ///
-/// This keeps the API baby-simple:
+/// This is a deliberate API design choice: the blanket impl keeps the import
+/// surface tiny (`use humfmt::Humanize;` brings everything in), while the
+/// `where` bounds keep the methods type-safe — calling
+/// `"hello".human_number()` is a compile error, not a runtime surprise.
+///
+/// # Examples
 ///
 /// ```rust
 /// use humfmt::Humanize;
@@ -31,8 +37,6 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this duration as relative time using default options.
-    ///
-    /// Output is localized via the active locale in [`crate::DurationOptions`].
     fn human_ago(self) -> crate::ago::AgoDisplay
     where
         Self: crate::duration::DurationLike,
@@ -41,10 +45,7 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this duration as relative time using custom duration options.
-    fn human_ago_with<L: crate::locale::Locale>(
-        self,
-        options: crate::duration::DurationOptions<L>,
-    ) -> crate::ago::AgoDisplay<L>
+    fn human_ago_with(self, options: crate::duration::DurationOptions) -> crate::ago::AgoDisplay
     where
         Self: crate::duration::DurationLike,
     {
@@ -60,10 +61,10 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this duration using custom duration options.
-    fn human_duration_with<L: crate::locale::Locale>(
+    fn human_duration_with(
         self,
-        options: crate::duration::DurationOptions<L>,
-    ) -> crate::duration::DurationDisplay<L>
+        options: crate::duration::DurationOptions,
+    ) -> crate::duration::DurationDisplay
     where
         Self: crate::duration::DurationLike,
     {
@@ -71,7 +72,7 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this numeric value as a compact human-readable number using default options.
-    fn human_number(self) -> crate::number::NumberDisplay<crate::locale::English>
+    fn human_number(self) -> crate::number::NumberDisplay
     where
         Self: crate::number::NumberLike,
     {
@@ -79,33 +80,22 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this numeric value as a compact human-readable number using custom options.
-    fn human_number_with<L: crate::locale::Locale>(
+    fn human_number_with(
         self,
-        options: crate::number::NumberOptions<L>,
-    ) -> crate::number::NumberDisplay<L>
+        options: crate::number::NumberOptions,
+    ) -> crate::number::NumberDisplay
     where
         Self: crate::number::NumberLike,
     {
         crate::number::number_with(self, options)
     }
 
-    /// Formats this value as an ordinal number using the default locale (English).
-    fn human_ordinal(self) -> crate::ordinal::OrdinalDisplay<crate::locale::English>
+    /// Formats this value as an ordinal number.
+    fn human_ordinal(self) -> crate::ordinal::OrdinalDisplay
     where
         Self: crate::ordinal::OrdinalLike,
     {
         crate::ordinal::ordinal(self)
-    }
-
-    /// Formats this value as an ordinal number using a custom locale.
-    fn human_ordinal_with<L: crate::locale::Locale>(
-        self,
-        locale: L,
-    ) -> crate::ordinal::OrdinalDisplay<L>
-    where
-        Self: crate::ordinal::OrdinalLike,
-    {
-        crate::ordinal::ordinal_with(self, locale)
     }
 
     /// Formats this value as a human-readable percentage using default options.
@@ -120,7 +110,7 @@ pub trait Humanize: Sized {
     /// assert_eq!(0.423_f64.human_percent().to_string(), "42.3%");
     /// assert_eq!(1.0_f64.human_percent().to_string(), "100%");
     /// ```
-    fn human_percent(self) -> crate::percent::PercentDisplay<crate::locale::English>
+    fn human_percent(self) -> crate::percent::PercentDisplay
     where
         Self: crate::percent::PercentLike,
     {
@@ -128,10 +118,10 @@ pub trait Humanize: Sized {
     }
 
     /// Formats this value as a human-readable percentage using custom options.
-    fn human_percent_with<L: crate::locale::Locale>(
+    fn human_percent_with(
         self,
-        options: crate::percent::PercentOptions<L>,
-    ) -> crate::percent::PercentDisplay<L>
+        options: crate::percent::PercentOptions,
+    ) -> crate::percent::PercentDisplay
     where
         Self: crate::percent::PercentLike,
     {

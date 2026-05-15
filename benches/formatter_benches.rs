@@ -2,8 +2,7 @@ use core::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use humfmt::{
-    ago, bytes, duration, list, locale::CustomLocale, number, BytesOptions, DurationOptions,
-    ListOptions, NumberOptions,
+    ago, bytes, duration, list, number, BytesOptions, DurationOptions, ListOptions, NumberOptions,
 };
 
 const NUMBER_VALUES: [i64; 8] = [
@@ -40,26 +39,22 @@ fn bench_numbers(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "russian")]
-    {
-        let locale_opts = NumberOptions::new().locale(humfmt::locale::Russian);
-        group.bench_function("russian_locale", |b| {
-            b.iter(|| {
-                for value in NUMBER_VALUES {
-                    black_box(humfmt::number_with(black_box(value), locale_opts).to_string());
-                }
-            })
-        });
-    }
-
-    let custom_locale = CustomLocale::english()
-        .short_suffix(1, "k")
-        .separators(',', '.');
-    let custom_opts = NumberOptions::new().locale(custom_locale);
-    group.bench_function("custom_locale", |b| {
+    let custom_separators = NumberOptions::new()
+        .decimal_separator(',')
+        .group_separator(' ');
+    group.bench_function("custom_separators", |b| {
         b.iter(|| {
             for value in NUMBER_VALUES {
-                black_box(humfmt::number_with(black_box(value), custom_opts).to_string());
+                black_box(humfmt::number_with(black_box(value), custom_separators).to_string());
+            }
+        })
+    });
+
+    let uncompacted_grouped = NumberOptions::new().compact(false).separators(true);
+    group.bench_function("uncompacted_grouped", |b| {
+        b.iter(|| {
+            for value in NUMBER_VALUES {
+                black_box(humfmt::number_with(black_box(value), uncompacted_grouped).to_string());
             }
         })
     });
@@ -124,7 +119,7 @@ fn bench_duration_and_ago(c: &mut Criterion) {
 fn bench_lists(c: &mut Criterion) {
     let mut group = c.benchmark_group("list");
 
-    group.bench_function("english", |b| {
+    group.bench_function("default", |b| {
         b.iter(|| black_box(list(black_box(&LIST_VALUES)).to_string()))
     });
 
@@ -135,21 +130,18 @@ fn bench_lists(c: &mut Criterion) {
         })
     });
 
-    let overridden_conjunction = ListOptions::new()
-        .serial_comma_enabled(false)
-        .conjunction("plus");
-    group.bench_function("options_conjunction_override", |b| {
+    let custom_conjunction = ListOptions::new().conjunction("plus").no_serial_comma();
+    group.bench_function("custom_conjunction", |b| {
         b.iter(|| {
-            black_box(
-                humfmt::list_with(black_box(&LIST_VALUES), overridden_conjunction).to_string(),
-            )
+            black_box(humfmt::list_with(black_box(&LIST_VALUES), custom_conjunction).to_string())
         })
     });
 
-    let custom_locale = CustomLocale::english().and_word("plus").serial_comma(false);
-    let custom_opts = ListOptions::new().locale(custom_locale);
-    group.bench_function("custom_locale", |b| {
-        b.iter(|| black_box(humfmt::list_with(black_box(&LIST_VALUES), custom_opts).to_string()))
+    let custom_separator = ListOptions::new().separator(" | ").conjunction("&");
+    group.bench_function("custom_separator", |b| {
+        b.iter(|| {
+            black_box(humfmt::list_with(black_box(&LIST_VALUES), custom_separator).to_string())
+        })
     });
 
     group.finish();

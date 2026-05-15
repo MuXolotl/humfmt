@@ -1,15 +1,14 @@
 //! Optional integration with [`chrono`](https://docs.rs/chrono).
 //!
 //! This module adapts `chrono::TimeDelta` and `chrono::DateTime` values into
-//! `humfmt` duration and relative-time formatters while preserving the crate's
-//! locale-aware options.
+//! `humfmt` duration and relative-time formatters.
 //!
 //! # Feature flag
 //!
 //! Enable with:
 //!
 //! ```toml
-//! humfmt = { version = "0.5", features = ["chrono"] }
+//! humfmt = { version = "0.6", features = ["chrono"] }
 //! ```
 //!
 //! # What this module provides
@@ -46,8 +45,8 @@
 //! ```
 
 use crate::{
-    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationConversionError,
-    DurationOptions, NegativeDurationError,
+    ago::AgoDisplay, duration::DurationDisplay, DurationConversionError, DurationOptions,
+    NegativeDurationError,
 };
 
 /// Extension methods for `chrono::TimeDelta`.
@@ -69,10 +68,10 @@ pub trait ChronoHumanize: Sized {
     /// Formats this timedelta as a human-readable duration using custom options.
     ///
     /// Returns [`NegativeDurationError`] if the timedelta is negative.
-    fn try_human_duration_with<L: Locale>(
+    fn try_human_duration_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<DurationDisplay<L>, NegativeDurationError>;
+        options: DurationOptions,
+    ) -> Result<DurationDisplay, NegativeDurationError>;
 
     /// Formats this timedelta as relative time (e.g. `"1m 30s ago"`).
     ///
@@ -82,32 +81,36 @@ pub trait ChronoHumanize: Sized {
     /// Formats this timedelta as relative time using custom duration options.
     ///
     /// Returns [`NegativeDurationError`] if the timedelta is negative.
-    fn try_human_ago_with<L: Locale>(
+    fn try_human_ago_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<AgoDisplay<L>, NegativeDurationError>;
+        options: DurationOptions,
+    ) -> Result<AgoDisplay, NegativeDurationError>;
 }
 
 impl ChronoHumanize for ::chrono::TimeDelta {
+    #[inline]
     fn try_human_duration(self) -> Result<DurationDisplay, NegativeDurationError> {
         duration(self)
     }
 
-    fn try_human_duration_with<L: Locale>(
+    #[inline]
+    fn try_human_duration_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<DurationDisplay<L>, NegativeDurationError> {
+        options: DurationOptions,
+    ) -> Result<DurationDisplay, NegativeDurationError> {
         duration_with(self, options)
     }
 
+    #[inline]
     fn try_human_ago(self) -> Result<AgoDisplay, NegativeDurationError> {
         ago(self)
     }
 
-    fn try_human_ago_with<L: Locale>(
+    #[inline]
+    fn try_human_ago_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<AgoDisplay<L>, NegativeDurationError> {
+        options: DurationOptions,
+    ) -> Result<AgoDisplay, NegativeDurationError> {
         ago_with(self, options)
     }
 }
@@ -131,10 +134,10 @@ pub fn duration(value: ::chrono::TimeDelta) -> Result<DurationDisplay, NegativeD
 /// Formats a non-negative `chrono::TimeDelta` with custom duration options.
 ///
 /// Returns [`NegativeDurationError`] if the timedelta is negative.
-pub fn duration_with<L: Locale>(
+pub fn duration_with(
     value: ::chrono::TimeDelta,
-    options: DurationOptions<L>,
-) -> Result<DurationDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<DurationDisplay, NegativeDurationError> {
     duration_with_checked(value, options).map_err(|_| NegativeDurationError)
 }
 
@@ -152,10 +155,10 @@ pub fn duration_checked(
 ///
 /// This function distinguishes between negative inputs and out-of-range values
 /// via [`DurationConversionError`].
-pub fn duration_with_checked<L: Locale>(
+pub fn duration_with_checked(
     value: ::chrono::TimeDelta,
-    options: DurationOptions<L>,
-) -> Result<DurationDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<DurationDisplay, DurationConversionError> {
     Ok(crate::duration::duration_with(
         to_std_checked(value)?,
         options,
@@ -181,10 +184,10 @@ pub fn ago(value: ::chrono::TimeDelta) -> Result<AgoDisplay, NegativeDurationErr
 /// Formats a non-negative `chrono::TimeDelta` as relative time with custom options.
 ///
 /// Returns [`NegativeDurationError`] if the timedelta is negative.
-pub fn ago_with<L: Locale>(
+pub fn ago_with(
     value: ::chrono::TimeDelta,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, NegativeDurationError> {
     ago_with_checked(value, options).map_err(|_| NegativeDurationError)
 }
 
@@ -200,10 +203,10 @@ pub fn ago_checked(value: ::chrono::TimeDelta) -> Result<AgoDisplay, DurationCon
 ///
 /// This function distinguishes between negative inputs and out-of-range values
 /// via [`DurationConversionError`].
-pub fn ago_with_checked<L: Locale>(
+pub fn ago_with_checked(
     value: ::chrono::TimeDelta,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, DurationConversionError> {
     Ok(crate::ago::ago_with(to_std_checked(value)?, options))
 }
 
@@ -230,11 +233,11 @@ pub fn ago_since<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
 /// Formats the elapsed time between two `chrono` datetimes as relative time using custom options.
 ///
 /// Returns [`NegativeDurationError`] if the elapsed duration is negative.
-pub fn ago_since_with<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone, L: Locale>(
+pub fn ago_since_with<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
     then: ::chrono::DateTime<Tz1>,
     now: ::chrono::DateTime<Tz2>,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, NegativeDurationError> {
     ago_since_with_checked(then, now, options).map_err(|_| NegativeDurationError)
 }
 
@@ -249,15 +252,16 @@ pub fn ago_since_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
     ago_checked(now.signed_duration_since(then))
 }
 
-/// Formats the elapsed time between two `chrono` datetimes as relative time with custom options and explicit conversion errors.
+/// Formats the elapsed time between two `chrono` datetimes as relative time
+/// with custom options and explicit conversion errors.
 ///
 /// This function distinguishes between negative inputs and out-of-range values
 /// via [`DurationConversionError`].
-pub fn ago_since_with_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone, L: Locale>(
+pub fn ago_since_with_checked<Tz1: ::chrono::TimeZone, Tz2: ::chrono::TimeZone>(
     then: ::chrono::DateTime<Tz1>,
     now: ::chrono::DateTime<Tz2>,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, DurationConversionError> {
     ago_with_checked(now.signed_duration_since(then), options)
 }
 

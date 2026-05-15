@@ -31,7 +31,7 @@ Criterion will also write HTML reports under:
 
 ## Methodology
 
-This harness tries to measure two common usage patterns:
+This harness measures two common usage patterns:
 
 1) Allocating: `to_string()` / `format!(...)` returning an owned `String`
 2) Reused buffer: writing `Display` output into a pre-allocated `String`

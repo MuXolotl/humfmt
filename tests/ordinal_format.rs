@@ -24,6 +24,11 @@ fn formats_larger_ordinals() {
 }
 
 #[test]
+fn formats_zero_ordinal() {
+    assert_eq!(ordinal(0).to_string(), "0th");
+}
+
+#[test]
 fn supports_extension_trait_usage() {
     assert_eq!(21_u32.human_ordinal().to_string(), "21st");
 }
@@ -32,4 +37,15 @@ fn supports_extension_trait_usage() {
 fn preserves_negative_prefix_for_signed_values() {
     assert_eq!(ordinal(-1).to_string(), "-1st");
     assert_eq!(ordinal(-12).to_string(), "-12th");
+}
+
+#[test]
+fn ordinal_suffix_helper_returns_just_the_suffix() {
+    assert_eq!(humfmt::ordinal::ordinal_suffix(1), "st");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(2), "nd");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(3), "rd");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(4), "th");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(11), "th");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(21), "st");
+    assert_eq!(humfmt::ordinal::ordinal_suffix(0), "th");
 }

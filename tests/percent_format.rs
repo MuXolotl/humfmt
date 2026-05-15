@@ -83,7 +83,6 @@ fn formats_negative_ratios() {
 
 #[test]
 fn negative_value_rounding_to_zero_suppresses_minus() {
-    // -0.0004 * 100 = -0.04, rounds to 0 at precision=1 — should not show "-0%".
     assert_eq!(percent(-0.0004_f64).to_string(), "0%");
 }
 
@@ -100,30 +99,11 @@ fn supports_f32_input() {
     assert_eq!(percent(1.0_f32).to_string(), "100%");
 }
 
-// --- Locale ---
+// --- Custom decimal separator ---
 
 #[test]
-fn supports_locale_decimal_separator() {
-    let custom_locale = humfmt::locale::CustomLocale::english().decimal_separator(',');
-    let opts = PercentOptions::new().precision(1).locale(custom_locale);
-    assert_eq!(percent_with(0.423_f64, opts).to_string(), "42,3%");
-}
-
-#[cfg(feature = "russian")]
-#[test]
-fn supports_russian_decimal_separator() {
-    let opts = PercentOptions::new()
-        .precision(1)
-        .locale(humfmt::locale::Russian);
-    assert_eq!(percent_with(0.423_f64, opts).to_string(), "42,3%");
-}
-
-#[cfg(feature = "polish")]
-#[test]
-fn supports_polish_decimal_separator() {
-    let opts = PercentOptions::new()
-        .precision(1)
-        .locale(humfmt::locale::Polish);
+fn supports_custom_decimal_separator() {
+    let opts = PercentOptions::new().precision(1).decimal_separator(',');
     assert_eq!(percent_with(0.423_f64, opts).to_string(), "42,3%");
 }
 
@@ -146,11 +126,8 @@ fn supports_extension_trait_with_options() {
 #[test]
 fn half_up_rounding() {
     let opts = PercentOptions::new().precision(1);
-    // 0.4250 * 100 = 42.50, rounds to 42.5 (exact).
     assert_eq!(percent_with(0.4250_f64, opts).to_string(), "42.5%");
-    // 0.4255 * 100 = 42.55, rounds up to 42.6.
     assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.6%");
-    // 0.4244 * 100 = 42.44, rounds down to 42.4.
     assert_eq!(percent_with(0.4244_f64, opts).to_string(), "42.4%");
 }
 
@@ -175,6 +152,5 @@ fn force_sign_renders_plus_for_positive_percents() {
 #[test]
 fn force_sign_avoids_plus_zero_when_rounding() {
     let opts = PercentOptions::new().force_sign(true).precision(1);
-    // 0.0004 * 100 = 0.04% -> rounds to 0.0% -> displays as "0%"
     assert_eq!(percent_with(0.0004_f64, opts).to_string(), "0%");
 }

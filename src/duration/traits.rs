@@ -11,6 +11,7 @@ pub trait DurationLike: Sealed + Copy {
 }
 
 impl DurationLike for core::time::Duration {
+    #[inline]
     fn into_duration(self) -> core::time::Duration {
         self
     }

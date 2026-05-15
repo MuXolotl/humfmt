@@ -1,10 +1,7 @@
-use crate::locale::{English, Locale};
-
 /// Builder-style configuration for list formatting.
 ///
 /// `humfmt` list formatting is intentionally minimal and predictable:
-/// it joins slices into natural-language lists while respecting locale defaults,
-/// with optional overrides.
+/// it joins slices into natural-language lists with optional overrides.
 ///
 /// # Examples
 ///
@@ -21,47 +18,34 @@ use crate::locale::{English, Locale};
 /// );
 /// ```
 #[derive(Copy, Clone, Debug)]
-pub struct ListOptions<L: Locale = English> {
-    pub(crate) serial_comma: Option<bool>,
-    pub(crate) conjunction: Option<&'static str>,
-    pub(crate) locale: L,
+pub struct ListOptions {
+    pub(crate) serial_comma: bool,
+    pub(crate) conjunction: &'static str,
+    pub(crate) separator: &'static str,
 }
 
-impl ListOptions<English> {
-    /// Creates default list formatting options (English).
+impl ListOptions {
+    /// Creates default list formatting options.
     ///
     /// Defaults:
-    /// - serial comma: locale default (English: enabled)
-    /// - conjunction: locale default (English: `"and"`)
-    /// - locale: `English`
+    /// - serial comma: enabled (Oxford comma)
+    /// - conjunction: `"and"`
+    /// - separator: `", "`
     #[inline]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            serial_comma: None,
-            conjunction: None,
-            locale: English,
+            serial_comma: true,
+            conjunction: "and",
+            separator: ", ",
         }
     }
-}
 
-impl<L: Locale> Default for ListOptions<L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            serial_comma: None,
-            conjunction: None,
-            locale: L::default(),
-        }
-    }
-}
-
-impl<L: Locale> ListOptions<L> {
     /// Enables the serial comma before the final list item.
     ///
-    /// This is equivalent to `.serial_comma_enabled(true)`.
+    /// Equivalent to `.serial_comma_enabled(true)`.
     #[inline]
-    pub fn serial_comma(mut self) -> Self {
-        self.serial_comma = Some(true);
+    pub const fn serial_comma(mut self) -> Self {
+        self.serial_comma = true;
         self
     }
 
@@ -70,41 +54,48 @@ impl<L: Locale> ListOptions<L> {
     /// - `true`: `"a, b, and c"`
     /// - `false`: `"a, b and c"`
     #[inline]
-    pub fn serial_comma_enabled(mut self, enabled: bool) -> Self {
-        self.serial_comma = Some(enabled);
+    pub const fn serial_comma_enabled(mut self, enabled: bool) -> Self {
+        self.serial_comma = enabled;
         self
     }
 
     /// Disables the serial comma before the final list item.
     ///
-    /// This is equivalent to `.serial_comma_enabled(false)`.
+    /// Equivalent to `.serial_comma_enabled(false)`.
     #[inline]
-    pub fn no_serial_comma(mut self) -> Self {
-        self.serial_comma = Some(false);
+    pub const fn no_serial_comma(mut self) -> Self {
+        self.serial_comma = false;
         self
     }
 
     /// Overrides the conjunction used to join the final list item.
     ///
+    /// Default is `"and"`.
+    ///
     /// Example: `"plus"` produces `"a, b plus c"`.
     #[inline]
-    pub fn conjunction(mut self, word: &'static str) -> Self {
-        self.conjunction = Some(word);
+    pub const fn conjunction(mut self, word: &'static str) -> Self {
+        self.conjunction = word;
         self
     }
 
-    /// Switches the active locale for list formatting.
+    /// Overrides the separator placed between list items.
     ///
-    /// Locale influences:
-    /// - default conjunction (`and_word`)
-    /// - default serial comma preference
-    /// - list separator between items
+    /// Default is `", "`.
+    ///
+    /// Note: serial comma is only injected when the separator is comma-style.
+    /// Custom separators like `" | "` will not get a serial comma even if
+    /// enabled.
     #[inline]
-    pub fn locale<N: Locale>(self, locale: N) -> ListOptions<N> {
-        ListOptions {
-            serial_comma: self.serial_comma,
-            conjunction: self.conjunction,
-            locale,
-        }
+    pub const fn separator(mut self, sep: &'static str) -> Self {
+        self.separator = sep;
+        self
+    }
+}
+
+impl Default for ListOptions {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }

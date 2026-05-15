@@ -64,20 +64,15 @@ fn bench_bytes_allocating(c: &mut Criterion) {
 
     let humfmt_opts = BytesOptions::new().precision(2);
 
-    // humansize default-style: SI + precision=2, no forced trailing zeros, no space.
     let humansize_opts = FormatSizeOptions::from(DECIMAL)
         .decimal_places(2)
         .decimal_zeroes(0)
         .space_after_value(false);
 
-    // prettier-bytes configured to match humfmt defaults as closely as possible:
-    // SI standard, Bytes unit, no space.
     let prettier = ByteFormatter::new()
         .standard(Standard::SI)
         .unit(Unit::Bytes)
         .space(false);
-
-    // --- All-crate comparison (u64 inputs, SI/decimal) ---
 
     group.bench_function("humfmt/u64/to_string", |b| {
         b.iter(|| {
@@ -123,8 +118,6 @@ fn bench_bytes_allocating(c: &mut Criterion) {
         })
     });
 
-    // --- humfmt-only extended range (u128 > u64::MAX) ---
-
     group.bench_function("humfmt/u128_extended/to_string", |b| {
         b.iter(|| {
             for &v in &VALUES_U128_EXTENDED {
@@ -132,8 +125,6 @@ fn bench_bytes_allocating(c: &mut Criterion) {
             }
         })
     });
-
-    // --- signed negative values (humfmt + humansize) ---
 
     group.bench_function("humfmt/negative_i64/to_string", |b| {
         b.iter(|| {
@@ -157,13 +148,8 @@ fn bench_bytes_allocating(c: &mut Criterion) {
 fn bench_bytes_allocating_aligned(c: &mut Criterion) {
     let mut group = c.benchmark_group("bytes/allocating_aligned");
 
-    // Align humfmt to common CLI output style:
-    // - IEC (binary)
-    // - precision 2 (note: trailing zeros are trimmed by humfmt)
-    // - space before suffix
     let humfmt_aligned = BytesOptions::new().binary().precision(2).space(true);
 
-    // humansize aligned: IEC + fixed 2dp + space
     let humansize_aligned = FormatSizeOptions::from(BINARY)
         .decimal_places(2)
         .decimal_zeroes(2)

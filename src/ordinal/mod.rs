@@ -1,35 +1,36 @@
-//! Ordinal formatting.
+//! Ordinal formatting (English).
 //!
-//! Use this module for locale-aware ordinal markers such as `1st`, `21.` or `42-й`.
+//! Use this module to render English ordinal markers like `1st`, `2nd`, `3rd`,
+//! `4th`, ..., with the standard teen exceptions.
 //!
 //! # Quick start
 //!
 //! ```rust
-//! use humfmt::{ordinal, ordinal_with};
+//! use humfmt::ordinal;
 //!
 //! assert_eq!(ordinal(1).to_string(), "1st");
 //! assert_eq!(ordinal(21).to_string(), "21st");
 //! assert_eq!(ordinal(11).to_string(), "11th");
+//! assert_eq!(ordinal(-1).to_string(), "-1st");
 //! ```
 //!
 //! # Edge case behaviour
 //!
-//! | Input | English | Russian | Polish |
-//! |---:|---|---|---|
-//! | `1` | `"1st"` | `"1-й"` | `"1."` |
-//! | `2` | `"2nd"` | `"2-й"` | `"2."` |
-//! | `11` | `"11th"` | `"11-й"` | `"11."` |
-//! | `21` | `"21st"` | `"21-й"` | `"21."` |
-//! | `103` | `"103rd"` | `"103-й"` | `"103."` |
-//! | `111` | `"111th"` | `"111-й"` | `"111."` |
-//! | `-1` | `"-1st"` | `"-1-й"` | `"-1."` |
-//!
-//! # Limitations
-//!
-//! **Russian gender:** The Russian ordinal suffix is always `-й` (masculine).
-//! The library has no concept of grammatical gender since it only receives a
-//! number. If you need feminine or neuter ordinals in Russian, you must handle
-//! that outside the formatter.
+//! | Input | Output |
+//! |---:|---|
+//! | `1` | `"1st"` |
+//! | `2` | `"2nd"` |
+//! | `3` | `"3rd"` |
+//! | `4` | `"4th"` |
+//! | `11` | `"11th"` |
+//! | `12` | `"12th"` |
+//! | `13` | `"13th"` |
+//! | `21` | `"21st"` |
+//! | `42` | `"42nd"` |
+//! | `103` | `"103rd"` |
+//! | `111` | `"111th"` |
+//! | `-1` | `"-1st"` |
+//! | `0` | `"0th"` |
 
 mod display;
 mod traits;
@@ -37,9 +38,7 @@ mod traits;
 pub use display::OrdinalDisplay;
 pub use traits::OrdinalLike;
 
-use crate::locale::{English, Locale};
-
-/// Creates a human-readable ordinal formatter using the default English locale.
+/// Creates a human-readable ordinal formatter.
 ///
 /// # Examples
 ///
@@ -47,20 +46,28 @@ use crate::locale::{English, Locale};
 /// assert_eq!(humfmt::ordinal(1).to_string(), "1st");
 /// assert_eq!(humfmt::ordinal(23).to_string(), "23rd");
 /// ```
-pub fn ordinal<T: OrdinalLike>(value: T) -> OrdinalDisplay<English> {
-    OrdinalDisplay::new(value.into_ordinal(), English)
+pub fn ordinal<T: OrdinalLike>(value: T) -> OrdinalDisplay {
+    OrdinalDisplay::new(value.into_ordinal())
 }
 
-/// Creates a human-readable ordinal formatter with a custom locale.
+/// Returns the English ordinal suffix for a given non-negative integer.
+///
+/// Used internally and exposed for users who want just the suffix
+/// without the value (e.g. for custom rendering pipelines).
 ///
 /// # Examples
 ///
 /// ```rust
-/// use humfmt::locale::English;
-///
-/// let out = humfmt::ordinal_with(11, English);
-/// assert_eq!(out.to_string(), "11th");
+/// assert_eq!(humfmt::ordinal::ordinal_suffix(1), "st");
+/// assert_eq!(humfmt::ordinal::ordinal_suffix(11), "th");
+/// assert_eq!(humfmt::ordinal::ordinal_suffix(22), "nd");
 /// ```
-pub fn ordinal_with<T: OrdinalLike, L: Locale>(value: T, locale: L) -> OrdinalDisplay<L> {
-    OrdinalDisplay::new(value.into_ordinal(), locale)
+#[inline]
+pub fn ordinal_suffix(n: u128) -> &'static str {
+    match n % 10 {
+        1 if n % 100 != 11 => "st",
+        2 if n % 100 != 12 => "nd",
+        3 if n % 100 != 13 => "rd",
+        _ => "th",
+    }
 }

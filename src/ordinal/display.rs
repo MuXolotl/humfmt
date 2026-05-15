@@ -1,25 +1,22 @@
 use core::fmt;
 
-use crate::locale::{English, Locale};
+use super::{ordinal_suffix, traits::OrdinalValue};
 
-use super::traits::OrdinalValue;
-
-/// `Display` wrapper for ordinal formatting (e.g. `"21st"`, `"21."`, `"21-й"`).
+/// `Display` wrapper for ordinal formatting (e.g. `"21st"`).
 ///
-/// Instances of this type are created via [`crate::ordinal`] and [`crate::ordinal_with`].
+/// Instances of this type are created via [`crate::ordinal`].
 #[derive(Copy, Clone, Debug)]
-pub struct OrdinalDisplay<L: Locale = English> {
+pub struct OrdinalDisplay {
     value: OrdinalValue,
-    locale: L,
 }
 
-impl<L: Locale> OrdinalDisplay<L> {
-    pub(crate) fn new(value: OrdinalValue, locale: L) -> Self {
-        Self { value, locale }
+impl OrdinalDisplay {
+    pub(crate) fn new(value: OrdinalValue) -> Self {
+        Self { value }
     }
 }
 
-impl<L: Locale> fmt::Display for OrdinalDisplay<L> {
+impl fmt::Display for OrdinalDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (prefix, magnitude) = match self.value {
             OrdinalValue::Int(value) if value < 0 => ("-", value.unsigned_abs()),
@@ -27,7 +24,7 @@ impl<L: Locale> fmt::Display for OrdinalDisplay<L> {
             OrdinalValue::UInt(value) => ("", value),
         };
 
-        let suffix = self.locale.ordinal_suffix(magnitude);
+        let suffix = ordinal_suffix(magnitude);
         write!(f, "{prefix}{magnitude}{suffix}")
     }
 }

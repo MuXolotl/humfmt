@@ -1,6 +1,6 @@
 [package]
 name = "humfmt"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 rust-version = "1.70"
 authors = ["MuXolotl"]
@@ -13,20 +13,19 @@ keywords = ["format", "humanize", "display", "number", "numeric"]
 categories = ["value-formatting", "text-processing"]
 
 [features]
-default = ["std", "english"]
+default = ["std"]
 
+# Standard library support. Disable for `no_std` targets.
 std = []
-alloc = []
 
-english = []
-russian = []
-polish = []
-
+# Optional ecosystem integrations.
 chrono = ["dep:chrono"]
 time = ["dep:time"]
 
 [dependencies]
 chrono = { version = "0.4", optional = true, default-features = false }
+# Upper bound pins to a release line compatible with MSRV 1.70.
+# Bump when MSRV is raised.
 time = { version = ">=0.3, <0.3.42", optional = true, default-features = false }
 
 [dev-dependencies]

@@ -1,15 +1,14 @@
 //! Optional integration with [`time`](https://docs.rs/time).
 //!
 //! This module adapts `time::Duration` and `time::OffsetDateTime` values into
-//! `humfmt` duration and relative-time formatters while preserving the crate's
-//! locale-aware options.
+//! `humfmt` duration and relative-time formatters.
 //!
 //! # Feature flag
 //!
 //! Enable with:
 //!
 //! ```toml
-//! humfmt = { version = "0.5", features = ["time"] }
+//! humfmt = { version = "0.6", features = ["time"] }
 //! ```
 //!
 //! # What this module provides
@@ -23,7 +22,8 @@
 //! `core::time::Duration` cannot represent negative durations. Therefore:
 //!
 //! - Negative `time::Duration` values are rejected.
-//! - The checked APIs return [`crate::DurationConversionError::NegativeDuration`] for negatives.
+//! - The checked APIs return
+//!   [`crate::DurationConversionError::NegativeDuration`] for negatives.
 //!
 //! # Examples
 //!
@@ -45,8 +45,8 @@
 //! ```
 
 use crate::{
-    ago::AgoDisplay, duration::DurationDisplay, locale::Locale, DurationConversionError,
-    DurationOptions, NegativeDurationError,
+    ago::AgoDisplay, duration::DurationDisplay, DurationConversionError, DurationOptions,
+    NegativeDurationError,
 };
 
 /// Extension methods for `time::Duration`.
@@ -68,10 +68,10 @@ pub trait TimeHumanize: Sized {
     /// Formats this duration as a human-readable duration using custom options.
     ///
     /// Returns [`NegativeDurationError`] if the duration is negative.
-    fn try_human_duration_with<L: Locale>(
+    fn try_human_duration_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<DurationDisplay<L>, NegativeDurationError>;
+        options: DurationOptions,
+    ) -> Result<DurationDisplay, NegativeDurationError>;
 
     /// Formats this duration as relative time (e.g. `"1m 30s ago"`).
     ///
@@ -81,32 +81,36 @@ pub trait TimeHumanize: Sized {
     /// Formats this duration as relative time using custom duration options.
     ///
     /// Returns [`NegativeDurationError`] if the duration is negative.
-    fn try_human_ago_with<L: Locale>(
+    fn try_human_ago_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<AgoDisplay<L>, NegativeDurationError>;
+        options: DurationOptions,
+    ) -> Result<AgoDisplay, NegativeDurationError>;
 }
 
 impl TimeHumanize for ::time::Duration {
+    #[inline]
     fn try_human_duration(self) -> Result<DurationDisplay, NegativeDurationError> {
         duration(self)
     }
 
-    fn try_human_duration_with<L: Locale>(
+    #[inline]
+    fn try_human_duration_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<DurationDisplay<L>, NegativeDurationError> {
+        options: DurationOptions,
+    ) -> Result<DurationDisplay, NegativeDurationError> {
         duration_with(self, options)
     }
 
+    #[inline]
     fn try_human_ago(self) -> Result<AgoDisplay, NegativeDurationError> {
         ago(self)
     }
 
-    fn try_human_ago_with<L: Locale>(
+    #[inline]
+    fn try_human_ago_with(
         self,
-        options: DurationOptions<L>,
-    ) -> Result<AgoDisplay<L>, NegativeDurationError> {
+        options: DurationOptions,
+    ) -> Result<AgoDisplay, NegativeDurationError> {
         ago_with(self, options)
     }
 }
@@ -130,10 +134,10 @@ pub fn duration(value: ::time::Duration) -> Result<DurationDisplay, NegativeDura
 /// Formats a non-negative `time::Duration` with custom duration options.
 ///
 /// Returns [`NegativeDurationError`] if the duration is negative.
-pub fn duration_with<L: Locale>(
+pub fn duration_with(
     value: ::time::Duration,
-    options: DurationOptions<L>,
-) -> Result<DurationDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<DurationDisplay, NegativeDurationError> {
     duration_with_checked(value, options).map_err(|_| NegativeDurationError)
 }
 
@@ -149,10 +153,10 @@ pub fn duration_checked(
 /// Formats a `time::Duration` with custom duration options and explicit conversion errors.
 ///
 /// This function distinguishes negative inputs via [`DurationConversionError`].
-pub fn duration_with_checked<L: Locale>(
+pub fn duration_with_checked(
     value: ::time::Duration,
-    options: DurationOptions<L>,
-) -> Result<DurationDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<DurationDisplay, DurationConversionError> {
     Ok(crate::duration::duration_with(
         to_std_checked(value)?,
         options,
@@ -178,10 +182,10 @@ pub fn ago(value: ::time::Duration) -> Result<AgoDisplay, NegativeDurationError>
 /// Formats a non-negative `time::Duration` as relative time with custom options.
 ///
 /// Returns [`NegativeDurationError`] if the duration is negative.
-pub fn ago_with<L: Locale>(
+pub fn ago_with(
     value: ::time::Duration,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, NegativeDurationError> {
     ago_with_checked(value, options).map_err(|_| NegativeDurationError)
 }
 
@@ -195,10 +199,10 @@ pub fn ago_checked(value: ::time::Duration) -> Result<AgoDisplay, DurationConver
 /// Formats a `time::Duration` as relative time with custom options and explicit conversion errors.
 ///
 /// This function distinguishes negative inputs via [`DurationConversionError`].
-pub fn ago_with_checked<L: Locale>(
+pub fn ago_with_checked(
     value: ::time::Duration,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, DurationConversionError> {
     Ok(crate::ago::ago_with(to_std_checked(value)?, options))
 }
 
@@ -222,18 +226,20 @@ pub fn ago_since(
     ago_checked(now - then).map_err(|_| NegativeDurationError)
 }
 
-/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time using custom options.
+/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time
+/// using custom options.
 ///
 /// Returns [`NegativeDurationError`] if the elapsed duration is negative.
-pub fn ago_since_with<L: Locale>(
+pub fn ago_since_with(
     then: ::time::OffsetDateTime,
     now: ::time::OffsetDateTime,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, NegativeDurationError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, NegativeDurationError> {
     ago_since_with_checked(then, now, options).map_err(|_| NegativeDurationError)
 }
 
-/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time with explicit conversion errors.
+/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time
+/// with explicit conversion errors.
 ///
 /// This function distinguishes negative inputs via [`DurationConversionError`].
 pub fn ago_since_checked(
@@ -243,14 +249,15 @@ pub fn ago_since_checked(
     ago_checked(now - then)
 }
 
-/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time with custom options and explicit conversion errors.
+/// Formats the elapsed time between two `time::OffsetDateTime` values as relative time
+/// with custom options and explicit conversion errors.
 ///
 /// This function distinguishes negative inputs via [`DurationConversionError`].
-pub fn ago_since_with_checked<L: Locale>(
+pub fn ago_since_with_checked(
     then: ::time::OffsetDateTime,
     now: ::time::OffsetDateTime,
-    options: DurationOptions<L>,
-) -> Result<AgoDisplay<L>, DurationConversionError> {
+    options: DurationOptions,
+) -> Result<AgoDisplay, DurationConversionError> {
     ago_with_checked(now - then, options)
 }
 
