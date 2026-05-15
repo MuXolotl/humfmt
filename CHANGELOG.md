@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased → 0.6.0]
+## [Unreleased → 0.7.0]
+...
 
-This release removes the entire i18n / locale subsystem to refocus the crate
-as a fast, English-only formatting toolkit. Locale-related complexity was
-holding back development; this is a deliberate scope reduction.
+---
 
-If you need locale-aware formatting, pin to `0.5.x` and use the `russian` /
-`polish` feature flags from that release line.
+## [0.6.0] - 2026-05-16
+
+This release removes the entire i18n / locale subsystem to refocus the crate as a fast, English-only formatting toolkit. Locale-related complexity was holding back development; this is a deliberate scope reduction.
+
+If you need locale-aware formatting, pin to `0.5.x` and use the `russian` / `polish` feature flags from that release line.
 
 ### Removed (BREAKING)
 
@@ -25,55 +27,34 @@ If you need locale-aware formatting, pin to `0.5.x` and use the `russian` /
   - `DurationUnit` enum (was used only by locale callbacks)
 - All locale feature flags: `english`, `russian`, `polish`.
 - The placeholder `alloc` feature (was unused).
-- `ordinal_with` function (collapsed into `ordinal` since there are no locales
-  left to switch).
+- `ordinal_with` function (collapsed into `ordinal` since there are no locales left to switch).
 - `Humanize::human_ordinal_with` method.
-- `*Options::locale(...)` methods on `NumberOptions`, `PercentOptions`,
-  `BytesOptions`, `DurationOptions`, `ListOptions`.
+- `*Options::locale(...)` methods on `NumberOptions`, `PercentOptions`, `BytesOptions`, `DurationOptions`, `ListOptions`.
 - `CustomLocale::list_separator` is replaced by the new `ListOptions::separator`.
 
 ### Changed (BREAKING)
 
-- `NumberOptions`, `PercentOptions`, `BytesOptions`, `DurationOptions`,
-  `ListOptions` no longer have a `<L: Locale>` generic parameter.
-- `NumberDisplay`, `PercentDisplay`, `BytesDisplay`, `DurationDisplay`,
-  `AgoDisplay`, `OrdinalDisplay`, `ListDisplay` no longer have a `<L: Locale>`
-  generic parameter.
-- `chrono::*` and `time::*` integration functions and their corresponding
-  trait methods (`ChronoHumanize`, `TimeHumanize`) no longer have a
-  `<L: Locale>` generic parameter.
-- `ListOptions` is restructured: `serial_comma` and `conjunction` are now
-  stored as plain values (with English defaults baked into `new()`), not
-  `Option<...>` overrides on top of locale defaults.
+- `NumberOptions`, `PercentOptions`, `BytesOptions`, `DurationOptions`, `ListOptions` no longer have a `<L: Locale>` generic parameter.
+- `NumberDisplay`, `PercentDisplay`, `BytesDisplay`, `DurationDisplay`, `AgoDisplay`, `OrdinalDisplay`, `ListDisplay` no longer have a `<L: Locale>` generic parameter.
+- `chrono::*` and `time::*` integration functions and their corresponding trait methods (`ChronoHumanize`, `TimeHumanize`) no longer have a `<L: Locale>` generic parameter.
+- `ListOptions` is restructured: `serial_comma` and `conjunction` are now stored as plain values (with English defaults baked into `new()`), not `Option<...>` overrides on top of locale defaults.
 
 ### Added
 
-- `NumberOptions::decimal_separator(char)` and `NumberOptions::group_separator(char)`
-  as direct replacements for the removed `.locale(...)` configuration.
+- `NumberOptions::decimal_separator(char)` and `NumberOptions::group_separator(char)` as direct replacements for the removed `.locale(...)` configuration.
 - `PercentOptions::decimal_separator(char)` (same purpose).
-- `ListOptions::separator(&'static str)` to override the inter-item separator
-  (replaces `CustomLocale::list_separator`).
-- Public `humfmt::ordinal::ordinal_suffix(n: u128) -> &'static str` helper for
-  callers that want just the suffix without the value.
-- `numfmt` (kurtlawrence/numfmt) added to the comparison harness as an honest
-  competitor for the `number` formatter.
-- New `formatter_benches.rs` groups: `custom_separators`, `uncompacted_grouped`,
-  `custom_conjunction`, `custom_separator`.
+- `ListOptions::separator(&'static str)` to override the inter-item separator (replaces `CustomLocale::list_separator`).
+- Public `humfmt::ordinal::ordinal_suffix(n: u128) -> &'static str` helper for callers that want just the suffix without the value.
+- `numfmt` (kurtlawrence/numfmt) added to the comparison harness as an honest competitor for the `number` formatter.
+- New `formatter_benches.rs` groups: `custom_separators`, `uncompacted_grouped`, `custom_conjunction`, `custom_separator`.
 
 ### Improved
 
-- All builder methods on `NumberOptions`, `PercentOptions`, `BytesOptions`,
-  `DurationOptions`, `ListOptions` are now `const fn` — usable in `const`
-  contexts.
-- `StackString` buffer in the float number path shrunk from 512 to 384 bytes
-  (still fits any non-exponential `f64` with full precision and headroom).
-- `unsafe { from_utf8_unchecked }` blocks now have `debug_assert!` guards in
-  debug builds to catch invariant regressions.
-- `Humanize` blanket impl is explicitly documented (blanket `impl<T> Humanize for T {}`
-  with per-method `where` bounds — keeps imports tiny while staying type-safe).
-- `BENCHMARKS.md` capability matrix updated: dropped `Locale-aware` and
-  `Custom locale builder` rows, added `Custom decimal/group separators` and
-  the `numfmt` column.
+- All builder methods on `NumberOptions`, `PercentOptions`, `BytesOptions`, `DurationOptions`, `ListOptions` are now `const fn` — usable in `const` contexts.
+- `StackString` buffer in the float number path shrunk from 512 to 384 bytes (still fits any non-exponential `f64` with full precision and headroom).
+- `unsafe { from_utf8_unchecked }` blocks now have `debug_assert!` guards in debug builds to catch invariant regressions.
+- `Humanize` blanket impl is explicitly documented (blanket `impl<T> Humanize for T {}` with per-method `where` bounds — keeps imports tiny while staying type-safe).
+- `BENCHMARKS.md` capability matrix updated: dropped `Locale-aware` and `Custom locale builder` rows, added `Custom decimal/group separators` and the `numfmt` column.
 
 ### Migration
 

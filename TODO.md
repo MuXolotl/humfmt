@@ -61,16 +61,19 @@ a draft PR first so we do not step on each other's toes.
 
 ## DONE
 
-### (Unreleased → 0.6.0)
-- [x] ~~Remove the entire i18n / locale subsystem (`Locale` trait, `English` / `Russian` / `Polish` types, `CustomLocale`, `DurationUnit`, all `*Options::locale(...)` methods, `ordinal_with`, `human_ordinal_with`, `russian` / `polish` / `english` / `alloc` feature flags).~~
-- [x] ~~Replace locale-driven separator configuration with direct `decimal_separator(char)` / `group_separator(char)` builder methods on `NumberOptions`, `PercentOptions`, `BytesOptions`.~~
-- [x] ~~Replace `CustomLocale::list_separator` with `ListOptions::separator(&'static str)`.~~
-- [x] ~~Make all builder methods `const fn`.~~
-- [x] ~~Shrink float-path `StackString` from 512 to 384 bytes.~~
-- [x] ~~Add `humfmt::ordinal::ordinal_suffix(u128) -> &'static str` public helper.~~
-- [x] ~~Document the `Humanize` blanket impl pattern explicitly.~~
-- [x] ~~Add `numfmt` to the comparison benchmark harness.~~
+### (Unreleased → 0.7.0)
+...
+
+### v0.6.0 released
 - [x] ~~Update `BENCHMARKS.md` capability matrix (drop locale rows, add separator row, add `numfmt` column).~~
+- [x] ~~Add `numfmt` to the comparison benchmark harness.~~
+- [x] ~~Document the `Humanize` blanket impl pattern explicitly.~~
+- [x] ~~Add `humfmt::ordinal::ordinal_suffix(u128) -> &'static str` public helper.~~
+- [x] ~~Shrink float-path `StackString` from 512 to 384 bytes.~~
+- [x] ~~Make all builder methods `const fn`.~~
+- [x] ~~Replace `CustomLocale::list_separator` with `ListOptions::separator(&'static str)`.~~
+- [x] ~~Replace locale-driven separator configuration with direct `decimal_separator(char)` / `group_separator(char)` builder methods on `NumberOptions`, `PercentOptions`, `BytesOptions`.~~
+- [x] ~~Remove the entire i18n / locale subsystem (`Locale` trait, `English` / `Russian` / `Polish` types, `CustomLocale`, `DurationUnit`, all `*Options::locale(...)` methods, `ordinal_with`, `human_ordinal_with`, `russian` / `polish` / `english` / `alloc` feature flags).~~
 
 ### v0.5.0 released
 - [x] ~~Number & Percent formatters:~~ `+` ~~sign option for positive values —~~ `"+1.5K"`~~,~~ `"+42.3%"` ~~style useful for delta/change displays.~~
