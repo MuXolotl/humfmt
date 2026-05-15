@@ -76,11 +76,11 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **995 ns** | **124 ns** | 0.53x |
-| humfmt  i8-u128, any precision | 1.87 us | 234 ns | 1.00x |
-| bytesize  u64 only (SI), default 1dp, space | 2.13 us | 266 ns | 1.14x |
-| humansize  u64 only, SI, precision=2, no space | 2.82 us | 352 ns | 1.50x |
-| byte-unit  u64 (auto unit), format! uses String | 7.51 us | 939 ns | 4.01x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **365 ns** | **46 ns** | 0.47x |
+| humfmt  i8-u128, any precision | 778 ns | 97 ns | 1.00x |
+| bytesize  u64 only (SI), default 1dp, space | 1.05 us | 131 ns | 1.35x |
+| humansize  u64 only, SI, precision=2, no space | 1.38 us | 172 ns | 1.77x |
+| byte-unit  u64 (auto unit), format! uses String | 3.99 us | 499 ns | 5.14x |
 
 ## Bytes — allocating (`to_string`) — aligned (IEC + space + precision=2), u64 inputs
 
@@ -88,33 +88,33 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, IEC, precision=2, space (trims zeros) | **1.27 us** | **212 ns** | 1.00x |
-| byte-unit  u64 only, IEC, fixed 2dp, space | 1.50 us | 250 ns | 1.18x |
-| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 1.70 us | 284 ns | 1.34x |
-| bytesize  u64 only, IEC, fixed 2dp, space | 1.72 us | 287 ns | 1.36x |
-| humansize  u64 only, IEC, fixed 2dp, space | 1.96 us | 327 ns | 1.55x |
-| human-repr  u64, IEC+space (feature) | 2.39 us | 398 ns | 1.88x |
+| humfmt  u64, IEC, precision=2, space (trims zeros) | **540 ns** | **90 ns** | 1.00x |
+| byte-unit  u64 only, IEC, fixed 2dp, space | 731 ns | 122 ns | 1.35x |
+| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 777 ns | 129 ns | 1.44x |
+| bytesize  u64 only, IEC, fixed 2dp, space | 804 ns | 134 ns | 1.49x |
+| humansize  u64 only, IEC, fixed 2dp, space | 954 ns | 159 ns | 1.77x |
+| human-repr  u64, IEC+space (feature) | 1.07 us | 178 ns | 1.98x |
 
 ## Bytes — reused buffer (`write!` into `String`), u64 inputs
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| prettier-bytes  u64 only, fixed 2dp, no negatives | **372 ns** | **47 ns** | 0.33x |
-| humfmt  i8-u128, any precision | 1.14 us | 143 ns | 1.00x |
-| bytesize  u64 only (SI), default 1dp, space | 1.36 us | 170 ns | 1.19x |
-| humansize  u64 only, SI, precision=2, no space | 2.10 us | 263 ns | 1.84x |
-| byte-unit  u64 (auto unit), write! + Display | 6.49 us | 811 ns | 5.69x |
+| prettier-bytes  u64 only, fixed 2dp, no negatives | **191 ns** | **24 ns** | 0.26x |
+| humfmt  i8-u128, any precision | 734 ns | 92 ns | 1.00x |
+| bytesize  u64 only (SI), default 1dp, space | 895 ns | 112 ns | 1.22x |
+| humansize  u64 only, SI, precision=2, no space | 1.24 us | 155 ns | 1.69x |
+| byte-unit  u64 (auto unit), write! + Display | 3.75 us | 468 ns | 5.10x |
 
 ## Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space + precision=2), u64 inputs
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, IEC, precision=2, space (trims zeros) | **781 ns** | **130 ns** | 1.00x |
-| byte-unit  u64 only, IEC, fixed 2dp, space | 1.02 us | 170 ns | 1.31x |
-| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 1.08 us | 180 ns | 1.38x |
-| bytesize  u64 only, IEC, fixed 2dp, space | 1.12 us | 187 ns | 1.43x |
-| humansize  u64 only, IEC, fixed 2dp, space | 1.40 us | 233 ns | 1.79x |
-| human-repr  u64, IEC+space (feature) | 1.91 us | 318 ns | 2.44x |
+| humfmt  u64, IEC, precision=2, space (trims zeros) | **526 ns** | **88 ns** | 1.00x |
+| byte-unit  u64 only, IEC, fixed 2dp, space | 557 ns | 93 ns | 1.06x |
+| bytesize  u64 only, IEC, fixed 2dp, space | 630 ns | 105 ns | 1.20x |
+| indicatif HumanBytes  u64 only, IEC, fixed 2dp, space | 663 ns | 111 ns | 1.26x |
+| humansize  u64 only, IEC, fixed 2dp, space | 838 ns | 140 ns | 1.59x |
+| human-repr  u64, IEC+space (feature) | 975 ns | 162 ns | 1.85x |
 
 ## Bytes — extended range (u128 > u64::MAX) — humfmt only
 
@@ -122,7 +122,7 @@ These tables show representative outputs for a few byte values using the same co
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/u128_extended | 1.61 us | 402 ns |
+| humfmt/u128_extended | 798 ns | 200 ns |
 
 ## Bytes — negative values (i64)
 
@@ -130,8 +130,8 @@ These tables show representative outputs for a few byte values using the same co
 
 | Scenario | Median per-iteration | Time per value |
 |---|---:|---:|
-| humfmt/negative_i64 | 877 ns | 219 ns |
-| humansize/negative_i64 | 1.39 us | 346 ns |
+| humfmt/negative_i64 | 342 ns | 86 ns |
+| humansize/negative_i64 | 676 ns | 169 ns |
 
 ## Numbers — allocating (`to_string`), mixed i64 inputs
 
@@ -139,10 +139,10 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  i64, precision=1 (default) | **2.13 us** | **213 ns** | 1.00x |
-| numfmt  i64, short scale, precision=2 | 2.20 us | 220 ns | 1.04x |
-| humfmt  i64, precision=2 | 2.32 us | 232 ns | 1.09x |
-| human_format  f64 only, precision=2, returns String | 5.42 us | 542 ns | 2.55x |
+| numfmt  i64, short scale, precision=2 | **757 ns** | **76 ns** | 0.88x |
+| humfmt  i64, precision=1 (default) | 858 ns | 86 ns | 1.00x |
+| humfmt  i64, precision=2 | 922 ns | 92 ns | 1.08x |
+| human_format  f64 only, precision=2, returns String | 2.35 us | 235 ns | 2.74x |
 
 ## Numbers — allocating (`to_string`), u64 inputs (apples-to-apples)
 
@@ -150,11 +150,11 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, precision=1 | **1.72 us** | **215 ns** | 1.00x |
-| humfmt  u64, precision=2 | 1.83 us | 228 ns | 1.06x |
-| numfmt  u64, short scale, precision=2 | 1.87 us | 233 ns | 1.08x |
-| human_format  u64 as f64, precision=2, returns String | 3.83 us | 479 ns | 2.23x |
-| human_format  u64 as f64, precision=1, returns String | 3.93 us | 491 ns | 2.28x |
+| numfmt  u64, short scale, precision=2 | **638 ns** | **80 ns** | 0.92x |
+| humfmt  u64, precision=1 | 695 ns | 87 ns | 1.00x |
+| humfmt  u64, precision=2 | 754 ns | 94 ns | 1.08x |
+| human_format  u64 as f64, precision=2, returns String | 1.63 us | 204 ns | 2.35x |
+| human_format  u64 as f64, precision=1, returns String | 1.76 us | 220 ns | 2.53x |
 
 ## Numbers — allocating (`to_string`), f64 inputs
 
@@ -162,9 +162,9 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| numfmt  f64, short scale, precision=2 | **1.87 us** | **234 ns** | 0.60x |
-| humfmt  f64, precision=2 | 3.10 us | 388 ns | 1.00x |
-| human_format  f64, precision=2, returns String | 3.71 us | 463 ns | 1.19x |
+| numfmt  f64, short scale, precision=2 | **622 ns** | **78 ns** | 0.40x |
+| human_format  f64, precision=2, returns String | 1.45 us | 182 ns | 0.93x |
+| humfmt  f64, precision=2 | 1.56 us | 195 ns | 1.00x |
 
 ## Numbers — reused buffer (`write!` into `String`), u64 inputs
 
@@ -172,10 +172,10 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  u64, precision=1, write! | **1.04 us** | **130 ns** | 1.00x |
-| numfmt  u64, short scale, precision=2, push_str (returns &str) | 1.18 us | 148 ns | 1.14x |
-| humfmt  u64, precision=2, write! | 1.20 us | 150 ns | 1.15x |
-| human_format  u64 as f64, precision=2, push_str (always allocs) | 3.94 us | 492 ns | 3.79x |
+| numfmt  u64, short scale, precision=2, push_str (returns &str) | **551 ns** | **69 ns** | 0.95x |
+| humfmt  u64, precision=1, write! | 580 ns | 73 ns | 1.00x |
+| humfmt  u64, precision=2, write! | 648 ns | 81 ns | 1.12x |
+| human_format  u64 as f64, precision=2, push_str (always allocs) | 1.64 us | 205 ns | 2.82x |
 
 ## Duration formatting — allocating
 
@@ -183,10 +183,10 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (default) | **1.83 us** | **229 ns** | 1.00x |
-| humfmt  short, 3 units | 2.23 us | 279 ns | 1.22x |
-| humantime  all non-zero units | 3.43 us | 429 ns | 1.87x |
-| humfmt  long labels, 2 units | 3.52 us | 440 ns | 1.92x |
+| humfmt  short, 2 units (default) | **676 ns** | **85 ns** | 1.00x |
+| humantime  all non-zero units | 804 ns | 100 ns | 1.19x |
+| humfmt  short, 3 units | 869 ns | 109 ns | 1.28x |
+| humfmt  long labels, 2 units | 926 ns | 116 ns | 1.37x |
 
 ## Relative time — allocating
 
@@ -194,9 +194,9 @@ These tables show representative outputs for a few byte values using the same co
 
 | Implementation | Median per-iteration | Time per value | Relative vs humfmt |
 |---|---:|---:|---:|
-| humfmt  short, 2 units (default) | **2.15 us** | **269 ns** | 1.00x |
-| humfmt  short, 2 units (explicit) | 2.23 us | 278 ns | 1.03x |
-| humfmt  long, 2 units | 3.03 us | 379 ns | 1.41x |
-| timeago  2 units, returns String | 5.28 us | 659 ns | 2.45x |
-| timeago  1 unit (default), returns String | 6.31 us | 789 ns | 2.93x |
+| humfmt  short, 2 units (default) | **737 ns** | **92 ns** | 1.00x |
+| humfmt  short, 2 units (explicit) | 746 ns | 93 ns | 1.01x |
+| humfmt  long, 2 units | 943 ns | 118 ns | 1.28x |
+| timeago  1 unit (default), returns String | 1.01 us | 127 ns | 1.37x |
+| timeago  2 units, returns String | 1.57 us | 196 ns | 2.13x |
 
