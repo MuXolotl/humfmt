@@ -1,6 +1,6 @@
 use crate::common::sealed::Sealed;
 
-/// Trait for inputs accepted by [`crate::percent`] / [`crate::percent_with`].
+/// Trait for inputs accepted by [`crate::percent()`] / [`crate::percent_with`].
 ///
 /// Implemented for `f32` and `f64`.
 /// This trait is sealed and cannot be implemented outside this crate.

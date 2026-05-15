@@ -4,8 +4,7 @@ use super::{format::format_list, ListOptions};
 
 /// `Display` wrapper for natural-language list formatting.
 ///
-/// Instances of this type are created via [`crate::list`] and
-/// [`crate::list_with`].
+/// Instances of this type are created via [`crate::list()`] and [`crate::list_with`].
 ///
 /// # Examples
 ///

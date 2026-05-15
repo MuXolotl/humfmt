@@ -1,6 +1,6 @@
 //! Relative-time formatting.
 //!
-//! This module builds on [`crate::duration`] and shares the same
+//! This module builds on [`crate::duration()`] and shares the same
 //! configuration surface through [`crate::DurationOptions`].
 //!
 //! # Quick start

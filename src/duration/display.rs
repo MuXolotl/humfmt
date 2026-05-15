@@ -4,8 +4,7 @@ use super::{format::format_duration, DurationOptions};
 
 /// `Display` wrapper for human-readable durations (e.g. `"1h 1m"`).
 ///
-/// Instances of this type are created via [`crate::duration`] and
-/// [`crate::duration_with`].
+/// Instances of this type are created via [`crate::duration()`] and [`crate::duration_with`].
 ///
 /// This formatter is intentionally compact by default:
 /// it renders at most `max_units` non-zero units (default: 2).

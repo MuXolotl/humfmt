@@ -4,7 +4,7 @@ use crate::duration::{duration_with, DurationLike, DurationOptions};
 
 /// `Display` wrapper for relative time output (e.g. `"1m 30s ago"`).
 ///
-/// Instances of this type are created via [`crate::ago`] and [`crate::ago_with`].
+/// Instances of this type are created via [`crate::ago()`] and [`crate::ago_with`].
 /// It builds on the duration formatter and appends `" ago"`.
 ///
 /// This type does not allocate on its own; allocation only happens if the caller

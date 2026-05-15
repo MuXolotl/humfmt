@@ -12,6 +12,14 @@ readme = "README.md"
 keywords = ["format", "humanize", "display", "number", "numeric"]
 categories = ["value-formatting", "text-processing"]
 
+# Files excluded from the published crate.
+exclude = [
+    ".github/**",
+    ".gitignore",
+    "TODO.md",
+    "tools/**",
+]
+
 [features]
 default = ["std"]
 

@@ -6,7 +6,7 @@ use super::{format::format_number, NumberOptions};
 
 /// `Display` wrapper for compact number formatting (e.g. `"15.3K"`).
 ///
-/// Instances of this type are created via [`crate::number`] and [`crate::number_with`].
+/// Instances of this type are created via [`crate::number()`] and [`crate::number_with`].
 ///
 /// This type does not allocate by itself; allocation only happens if the caller
 /// requests an owned `String` via `.to_string()` or `format!(...)`.

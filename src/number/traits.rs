@@ -1,6 +1,6 @@
 use crate::common::{numeric::NumericValue, sealed::Sealed};
 
-/// Trait for inputs accepted by [`crate::number`] / [`crate::number_with`].
+/// Trait for inputs accepted by [`crate::number()`] / [`crate::number_with`].
 ///
 /// Implemented for:
 /// - all integer primitives (`i8`..`i128`, `u8`..`u128`, `isize`, `usize`)

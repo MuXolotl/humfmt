@@ -11,7 +11,7 @@ pub enum BytesValue {
     UInt(u128),
 }
 
-/// Trait for inputs accepted by [`crate::bytes`] / [`crate::bytes_with`].
+/// Trait for inputs accepted by [`crate::bytes()`] / [`crate::bytes_with`].
 ///
 /// Implemented for all integer primitives (`i8`..`i128`, `u8`..`u128`,
 /// `isize`, `usize`).

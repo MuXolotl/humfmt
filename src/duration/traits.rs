@@ -1,7 +1,7 @@
 use crate::common::sealed::Sealed;
 
-/// Trait for inputs accepted by [`crate::duration`] / [`crate::duration_with`]
-/// and [`crate::ago`] / [`crate::ago_with`].
+/// Trait for inputs accepted by [`crate::duration()`] / [`crate::duration_with`]
+/// and [`crate::ago()`] / [`crate::ago_with`].
 ///
 /// Currently implemented for `core::time::Duration`.
 /// This trait is sealed and cannot be implemented outside this crate.

@@ -4,8 +4,7 @@ use super::{format::format_percent, PercentOptions};
 
 /// `Display` wrapper for percentage formatting (e.g. `"42.3%"`).
 ///
-/// Instances of this type are created via [`crate::percent`] and
-/// [`crate::percent_with`].
+/// Instances of this type are created via [`crate::percent()`] and [`crate::percent_with`].
 ///
 /// This type does not allocate on its own; allocation only happens if the caller
 /// requests an owned `String` via `.to_string()` or `format!(...)`.

@@ -4,7 +4,7 @@ use super::{ordinal_suffix, traits::OrdinalValue};
 
 /// `Display` wrapper for ordinal formatting (e.g. `"21st"`).
 ///
-/// Instances of this type are created via [`crate::ordinal`].
+/// Instances of this type are created via [`crate::ordinal()`].
 #[derive(Copy, Clone, Debug)]
 pub struct OrdinalDisplay {
     value: OrdinalValue,
