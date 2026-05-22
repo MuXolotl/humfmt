@@ -110,6 +110,10 @@ assert_eq!(number(-12_500).to_string(), "-12.5K");
 | 9 | 10^27 | `Oc` | ` octillion` |
 | 10 | 10^30 | `No` | ` nonillion` |
 | 11 | 10^33 | `Dc` | ` decillion` |
+| 12 | 10^36 | `Ud` | ` undecillion` |
+
+The table goes up to `Ud` (`10^36`), which keeps the full `u128` / `i128`
+range compact without falling back to very large `Dc` values.
 
 ### Precision
 
@@ -147,6 +151,10 @@ assert_eq!(number_with(1, opts).to_string(), "1.00");
 assert_eq!(number_with(10, opts).to_string(), "10.0");
 assert_eq!(number_with(100, opts).to_string(), "100");
 ```
+
+Significant digits are clamped to `1..=39` (the maximum number of decimal
+digits in a `u128`). Fractional output is still capped at 6 decimal places,
+matching the formatter-wide precision cap.
 
 ### Disabling compact scaling
 
@@ -235,6 +243,7 @@ use humfmt::{number_with, NumberOptions};
 let opts = NumberOptions::new().long_units();
 assert_eq!(number_with(15_320, opts).to_string(), "15.3 thousand");
 assert_eq!(number_with(1_000_000, opts).to_string(), "1 million");
+assert_eq!(number_with(1_000_000_000_000_000_000_000_000_000_000_000_000_u128, opts).to_string(), "1 undecillion");
 ```
 
 ### Edge cases
@@ -248,8 +257,8 @@ assert_eq!(number_with(1_000_000, opts).to_string(), "1 million");
 | `999_950` | `"1M"` | Rounds up across boundary |
 | `-1` | `"-1"` | Sign preserved |
 | `-12_500` | `"-12.5K"` | Sign + compact |
-| `i128::MIN` | `"-170.1Dc"` | No panic, no overflow |
-| `u128::MAX` | `"340.3Dc"` | No panic, no overflow |
+| `i128::MIN` | `"-170.1Ud"` | No panic, no overflow |
+| `u128::MAX` | `"340.3Ud"` | No panic, no overflow |
 | `0.0` | `"0"` | |
 | `-0.0` | `"0"` | Negative zero suppressed |
 | `-0.004` | `"0"` | Rounds to zero, sign suppressed |

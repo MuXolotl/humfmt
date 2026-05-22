@@ -26,8 +26,8 @@
 //! | `999_950` | `"1M"` | Rounds up across suffix boundary |
 //! | `-1` | `"-1"` | Sign preserved |
 //! | `-12_500` | `"-12.5K"` | Sign + compact |
-//! | `i128::MIN` | `"-170.1Dc"` | No panic, no overflow |
-//! | `u128::MAX` | `"340.3Dc"` | No panic, no overflow |
+//! | `i128::MIN` | `"-170.1Ud"` | No panic, no overflow |
+//! | `u128::MAX` | `"340.3Ud"` | No panic, no overflow |
 //! | `0.0` | `"0"` | |
 //! | `-0.0` | `"0"` | Negative zero suppressed |
 //! | `-0.004` | `"0"` | Rounds to zero, sign suppressed |
@@ -40,17 +40,18 @@
 //! | Index | Magnitude | Short | Long |
 //! |:---:|---:|---|---|
 //! | 0 | 1 | `""` | `""` |
-//! | 1 | 10^3 | `K` | ` thousand` |
-//! | 2 | 10^6 | `M` | ` million` |
-//! | 3 | 10^9 | `B` | ` billion` |
-//! | 4 | 10^12 | `T` | ` trillion` |
-//! | 5 | 10^15 | `Qa` | ` quadrillion` |
-//! | 6 | 10^18 | `Qi` | ` quintillion` |
-//! | 7 | 10^21 | `Sx` | ` sextillion` |
-//! | 8 | 10^24 | `Sp` | ` septillion` |
-//! | 9 | 10^27 | `Oc` | ` octillion` |
-//! | 10 | 10^30 | `No` | ` nonillion` |
-//! | 11 | 10^33 | `Dc` | ` decillion` |
+//! | 1 | 10^3 | `K` | `thousand` |
+//! | 2 | 10^6 | `M` | `million` |
+//! | 3 | 10^9 | `B` | `billion` |
+//! | 4 | 10^12 | `T` | `trillion` |
+//! | 5 | 10^15 | `Qa` | `quadrillion` |
+//! | 6 | 10^18 | `Qi` | `quintillion` |
+//! | 7 | 10^21 | `Sx` | `sextillion` |
+//! | 8 | 10^24 | `Sp` | `septillion` |
+//! | 9 | 10^27 | `Oc` | `octillion` |
+//! | 10 | 10^30 | `No` | `nonillion` |
+//! | 11 | 10^33 | `Dc` | `decillion` |
+//! | 12 | 10^36 | `Ud` | `undecillion` |
 //!
 //! # Float precision limits
 //!

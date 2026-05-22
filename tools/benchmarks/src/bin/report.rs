@@ -29,6 +29,7 @@ const BYTES_NEG_I64_PER_ITER: f64 = 4.0;
 const NUMBERS_MIXED_PER_ITER: f64 = 10.0;
 const NUMBERS_U64_PER_ITER: f64 = 8.0;
 const NUMBERS_F64_PER_ITER: f64 = 8.0;
+const NUMBERS_U128_EXTREME_PER_ITER: f64 = 6.0;
 
 const DURATION_PER_ITER: f64 = 8.0;
 const AGO_PER_ITER: f64 = 8.0;
@@ -120,8 +121,20 @@ fn main() -> io::Result<()> {
                 items: numbers_allocating_float_items(),
             },
             SvgSection {
+                title: "Numbers — humfmt option coverage (allocating) — lower is better",
+                items: numbers_humfmt_options_items(),
+            },
+            SvgSection {
+                title: "Numbers — extended u128 range (humfmt only) — lower is better",
+                items: numbers_u128_extreme_items(),
+            },
+            SvgSection {
                 title: "Numbers — reused buffer (write!) — lower is better",
                 items: numbers_reused_buffer_items(),
+            },
+            SvgSection {
+                title: "Numbers — reused buffer, humfmt option coverage — lower is better",
+                items: numbers_reused_buffer_humfmt_options_items(),
             },
         ],
         &medians,
@@ -429,6 +442,162 @@ fn numbers_reused_buffer_items() -> Vec<SvgItem> {
     ]
 }
 
+fn numbers_humfmt_options_items() -> Vec<SvgItem> {
+    vec![
+        SvgItem::humfmt(
+            "humfmt  i64, significant_digits=3",
+            BenchKey::new("numbers/allocating_humfmt_options", "i64/significant3"),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, long units, precision=2",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "i64/long_units_precision2",
+            ),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, compact=false + separators",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "i64/uncompacted_grouped",
+            ),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, custom decimal/group separators",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "i64/custom_separators_uncompacted",
+            ),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, force_sign",
+            BenchKey::new("numbers/allocating_humfmt_options", "i64/force_sign"),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, precision=0, rounding=floor",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "i64/rounding_floor_precision0",
+            ),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, precision=0, rounding=ceil",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "i64/rounding_ceil_precision0",
+            ),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  f64, significant_digits=3",
+            BenchKey::new("numbers/allocating_humfmt_options", "f64/significant3"),
+            NUMBERS_F64_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  f64, compact=false + separators",
+            BenchKey::new(
+                "numbers/allocating_humfmt_options",
+                "f64/uncompacted_grouped",
+            ),
+            NUMBERS_F64_PER_ITER,
+        ),
+    ]
+}
+
+fn numbers_u128_extreme_items() -> Vec<SvgItem> {
+    vec![
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, default",
+            BenchKey::new("numbers/allocating_u128_extreme", "humfmt/default"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, precision=2",
+            BenchKey::new("numbers/allocating_u128_extreme", "humfmt/precision2"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, significant_digits=3",
+            BenchKey::new("numbers/allocating_u128_extreme", "humfmt/significant3"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, significant_digits=6",
+            BenchKey::new("numbers/allocating_u128_extreme", "humfmt/significant6"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, compact=false",
+            BenchKey::new("numbers/allocating_u128_extreme", "humfmt/uncompacted"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, compact=false + separators",
+            BenchKey::new(
+                "numbers/allocating_u128_extreme",
+                "humfmt/uncompacted_grouped",
+            ),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+    ]
+}
+
+fn numbers_reused_buffer_humfmt_options_items() -> Vec<SvgItem> {
+    vec![
+        SvgItem::humfmt(
+            "humfmt  i64, significant_digits=3, write!",
+            BenchKey::new(
+                "numbers/reused_buffer_humfmt_options",
+                "i64/significant3/write",
+            )
+            .with_param("64"),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  i64, compact=false + separators, write!",
+            BenchKey::new(
+                "numbers/reused_buffer_humfmt_options",
+                "i64/uncompacted_grouped/write",
+            )
+            .with_param("64"),
+            NUMBERS_MIXED_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  f64, precision=2, write!",
+            BenchKey::new(
+                "numbers/reused_buffer_humfmt_options",
+                "f64/precision2/write",
+            )
+            .with_param("64"),
+            NUMBERS_F64_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, default, write!",
+            BenchKey::new(
+                "numbers/reused_buffer_humfmt_options",
+                "u128_extreme/default/write",
+            )
+            .with_param("64"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+        SvgItem::humfmt(
+            "humfmt  u128 extreme, significant_digits=3, write!",
+            BenchKey::new(
+                "numbers/reused_buffer_humfmt_options",
+                "u128_extreme/significant3/write",
+            )
+            .with_param("64"),
+            NUMBERS_U128_EXTREME_PER_ITER,
+        ),
+    ]
+}
+
 fn duration_items() -> Vec<SvgItem> {
     vec![
         SvgItem::humfmt(
@@ -517,12 +686,13 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         "- Some groups are explicitly \"aligned\" to match a common output style (IEC + space, etc.).\n",
     );
     out.push_str(
-        "- Precision semantics differ: some crates keep fixed digits (e.g. `1.50`), \
-         while humfmt trims trailing zeros by design.\n",
+        "- Precision semantics differ: some crates keep fixed digits (e.g. `1.50`), while humfmt trims trailing zeros by design.\n",
     );
     out.push_str(
-        "- Compact `K/M/B` style number output is produced by humfmt, human_format, and numfmt; \
-         human-repr and readable produce grouped digits (`1,000`) instead.\n\n",
+        "- Compact `K/M/B` style number output is produced by humfmt, human_format, and numfmt; human-repr and readable produce grouped digits (`1,000`) instead.\n",
+    );
+    out.push_str(
+        "- Humfmt-only benchmark groups are not competitor comparisons; they exist to track feature-cost and regression behaviour inside humfmt.\n\n",
     );
     out.push_str("---\n\n");
 
@@ -533,8 +703,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Bytes — allocating (`to_string`), u64 inputs",
         Some(
-            "> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** \
-             in this harness. humfmt accepts i8–i128 and u8–u128.",
+            "> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** in this harness. humfmt accepts i8–i128 and u8–u128.",
         ),
         &bytes_alloc_items(),
         medians,
@@ -544,8 +713,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Bytes — allocating (`to_string`) — aligned (IEC + space + precision=2), u64 inputs",
         Some(
-            "> This group aligns unit system and spacing. \
-             Decimal digit policy can still differ (fixed digits vs trimmed zeros).",
+            "> This group aligns unit system and spacing. Decimal digit policy can still differ (fixed digits vs trimmed zeros).",
         ),
         &bytes_alloc_aligned_items(),
         medians,
@@ -581,8 +749,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     out.push_str("## Bytes — negative values (i64)\n\n");
     out.push_str(
-        "> bytesize and prettier-bytes do not participate (unsigned-only). \
-         This harness includes humfmt and humansize.\n\n",
+        "> bytesize and prettier-bytes do not participate (unsigned-only). This harness includes humfmt and humansize.\n\n",
     );
     out.push_str("| Scenario | Median per-iteration | Time per value |\n");
     out.push_str("|---|---:|---:|\n");
@@ -604,9 +771,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Numbers — allocating (`to_string`), mixed i64 inputs",
         Some(
-            "> human_format accepts f64 only and always returns an owned `String`. \
-             humfmt accepts all integer and float primitives and implements `Display`. \
-             numfmt accepts u64/i64/f64 and returns a borrowed `&str` from an internal buffer.",
+            "> human_format accepts f64 only and always returns an owned `String`. humfmt accepts all integer and float primitives and implements `Display`. numfmt accepts u64/i64/f64 and returns a borrowed `&str` from an internal buffer.",
         ),
         &numbers_allocating_items(),
         medians,
@@ -616,8 +781,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Numbers — allocating (`to_string`), u64 inputs (apples-to-apples)",
         Some(
-            "> human_format receives u64 cast to f64. \
-             All three crates produce compact `K/M/B` style output.",
+            "> human_format receives u64 cast to f64. All three crates produce compact `K/M/B` style output.",
         ),
         &numbers_allocating_int_items(),
         medians,
@@ -627,8 +791,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Numbers — allocating (`to_string`), f64 inputs",
         Some(
-            "> Float path only. human_format accepts f64 natively. \
-             human-repr and readable do not produce compact suffixes and are excluded.",
+            "> Float path only. human_format accepts f64 natively. human-repr and readable do not produce compact suffixes and are excluded.",
         ),
         &numbers_allocating_float_items(),
         medians,
@@ -636,11 +799,29 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     push_md_group(
         &mut out,
+        "Numbers — humfmt option coverage (allocating)",
+        Some(
+            "> Humfmt-only group. These rows measure the cost of individual number-formatting options; they are not competitor comparisons.",
+        ),
+        &numbers_humfmt_options_items(),
+        medians,
+    );
+
+    push_md_group(
+        &mut out,
+        "Numbers — extended range (u128 > u64::MAX) — humfmt only",
+        Some(
+            "> Competitor crates in this harness either do not accept u128 inputs or do not cover the full u128/i128 range. This group tracks humfmt's extended integer path.",
+        ),
+        &numbers_u128_extreme_items(),
+        medians,
+    );
+
+    push_md_group(
+        &mut out,
         "Numbers — reused buffer (`write!` into `String`), u64 inputs",
         Some(
-            "> humfmt writes via `Display` with no intermediate allocation. \
-             human_format always allocates a `String`; we `push_str` it into the buffer. \
-             numfmt returns a `&str` from its internal buffer; we `push_str` it.",
+            "> humfmt writes via `Display` with no intermediate allocation. human_format always allocates a `String`; we `push_str` it into the buffer. numfmt returns a `&str` from its internal buffer; we `push_str` it.",
         ),
         &numbers_reused_buffer_items(),
         medians,
@@ -648,11 +829,19 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     push_md_group(
         &mut out,
+        "Numbers — reused buffer, humfmt option coverage",
+        Some(
+            "> Humfmt-only group. These rows measure reused-buffer formatting for option-heavy and extended-range number scenarios.",
+        ),
+        &numbers_reused_buffer_humfmt_options_items(),
+        medians,
+    );
+
+    push_md_group(
+        &mut out,
         "Duration formatting — allocating",
         Some(
-            "> humantime renders all non-zero units. \
-             humfmt caps at `max_units` (default 2). \
-             These produce different output for the same input.",
+            "> humantime renders all non-zero units. humfmt caps at `max_units` (default 2). These produce different output for the same input.",
         ),
         &duration_items(),
         medians,
@@ -662,8 +851,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
         &mut out,
         "Relative time — allocating",
         Some(
-            "> timeago returns an owned `String` from `convert()`. \
-             humfmt implements `Display` and writes directly with no intermediate allocation.",
+            "> timeago returns an owned `String` from `convert()`. humfmt implements `Display` and writes directly with no intermediate allocation.",
         ),
         &ago_items(),
         medians,
@@ -671,10 +859,12 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
 
     if env_true("HUMFMT_BENCH_INCLUDE_IDS") {
         out.push_str("<details>\n<summary>All Criterion IDs found on disk</summary>\n\n```text\n");
+
         for k in medians.keys() {
             out.push_str(k);
             out.push('\n');
         }
+
         out.push_str("```\n\n</details>\n");
     }
 

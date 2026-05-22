@@ -8,7 +8,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased → 0.7.0]
-...
+
+### Changed
+
+- Number formatter suffix range now extends to `Ud` / `undecillion` (`10^36`). This improves compact output for the full `u128` / `i128` range:
+  - `u128::MAX` now formats as `"340.3Ud"` instead of a very large `Dc` value.
+  - `i128::MIN` now formats as `"-170.1Ud"` instead of a very large `Dc` value.
+- This is an intentional output change for values at or above `10^36`.
+
+### Fixed
+
+- Fixed overflow-prone fractional digit extraction in the shared `u128` long-division formatter path. Extreme values near `u128::MAX` now round correctly instead of being distorted by saturating intermediate multiplication.
+- Hardened significant-digit rounding for extreme integer values such as `u128::MAX`, `i128::MAX`, and `i128::MIN`.
+
+### Improved
+
+- Split number formatter tests into regular behaviour tests and edge-case tests.
+- Expanded the main Criterion formatter benchmark suite with focused `number` scenarios:
+  - integer default formatting,
+  - integer precision overrides,
+  - integer significant digits,
+  - long-form suffix labels,
+  - uncompacted grouped output,
+  - custom decimal/group separators,
+  - forced signs,
+  - floor/ceil rounding modes,
+  - float formatting paths,
+  - extreme `u128` formatting,
+  - reused-buffer `write!` paths.
+- Expanded the standalone comparison benchmark harness for `number`:
+  - kept existing apples-to-apples comparisons against `human_format` and `numfmt`,
+  - added humfmt-only option-cost groups for significant digits, separators, long labels, forced signs, rounding modes, and float option paths,
+  - added humfmt-only extended-range groups for `u128` values above typical competitor input limits,
+  - added reused-buffer humfmt option groups.
+- Updated the benchmark report generator to include the new number benchmark groups in `BENCHMARKS.md` and `assets/benchmarks/numbers_dark.svg`.
+- Added number edge-case coverage for:
+  - suffix-boundary rescaling,
+  - `u128::MAX`,
+  - `i128::MIN`,
+  - exact uncompacted extreme integer output,
+  - significant-digit rounding for extreme signed and unsigned integers,
+  - non-finite floats,
+  - tiny finite floats,
+  - rounded zero and negative zero behaviour,
+  - primitive integer input coverage.
+
+### Documentation
+
+- Updated compact-number suffix tables and edge-case examples to include `Ud` / `undecillion`.
+- Clarified that significant-digit formatting still follows the formatter-wide 6-decimal-place fractional precision cap.
+- Updated standalone benchmark harness documentation to call out humfmt-only option-cost and extended-range groups.
 
 ---
 

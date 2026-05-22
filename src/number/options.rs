@@ -119,7 +119,13 @@ impl NumberOptions {
 
     /// Sets the total number of significant digits to display.
     ///
-    /// Clamped to `1..=39` (the maximum digits in a `u128`).
+    /// The requested value is clamped to `1..=39`, matching the maximum number
+    /// of decimal digits in a `u128`.
+    ///
+    /// Important: fractional output still follows the formatter-wide precision
+    /// cap of 6 decimal places. This means high significant-digit requests are
+    /// most useful for large uncompacted integer output, while compact decimal
+    /// output will never print more than 6 digits after the decimal separator.
     ///
     /// # Behaviour table
     ///
@@ -130,15 +136,14 @@ impl NumberOptions {
     /// | `123_456` | `"123K"` | `1`, `2`, `3` are the 3 significant digits |
     /// | `1_234` (unscaled) | `"1230"` | Unscaled integer is rounded directly |
     ///
-    /// With [`fixed_precision(true)`], trailing zeros are padded:
+    /// With [`fixed_precision(true)`](NumberOptions::fixed_precision), trailing
+    /// zeros are padded:
     ///
     /// | Input | `significant_digits(3)` + `fixed_precision` |
     /// |---:|---|
     /// | `1` | `"1.00"` |
     /// | `10` | `"10.0"` |
     /// | `100` | `"100"` |
-    ///
-    /// [`fixed_precision(true)`]: NumberOptions::fixed_precision
     ///
     /// # Examples
     ///
@@ -149,6 +154,16 @@ impl NumberOptions {
     /// assert_eq!(humfmt::number_with(1234, opts).to_string(), "1.23K");
     /// assert_eq!(humfmt::number_with(12345, opts).to_string(), "12.3K");
     /// ```
+    ///
+    /// High significant-digit requests are clamped but still respect the
+    /// 6-decimal-place fractional output cap:
+    ///
+    /// ```rust
+    /// use humfmt::NumberOptions;
+    ///
+    /// let opts = NumberOptions::new().significant_digits(39);
+    /// assert_eq!(humfmt::number_with(1_234_567, opts).to_string(), "1.234567M");
+    /// ```
     #[inline]
     pub const fn significant_digits(mut self, n: u8) -> Self {
         let n = if n < 1 {
@@ -158,6 +173,7 @@ impl NumberOptions {
         } else {
             n
         };
+
         self.precision = Precision::Significant(n);
         self
     }

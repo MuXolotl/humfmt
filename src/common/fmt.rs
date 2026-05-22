@@ -1,3 +1,4 @@
+use core::cmp::Ordering;
 use core::fmt;
 use core::fmt::Write;
 
@@ -24,6 +25,7 @@ impl<const N: usize> StackString<N> {
         // which only accepts valid UTF-8 `&str` input. The bytes therefore form
         // valid UTF-8 by construction.
         debug_assert!(core::str::from_utf8(&self.buf[..self.len]).is_ok());
+
         // SAFETY: see invariant above.
         unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
     }
@@ -38,11 +40,14 @@ impl<const N: usize> Default for StackString<N> {
 impl<const N: usize> fmt::Write for StackString<N> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let bytes = s.as_bytes();
+
         if self.len + bytes.len() > N {
             return Err(fmt::Error);
         }
+
         self.buf[self.len..self.len + bytes.len()].copy_from_slice(bytes);
         self.len += bytes.len();
+
         Ok(())
     }
 }
@@ -56,6 +61,7 @@ pub(crate) fn write_grouped_ascii_digits(
     group_separator: char,
 ) -> fmt::Result {
     let len = digits.len();
+
     if len <= 3 {
         return f.write_str(digits);
     }
@@ -66,7 +72,9 @@ pub(crate) fn write_grouped_ascii_digits(
     };
 
     f.write_str(&digits[..first])?;
+
     let mut pos = first;
+
     while pos < len {
         f.write_char(group_separator)?;
         f.write_str(&digits[pos..pos + 3])?;
@@ -98,9 +106,12 @@ pub(crate) fn write_u128(
     }
 
     let mut fwd = [0u8; 39];
+
     for i in 0..len {
         fwd[i] = rev[len - 1 - i];
     }
+
+    debug_assert!(fwd[..len].iter().all(|b| b.is_ascii_digit()));
 
     // SAFETY: bytes are ASCII '0'..='9' produced above, valid UTF-8.
     let digits = unsafe { core::str::from_utf8_unchecked(&fwd[..len]) };
@@ -172,25 +183,39 @@ fn fractional_digits_rounded(
     rounding: crate::RoundingMode,
     is_negative: bool,
 ) -> ([u8; 6], u8, bool) {
+    debug_assert!(unit != 0);
+    debug_assert!(remainder < unit);
+
     let mut digits = [b'0'; 6];
     let mut rem = remainder;
 
     if precision == 0 {
         let has_remainder = rem > 0;
-        let next_digit = rem.saturating_mul(10) / unit;
+        let next_digit = if has_remainder {
+            mul10_div_mod(rem, unit).0
+        } else {
+            0
+        };
         let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
+
         return (digits, 0, carry);
     }
 
     for slot in digits.iter_mut().take(precision as usize) {
-        rem = rem.saturating_mul(10);
-        let digit = rem / unit;
-        rem %= unit;
+        let (digit, next_rem) = mul10_div_mod(rem, unit);
+
+        debug_assert!(digit <= 9);
+
         *slot = b'0' + digit as u8;
+        rem = next_rem;
     }
 
     let has_remainder = rem > 0;
-    let next_digit = rem.saturating_mul(10) / unit;
+    let next_digit = if has_remainder {
+        mul10_div_mod(rem, unit).0
+    } else {
+        0
+    };
     let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
 
     if !carry {
@@ -199,18 +224,97 @@ fn fractional_digits_rounded(
 
     // Propagate carry through fractional digits.
     let mut idx = precision as i32 - 1;
+
     while idx >= 0 {
         let i = idx as usize;
+
         if digits[i] != b'9' {
             digits[i] += 1;
             return (digits, precision, false);
         }
+
         digits[i] = b'0';
         idx -= 1;
     }
 
     // Carry propagated past all fractional digits — increment integer part.
     (digits, precision, true)
+}
+
+/// Computes `(remainder * 10) / unit` and `(remainder * 10) % unit` without overflow.
+///
+/// The common path uses normal `u128` arithmetic. The wide fallback is only used
+/// for extreme values near the top of the `u128` range.
+#[inline]
+fn mul10_div_mod(remainder: u128, unit: u128) -> (u128, u128) {
+    debug_assert!(unit != 0);
+    debug_assert!(remainder < unit);
+
+    if remainder <= u128::MAX / 10 {
+        let product = remainder * 10;
+        return (product / unit, product % unit);
+    }
+
+    mul10_div_mod_wide(remainder, unit)
+}
+
+fn mul10_div_mod_wide(remainder: u128, unit: u128) -> (u128, u128) {
+    debug_assert!(unit != 0);
+    debug_assert!(remainder < unit);
+    debug_assert!(remainder > u128::MAX / 10);
+
+    let (product_hi, product_lo) = mul_u128_by_u8_wide(remainder, 10);
+
+    // Since `remainder < unit`, `(remainder * 10) / unit` is always in `0..=9`.
+    for digit in (0u8..=9).rev() {
+        let (candidate_hi, candidate_lo) = mul_u128_by_u8_wide(unit, digit);
+
+        if cmp_wide(candidate_hi, candidate_lo, product_hi, product_lo) != Ordering::Greater {
+            let (rem_hi, rem_lo) = sub_wide(product_hi, product_lo, candidate_hi, candidate_lo);
+
+            debug_assert_eq!(rem_hi, 0);
+            debug_assert!(rem_lo < unit);
+
+            return (digit as u128, rem_lo);
+        }
+    }
+
+    unreachable!("digit 0 is always a valid quotient candidate")
+}
+
+#[inline]
+fn mul_u128_by_u8_wide(value: u128, multiplier: u8) -> (u128, u128) {
+    const MASK_64: u128 = u64::MAX as u128;
+
+    let multiplier = multiplier as u128;
+
+    let lo_part = (value & MASK_64) * multiplier;
+    let carry = lo_part >> 64;
+    let lo_low = lo_part & MASK_64;
+
+    let hi_part = (value >> 64) * multiplier + carry;
+    let hi = hi_part >> 64;
+    let lo = ((hi_part & MASK_64) << 64) | lo_low;
+
+    (hi, lo)
+}
+
+#[inline]
+fn cmp_wide(a_hi: u128, a_lo: u128, b_hi: u128, b_lo: u128) -> Ordering {
+    match a_hi.cmp(&b_hi) {
+        Ordering::Equal => a_lo.cmp(&b_lo),
+        other => other,
+    }
+}
+
+#[inline]
+fn sub_wide(a_hi: u128, a_lo: u128, b_hi: u128, b_lo: u128) -> (u128, u128) {
+    debug_assert!(cmp_wide(b_hi, b_lo, a_hi, a_lo) != Ordering::Greater);
+
+    let (lo, borrowed) = a_lo.overflowing_sub(b_lo);
+    let hi = a_hi - b_hi - u128::from(borrowed);
+
+    (hi, lo)
 }
 
 #[inline]
@@ -264,17 +368,21 @@ pub(crate) fn compute_sigfigs_u128(
 
         if new_int_digits > int_digits && decimals > 0 {
             decimals -= 1;
+
             if parts.frac_len > decimals {
                 parts.frac_len = decimals;
             }
         }
+
         (decimals, parts)
     } else {
         let drop_digits = (-shift) as u32;
         let round_factor = 10u128.pow(drop_digits);
         let new_unit = unit.saturating_mul(round_factor);
+
         let mut parts = decimal_parts_rounded(magnitude, new_unit, 0, rounding, negative);
         parts.integer *= round_factor;
+
         (0, parts)
     }
 }
@@ -282,8 +390,10 @@ pub(crate) fn compute_sigfigs_u128(
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
 pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
     debug_assert!(digits.iter().all(|b| b.is_ascii_digit()));
+
     // SAFETY: digits are always ASCII bytes in '0'..='9', produced by
     // fractional_digits_rounded. They are valid UTF-8 by construction.
     let s = unsafe { core::str::from_utf8_unchecked(digits) };
+
     f.write_str(s)
 }

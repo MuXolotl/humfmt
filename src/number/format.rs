@@ -10,8 +10,11 @@ use super::options::Precision;
 use super::NumberOptions;
 
 // Powers of 1000 as u128, for O(1) integer compact-unit selection.
-// Index i corresponds to 1000^i. The array covers up to decillion (10^33).
-const POW1000: [u128; 12] = [
+// Index i corresponds to 1000^i.
+//
+// The table goes up to undecillion (10^36), which is enough to keep the full
+// u128 range compact: u128::MAX is about 340.3 undecillion.
+const POW1000: [u128; 13] = [
     1,
     1_000,
     1_000_000,
@@ -24,10 +27,11 @@ const POW1000: [u128; 12] = [
     1_000_000_000_000_000_000_000_000_000,
     1_000_000_000_000_000_000_000_000_000_000,
     1_000_000_000_000_000_000_000_000_000_000_000,
+    1_000_000_000_000_000_000_000_000_000_000_000_000,
 ];
 
 // Powers of 1000 as f64, for O(1) float compact-unit selection.
-const POW1000_F64: [f64; 12] = [
+const POW1000_F64: [f64; 13] = [
     1.0,
     1_000.0,
     1_000_000.0,
@@ -40,16 +44,17 @@ const POW1000_F64: [f64; 12] = [
     1_000_000_000_000_000_000_000_000_000.0,
     1_000_000_000_000_000_000_000_000_000_000.0,
     1_000_000_000_000_000_000_000_000_000_000_000.0,
+    1_000_000_000_000_000_000_000_000_000_000_000_000.0,
 ];
 
 // Powers of 10 as f64, indexed by precision (0..=6).
 const POW10_F64: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
 
-const SHORT_SUFFIXES: [&str; 12] = [
-    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+const SHORT_SUFFIXES: [&str; 13] = [
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud",
 ];
 
-const LONG_SUFFIXES: [&str; 12] = [
+const LONG_SUFFIXES: [&str; 13] = [
     "",
     " thousand",
     " million",
@@ -62,9 +67,10 @@ const LONG_SUFFIXES: [&str; 12] = [
     " octillion",
     " nonillion",
     " decillion",
+    " undecillion",
 ];
 
-const MAX_SUFFIX_INDEX: usize = 11;
+const MAX_SUFFIX_INDEX: usize = 12;
 
 #[inline]
 fn suffix_for(idx: usize, long: bool) -> &'static str {
@@ -73,6 +79,7 @@ fn suffix_for(idx: usize, long: bool) -> &'static str {
     } else {
         &SHORT_SUFFIXES
     };
+
     if idx < table.len() {
         table[idx]
     } else {
@@ -95,6 +102,7 @@ pub fn format_number(
 fn format_int(f: &mut fmt::Formatter<'_>, value: i128, options: &NumberOptions) -> fmt::Result {
     let negative = value.is_negative();
     let magnitude = value.unsigned_abs();
+
     format_u128_magnitude(f, negative && magnitude != 0, magnitude, options)
 }
 
@@ -124,11 +132,12 @@ fn format_u128_magnitude(
 
     let (mut decimals, mut parts) = get_parts(unit);
 
-    // Rounding can push the integer part to the next threshold (e.g. 999_950
-    // at precision=1 rounds to 1000K -> rescale to 1M). Adjust once.
+    // Rounding can push the integer part to the next threshold:
+    // 999_950 at precision=1 becomes 1000K, which should render as 1M.
     if parts.integer >= 1_000 && idx < max_idx {
         idx += 1;
         unit = POW1000[idx];
+
         let res = get_parts(unit);
         decimals = res.0;
         parts = res.1;
@@ -137,11 +146,11 @@ fn format_u128_magnitude(
     if negative {
         f.write_char('-')?;
     } else if options.force_sign && magnitude != 0 {
-        // Integers >= 1 never round to 0, so magnitude != 0 is sufficient.
+        // Integer magnitudes >= 1 never round to zero, so magnitude != 0 is sufficient.
         f.write_char('+')?;
     }
 
-    // Digit grouping separators only apply when the value is unscaled (idx == 0).
+    // Digit grouping applies only when the value is not compacted.
     write_u128(
         f,
         parts.integer,
@@ -161,12 +170,13 @@ fn format_u128_magnitude(
 }
 
 // Selects the compact scale index for a u128 magnitude in O(1) via ilog10.
-// Returns (index, divisor) where divisor = 1000^index.
+// Returns (index, divisor), where divisor = 1000^index.
 #[inline]
 fn compact_unit_for_u128(magnitude: u128, max_idx: usize) -> (usize, u128) {
     if magnitude < 1_000 || max_idx == 0 {
         return (0, 1);
     }
+
     let idx = ((magnitude.ilog10() / 3) as usize).min(max_idx);
     (idx, POW1000[idx])
 }
@@ -185,15 +195,18 @@ fn format_float(f: &mut fmt::Formatter<'_>, raw: f64, options: &NumberOptions) -
         compact_unit_for_f64(abs, &options.precision, max_idx, options.rounding, negative);
 
     let is_zero = scaled_abs == 0.0;
+
     if negative && !is_zero {
         f.write_char('-')?;
     } else if options.force_sign && !negative && !is_zero {
         f.write_char('+')?;
     }
 
-    // Stack buffer sized to safely fit any non-exponential f64.
-    // f64::MAX ~= 1.8e308 -> ~309 integer digits + '.' + up to 6 fractional + headroom.
+    // Stack buffer sized to safely fit any non-exponential f64:
+    // f64::MAX ~= 1.8e308, so 309 integer digits + '.' + up to 6 fractional
+    // digits fits comfortably.
     let mut buf = StackString::<384>::new();
+
     write!(&mut buf, "{:.*}", decimals as usize, scaled_abs)
         .expect("StackString<384> overflow is impossible for valid display f64");
 
@@ -226,11 +239,13 @@ fn compact_unit_for_f64(
 
     if abs < 1_000.0 || max_idx == 0 {
         let (decimals, scaled) = get_scaled(abs);
+
         // Rounding can push a value just below 1000 to exactly 1000.
         if scaled >= 1_000.0 && max_idx > 0 {
             let (d2, s2) = get_scaled(abs / 1_000.0);
             return (1, d2, s2);
         }
+
         return (0, decimals, scaled);
     }
 
@@ -257,6 +272,7 @@ fn compact_unit_for_f64(
 
     if scaled >= 1_000.0 && idx < max_idx {
         idx += 1;
+
         let res = get_scaled(abs / POW1000_F64[idx]);
         decimals = res.0;
         scaled = res.1;
@@ -295,14 +311,17 @@ fn compute_sigfigs_f64(
             } else {
                 0
             };
+
             return (new_decimals, rounded);
         }
+
         (decimals, rounded)
     } else {
         let drop_digits = -shift;
         let factor = f64_pow10(drop_digits);
         let divided = abs / factor;
         let rounded = round_f64(divided, 0, rounding, negative);
+
         (0, rounded * factor)
     }
 }
@@ -312,13 +331,16 @@ fn compute_sigfigs_f64(
 fn f64_pow10(mut exp: i32) -> f64 {
     let mut res = 1.0;
     let is_neg = exp < 0;
+
     exp = exp.abs();
 
     let mut base = 10.0;
+
     while exp > 0 {
         if exp % 2 == 1 {
             res *= base;
         }
+
         base *= base;
         exp /= 2;
     }
@@ -390,10 +412,11 @@ fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negati
     };
 
     let rounded_int = if carry { trunc + 1 } else { trunc };
+
     rounded_int as f64 / factor
 }
 
-// Writes the fractional part of a DecimalParts value (integer path).
+// Writes the fractional part of a DecimalParts value.
 fn write_int_frac(
     f: &mut fmt::Formatter<'_>,
     parts: &crate::common::fmt::DecimalParts,
@@ -404,8 +427,10 @@ fn write_int_frac(
     if fixed_precision {
         if precision > 0 {
             f.write_char(decimal_separator)?;
+
             let existing = parts.frac_len as usize;
             write_frac_digits(f, &parts.frac_digits[..existing])?;
+
             for _ in existing..precision as usize {
                 f.write_char('0')?;
             }
@@ -414,13 +439,14 @@ fn write_int_frac(
         f.write_char(decimal_separator)?;
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
     }
+
     Ok(())
 }
 
-// Writes a float string (produced by Rust's "{:.*}" formatter) with:
+// Writes a float string produced by Rust's "{:.*}" formatter with:
 // - decimal separator substitution
 // - optional digit grouping on the integer part
-// - trailing-zero trimming (unless fixed_precision is set)
+// - trailing-zero trimming unless fixed_precision is enabled
 fn write_localized_float_str(
     f: &mut fmt::Formatter<'_>,
     input: &str,
@@ -446,6 +472,7 @@ fn write_localized_float_str(
         } else {
             frac.trim_end_matches('0')
         };
+
         if !trimmed.is_empty() {
             f.write_char(decimal_separator)?;
             f.write_str(trimmed)?;
