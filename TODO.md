@@ -21,6 +21,7 @@ a draft PR first so we do not step on each other's toes.
 
 ## PLANNED
 
+- [ ] Fuzz testing for all formatters
 - [ ] Website with extensive interactive examples (https://muxolotl.github.io/humfmt).
 - [ ] Add future-time support to `ago` — currently it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
