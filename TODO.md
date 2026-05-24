@@ -9,12 +9,12 @@ a draft PR first so we do not step on each other's toes.
 
 | Priority | Formatter | Progress (Est.) |
 |:---:|---|:---:|
-| 1 | number | ~100% |
-| 2 | bytes | ~100% |
+| 1 | number | ~95% |
+| 2 | bytes | ~95% |
 | 3 | duration + ago | ~75% |
 | 4 | list | ~95% |
-| 5 | percentage | ~100% |
-| 6 | ordinal | ~100% |
+| 5 | percentage | ~95% |
+| 6 | ordinal | ~95% |
 | ... | other | 0% |
 
 ---
