@@ -21,6 +21,7 @@ a draft PR first so we do not step on each other's toes.
 
 ## PLANNED
 
+- [ ] Website with extensive interactive examples (https://muxolotl.github.io/humfmt).
 - [ ] Add future-time support to `ago` — currently it only formats past durations. Should support `"in 5 minutes"` for future timestamps alongside the existing `"5 minutes ago"` style.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (e.g. under a configurable threshold like 5 seconds) it looks odd to print `"0s ago"` when the user probably wants `"just now"`.
 - [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. Should reuse existing byte and number formatting logic rather than duplicating it.
@@ -45,7 +46,7 @@ a draft PR first so we do not step on each other's toes.
 ## MAYBE SOMEDAY (no promises)
 
 - [ ] `serde` feature — serialize and deserialize options structs, useful for config-file driven formatting. Not needed until someone asks for it.
-- [ ] Optional `ryu` integration for the float number path — `ryu` is typically 3-5x faster than the standard library float formatter and already implements zero-alloc via `Buffer`. Would be opt-in via a `fast-float` feature.
+- [ ] Optional `ryu` integration for the float number path — `ryu` is typically 3-5x faster than the standard library float formatter and already implements zero-alloc via `Buffer`. Would be opt-in via a `ryu-float` feature.
 - [ ] `width()` / padding support — leverage `f.width()` from `Formatter` so that `format!("{:>10}", humfmt::number(x))` works for table-style output.
 - [ ] `#[derive(Humanize)]` proc macro — let users derive convenience methods on their domain types (e.g. `MyMetric(1500).human_number()`).
 - [ ] Allocation-tracking benchmarks (via `dhat-rs` or `cap`) — quantify the "zero-alloc" claim with numbers, not just words.
