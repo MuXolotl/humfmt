@@ -1,0 +1,48 @@
+[package]
+name = "humfmt-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+humfmt = { path = ".." }
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "fuzz_number"
+path = "fuzz_targets/fuzz_number.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_bytes"
+path = "fuzz_targets/fuzz_bytes.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_percent"
+path = "fuzz_targets/fuzz_percent.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_duration"
+path = "fuzz_targets/fuzz_duration.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ordinal"
+path = "fuzz_targets/fuzz_ordinal.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_list"
+path = "fuzz_targets/fuzz_list.rs"
+test = false
+doc = false

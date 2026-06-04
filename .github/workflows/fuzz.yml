@@ -1,0 +1,33 @@
+name: Fuzzing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - fuzz_number
+          - fuzz_bytes
+          - fuzz_percent
+          - fuzz_duration
+          - fuzz_ordinal
+          - fuzz_list
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Run fuzz target
+        run: |
+          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=300
+        continue-on-error: true
