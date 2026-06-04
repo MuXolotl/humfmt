@@ -2,9 +2,6 @@ name: Fuzzing
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - fuzzing
 
 jobs:
   fuzz:
@@ -32,5 +29,5 @@ jobs:
 
       - name: Run fuzz target
         run: |
-          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=300
+          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=600
         continue-on-error: true
