@@ -18,3 +18,8 @@ Thumbs.db
 
 # Cargo local
 /Cargo.lock
+
+# Fuzzing artifacts
+fuzz/artifacts/
+fuzz/corpus/
+fuzz/coverage/

@@ -32,7 +32,7 @@ println!("{}", humfmt::ordinal(21));        // 21st
 ## What it does
 
 | Input | Formatter | Output |
-|---|---|---|
+|-------|-----------|--------|
 | `15320` | `number` | `15.3K` |
 | `1536` | `bytes` | `1.5KB` |
 | `0.423` | `percent` | `42.3%` |
@@ -218,9 +218,7 @@ assert_eq!(piped.to_string(), "red | green & blue");
 - **`no_std`** — works without the standard library
 - **No dependencies** — core crate has zero required dependencies
 
-See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`,
-`bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `numfmt`,
-`humantime`, `timeago`, and others.
+See [BENCHMARKS.md](./BENCHMARKS.md) for comparisons against `humansize`, `bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `numfmt`, `humantime`, `timeago`, and others.
 
 <details>
 <summary>Charts</summary>
@@ -241,10 +239,35 @@ See [`BENCHMARKS.md`](./BENCHMARKS.md) for comparisons against `humansize`,
 
 ---
 
+## Fuzzing
+
+`humfmt` includes a fuzzing harness using `cargo-fuzz` to catch edge cases in numeric and formatting logic.
+
+### Running fuzz targets
+
+Fuzzing requires the **nightly** toolchain.
+
+```bash
+# Install cargo-fuzz (once)
+cargo install cargo-fuzz
+
+# Run a specific fuzz target
+cargo +nightly fuzz run fuzz_number
+cargo +nightly fuzz run fuzz_bytes
+cargo +nightly fuzz run fuzz_percent
+cargo +nightly fuzz run fuzz_duration
+cargo +nightly fuzz run fuzz_ordinal
+cargo +nightly fuzz run fuzz_list
+```
+
+The fuzz targets are located in `fuzz/fuzz_targets/`.
+
+---
+
 ## Feature flags
 
 | Feature | Default | Description |
-|---|:---:|---|
+|---------|---------|-------------|
 | `std` | ✓ | Standard library build |
 | `chrono` | | `chrono::TimeDelta` / `DateTime` adapters |
 | `time` | | `time::Duration` / `OffsetDateTime` adapters |
@@ -282,8 +305,7 @@ This crate follows one simple rule:
 
 > Human formatting should feel stupidly easy.
 
-No giant config ceremony. No formatting gymnastics. No "why is this so annoying?"
-moments.
+No giant config ceremony. No formatting gymnastics. No "why is this so annoying?" moments.
 
 Just:
 
