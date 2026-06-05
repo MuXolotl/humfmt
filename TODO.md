@@ -23,7 +23,6 @@ a draft PR first so we do not step on each other's toes.
 
 - [ ] Add a dedicated fuzzing harness for the formatting paths — specifically to find edge cases in the integer math and float rendering code.
 - [ ] Separate `ago` options from duration configuration.
-- [ ] Build a website with extensive interactive examples (https://muxolotl.github.io/humfmt).
 - [ ] Add future-time support to `ago` — it currently formats only past durations and should also support `"in 5 minutes"` style output for future timestamps alongside the existing `"5 minutes ago"` style.
 - [ ] Add `"just now"` / `"now"` / `"moments ago"` special cases to `ago` — for very small durations (for example, under a configurable threshold like 5 seconds), `"0s ago"` looks awkward when the user probably wants `"just now"` instead.
 - [ ] Add a rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`. This should reuse the existing byte and number formatting logic instead of duplicating it.
@@ -39,7 +38,6 @@ a draft PR first so we do not step on each other's toes.
 - [ ] Document `f64` precision loss for compact scaling above `2^53` — integer-to-f64 conversion loses precision for very large magnitudes, although this is rarely visible for display purposes.
 - [ ] Investigate Unicode edge cases in `is_comma_style_separator` — it currently recognizes only ASCII `,`. It could potentially be extended to `،` (U+060C Arabic comma) or `、` (U+3001 Ideographic comma) if a real use case appears.
 - [ ] Finish the edge-case behaviour tables in the docs — provide a quick reference showing what each formatter does with `0`, `i128::MIN`, `u128::MAX`, `f64::NAN`, `f64::INFINITY`, and `Duration::MAX`. This has started for `number` and `bytes`, but still needs to be completed for `duration` and `ago`, and refined for `percent` and `list`.
-- [ ] Add golden output test files — store fixed inputs and expected outputs as test data so formatting changes cannot silently regress without a test failure. This should act as a regression net before 1.0.
 - [ ] Add binary size and compile time benchmarks — `cargo bloat --crates`, `cargo build --timings`. The crate's dependency-free design should shine here.
 
 ---
@@ -58,12 +56,14 @@ a draft PR first so we do not step on each other's toes.
 - [ ] Add a ratio formatter — `0.75 -> "3:4"` or `"75%"` depending on options.
 - [ ] Consider accepting integer inputs in the percentage formatter — for example, `42_u8` meaning `42%` directly instead of following the current `* 100` ratio convention. This could be a separate `percent_value` function or an option flag.
 - [ ] Add WASM and embedded target smoke tests in CI.
+- [ ] Build a website with extensive interactive examples (https://muxolotl.github.io/humfmt).
 
 ---
 
 ## DONE
 
 ### (Unreleased → 0.7.0)
+- [x] ~~Add golden output test files.~~
 - [x] ~~Create GitHub Actions workflow for fuzzing.~~
 - [x] ~~Add fuzz testing for all formatters.~~
 
@@ -86,13 +86,13 @@ a draft PR first so we do not step on each other's toes.
 - [x] ~~Significant-digits mode — instead of decimal places, round to N total significant digits.~~
 - [x] ~~Rounding mode control (HalfUp, Floor, Ceil)~~
 - [x] ~~Number formatter: always-on grouping separators option works seamlessly with `compact(false)`~~
-- [x] ~~Number formatter: fully disable compact scaling cleanly via `NumberOptions::compact(bool)`~~
 - [x] ~~Percentage formatter — `0.423 → "42.3%"`, configurable precision, fixed_precision, f32/f64 input, Humanize trait methods~~
 
 ### v0.4.0 released
 - [x] ~~MSRV raised to 1.70 and enforced by a dedicated CI job~~
 - [x] ~~`NumberOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~
 - [x] ~~`BytesOptions::fixed_precision(bool)` — opt-in trailing-zero preservation~~
+- [x] ~~`BytesOptions::space(bool)` — optionally insert a space before short unit labels~~
 - [x] ~~Float compact-number scaling rewritten to O(1) via IEEE 754 exponent — consistent with integer `ilog10` path~~
 - [x] ~~Comparison harness covers `humansize` baseline (SI + aligned IEC + signed)~~
 - [x] ~~Comparison harness covers `human-repr` with output examples in `BENCHMARKS.md`~~

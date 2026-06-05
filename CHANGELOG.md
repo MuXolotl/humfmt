@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Fuzz testing harness using `cargo-fuzz` with targets for all major formatters (`number`, `bytes`, `percent`, `duration`, `ordinal`, `list`). The harness can be run manually via GitHub Actions.
+- Golden (snapshot) tests (`tests/golden.rs`) to act as a strict regression net for all formatters before the 1.0 release.
 
 ### Changed
 
+- Refactored `percent` formatter to reuse shared fractional digit writing logic, removing duplicated `unsafe` blocks and reducing internal code bloat.
 - Number formatter suffix range now extends to `Ud` / `undecillion` (`10^36`). This improves compact output for the full `u128` / `i128` range:
   - `u128::MAX` now formats as `"340.3Ud"` instead of a very large `Dc` value.
   - `i128::MIN` now formats as `"-170.1Ud"` instead of a very large `Dc` value.
