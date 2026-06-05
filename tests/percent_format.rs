@@ -25,10 +25,17 @@ fn trims_trailing_zeros_by_default() {
 // --- Precision ---
 
 #[test]
-fn supports_precision_override() {
+fn supports_precision_override_for_f64() {
     let opts = PercentOptions::new().precision(2);
     assert_eq!(percent_with(0.4236_f64, opts).to_string(), "42.36%");
     assert_eq!(percent_with(0.5_f64, opts).to_string(), "50%");
+}
+
+#[test]
+fn supports_precision_override_for_f32() {
+    let opts = PercentOptions::new().precision(2);
+    assert_eq!(percent_with(0.4236_f32, opts).to_string(), "42.36%");
+    assert_eq!(percent_with(0.5_f32, opts).to_string(), "50%");
 }
 
 #[test]
@@ -42,11 +49,19 @@ fn precision_zero_rounds_to_integer() {
 // --- Fixed precision ---
 
 #[test]
-fn fixed_precision_preserves_trailing_zeros() {
+fn fixed_precision_preserves_trailing_zeros_for_f64() {
     let opts = PercentOptions::new().precision(2).fixed_precision(true);
     assert_eq!(percent_with(0.5_f64, opts).to_string(), "50.00%");
     assert_eq!(percent_with(0.425_f64, opts).to_string(), "42.50%");
     assert_eq!(percent_with(0.4236_f64, opts).to_string(), "42.36%");
+}
+
+#[test]
+fn fixed_precision_preserves_trailing_zeros_for_f32() {
+    let opts = PercentOptions::new().precision(2).fixed_precision(true);
+    assert_eq!(percent_with(0.5_f32, opts).to_string(), "50.00%");
+    assert_eq!(percent_with(0.425_f32, opts).to_string(), "42.50%");
+    assert_eq!(percent_with(0.4236_f32, opts).to_string(), "42.36%");
 }
 
 #[test]
@@ -84,6 +99,12 @@ fn formats_negative_ratios() {
 #[test]
 fn negative_value_rounding_to_zero_suppresses_minus() {
     assert_eq!(percent(-0.0004_f64).to_string(), "0%");
+}
+
+#[test]
+fn positive_value_rounding_to_zero_with_force_sign_suppresses_plus() {
+    let opts = PercentOptions::new().force_sign(true);
+    assert_eq!(percent_with(0.0004_f64, opts).to_string(), "0%");
 }
 
 #[test]
