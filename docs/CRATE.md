@@ -399,6 +399,7 @@ assert_eq!(percent(0.423_f64).to_string(), "42.3%");
 | Option | Default | Meaning |
 |---|---|---|
 | `precision` | 1 | fractional digits |
+| `rounding` | `HalfUp` | `HalfUp`, `Floor`, `Ceil` behaviour |
 | `force_sign` | false | output `+` for positive percentages |
 | `fixed_precision` | false | keep trailing zeros (`42.50%`) |
 | `decimal_separator` | `'.'` | decimal separator character |
@@ -406,7 +407,7 @@ assert_eq!(percent(0.423_f64).to_string(), "42.3%");
 ### Examples
 
 ```rust
-use humfmt::{percent_with, PercentOptions};
+use humfmt::{percent_with, PercentOptions, RoundingMode};
 
 let two = PercentOptions::new().precision(2);
 assert_eq!(percent_with(0.4236_f64, two).to_string(), "42.36%");
@@ -419,6 +420,12 @@ assert_eq!(percent_with(0.42_f64, signed).to_string(), "+42%");
 
 let comma = PercentOptions::new().precision(1).decimal_separator(',');
 assert_eq!(percent_with(0.423_f64, comma).to_string(), "42,3%");
+
+let floor = PercentOptions::new().precision(0).rounding(RoundingMode::Floor);
+assert_eq!(percent_with(0.429_f64, floor).to_string(), "42%");
+
+let ceil = PercentOptions::new().precision(0).rounding(RoundingMode::Ceil);
+assert_eq!(percent_with(0.421_f64, ceil).to_string(), "43%");
 ```
 
 ### Edge cases

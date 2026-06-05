@@ -1,15 +1,17 @@
+use crate::RoundingMode;
+
 /// Builder-style configuration for percentage formatting.
-///
-/// # Quick reference
 ///
 /// | Method | Default | Effect |
 /// |---|---|---|
-/// | [`precision(n)`] | `1` | Decimal places for the percentage value |
+/// | [`precision(n)`] | `1` | Decimal places |
+/// | [`rounding(mode)`] | `HalfUp` | `HalfUp`, `Floor`, `Ceil` |
 /// | [`force_sign(bool)`] | `false` | `0.42` -> `"+42%"` |
 /// | [`fixed_precision(bool)`] | `false` | `"42.5%"` -> `"42.50%"` |
-/// | [`decimal_separator(c)`] | `'.'` | Decimal separator character |
+/// | [`decimal_separator(c)`] | `'.'` | Decimal point character |
 ///
 /// [`precision(n)`]: PercentOptions::precision
+/// [`rounding(mode)`]: PercentOptions::rounding
 /// [`force_sign(bool)`]: PercentOptions::force_sign
 /// [`fixed_precision(bool)`]: PercentOptions::fixed_precision
 /// [`decimal_separator(c)`]: PercentOptions::decimal_separator
@@ -25,6 +27,7 @@
 #[derive(Copy, Clone, Debug)]
 pub struct PercentOptions {
     pub(crate) precision: u8,
+    pub(crate) rounding: RoundingMode,
     pub(crate) force_sign: bool,
     pub(crate) fixed_precision: bool,
     pub(crate) decimal_separator: char,
@@ -33,32 +36,28 @@ pub struct PercentOptions {
 impl PercentOptions {
     /// Creates default percentage formatting options.
     ///
-    /// Defaults:
-    /// - precision: `1`
-    /// - force sign: `false`
-    /// - fixed precision: `false` (trailing zeros are trimmed)
-    /// - decimal separator: `'.'`
+    /// Defaults: precision `1`, rounding `HalfUp`, no forced sign,
+    /// trailing zeros trimmed, decimal separator `'.'`.
     #[inline]
     pub const fn new() -> Self {
         Self {
             precision: 1,
+            rounding: RoundingMode::HalfUp,
             force_sign: false,
             fixed_precision: false,
             decimal_separator: '.',
         }
     }
 
-    /// Sets decimal precision for the percentage value.
+    /// Sets the number of decimal places in the output.
     ///
-    /// Precision is clamped to `0..=6`.
-    ///
-    /// # Behaviour table
+    /// Clamped to `0..=6`. Trailing zeros are trimmed unless
+    /// [`fixed_precision`](PercentOptions::fixed_precision) is enabled.
     ///
     /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
     /// |---:|---|---|---|
     /// | `0.423` | `"42%"` | `"42.3%"` | `"42.3%"` (trimmed) |
     /// | `0.4236` | `"42%"` | `"42.4%"` | `"42.36%"` |
-    /// | `0.425` | `"43%"` | `"42.5%"` | `"42.5%"` (trimmed) |
     /// | `0.5` | `"50%"` | `"50%"` | `"50%"` (trimmed) |
     ///
     /// # Examples
@@ -71,24 +70,39 @@ impl PercentOptions {
     /// ```
     #[inline]
     pub const fn precision(mut self, n: u8) -> Self {
-        let n = if n > 6 { 6 } else { n };
-        self.precision = n;
+        self.precision = if n > 6 { 6 } else { n };
         self
     }
 
-    /// Forces the output of a `+` sign for strictly positive values.
+    /// Sets the rounding direction.
     ///
-    /// Values that round to exactly zero output `0%` without a sign.
-    /// Useful for deltas and change indicators.
+    /// - `HalfUp` (default): ties round away from zero.
+    /// - `Floor`: always towards negative infinity.
+    /// - `Ceil`: always towards positive infinity.
     ///
-    /// # Behaviour table
+    /// | Input | `HalfUp` | `Floor` | `Ceil` |
+    /// |---:|---|---|---|
+    /// | `0.425` | `"42.5%"` | `"42.5%"` | `"42.5%"` |
+    /// | `0.4251` | `"42.5%"` | `"42.5%"` | `"42.6%"` |
+    /// | `-0.425` | `"-42.5%"` | `"-42.5%"` | `"-42.5%"` |
     ///
-    /// | Input | `force_sign(false)` (default) | `force_sign(true)` |
-    /// |---:|---|---|
-    /// | `0.42` | `"42%"` | `"+42%"` |
-    /// | `0.0` | `"0%"` | `"0%"` (no sign on zero) |
-    /// | `-0.42` | `"-42%"` | `"-42%"` (negatives unchanged) |
-    /// | `0.0004` (rounds to 0) | `"0%"` | `"0%"` (no sign on rounded-zero) |
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::{PercentOptions, RoundingMode};
+    ///
+    /// let opts = PercentOptions::new().precision(0).rounding(RoundingMode::Floor);
+    /// assert_eq!(humfmt::percent_with(0.429_f64, opts).to_string(), "42%");
+    /// ```
+    #[inline]
+    pub const fn rounding(mut self, mode: RoundingMode) -> Self {
+        self.rounding = mode;
+        self
+    }
+
+    /// Forces a `+` sign for positive non-zero values.
+    ///
+    /// Values that round to zero always output `0%` with no sign.
     ///
     /// # Examples
     ///
@@ -106,31 +120,20 @@ impl PercentOptions {
         self
     }
 
-    /// Controls whether trailing fractional zeros are preserved.
+    /// Keeps trailing fractional zeros for consistent column widths.
     ///
-    /// - `false` (default): trailing zeros are trimmed (`42.50%` -> `42.5%`).
-    /// - `true`: trailing zeros are kept (`42.50%` stays `42.50%`).
-    ///
-    /// Useful for consistent column widths in tables or dashboards.
-    ///
-    /// # Behaviour table
-    ///
-    /// | Input | `precision(2)` trimmed | `precision(2)` fixed |
+    /// | Input | trimmed (default) | fixed |
     /// |---:|---|---|
-    /// | `0.5` | `"50%"` | `"50.00%"` |
-    /// | `0.425` | `"42.5%"` | `"42.50%"` |
-    /// | `0.4236` | `"42.36%"` | `"42.36%"` |
+    /// | `0.5` with `precision(2)` | `"50%"` | `"50.00%"` |
+    /// | `0.425` with `precision(2)` | `"42.5%"` | `"42.50%"` |
     ///
     /// # Examples
     ///
     /// ```rust
     /// use humfmt::PercentOptions;
     ///
-    /// let trimmed = PercentOptions::new().precision(2);
-    /// assert_eq!(humfmt::percent_with(0.425, trimmed).to_string(), "42.5%");
-    ///
-    /// let fixed = PercentOptions::new().precision(2).fixed_precision(true);
-    /// assert_eq!(humfmt::percent_with(0.425, fixed).to_string(), "42.50%");
+    /// let opts = PercentOptions::new().precision(2).fixed_precision(true);
+    /// assert_eq!(humfmt::percent_with(0.5, opts).to_string(), "50.00%");
     /// ```
     #[inline]
     pub const fn fixed_precision(mut self, yes: bool) -> Self {
@@ -138,9 +141,7 @@ impl PercentOptions {
         self
     }
 
-    /// Overrides the decimal separator.
-    ///
-    /// Default is `'.'`.
+    /// Overrides the decimal separator character (default `'.'`).
     ///
     /// # Examples
     ///

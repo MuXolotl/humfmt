@@ -1,9 +1,7 @@
 //! Golden (snapshot) tests for humfmt.
 //!
-//! These tests act as a strict regression net. They store exact inputs and their
-//! expected string outputs across all formatters. If a future refactoring or
-//! bug fix changes the output by even a single character, these tests will fail,
-//! preventing silent formatting regressions.
+//! These tests lock down exact formatter outputs. A single-character regression
+//! anywhere will fail here, making unintended output changes visible immediately.
 
 use core::time::Duration;
 
@@ -15,7 +13,6 @@ use humfmt::{
 #[test]
 fn golden_numbers() {
     let cases_i128 = [
-        // (Input, Options, Expected Output)
         (0_i128, NumberOptions::new(), "0"),
         (1_i128, NumberOptions::new(), "1"),
         (-1_i128, NumberOptions::new(), "-1"),
@@ -63,7 +60,6 @@ fn golden_numbers() {
                 .rounding(RoundingMode::Floor),
             "1K",
         ),
-        // Extreme values
         (i128::MIN, NumberOptions::new(), "-170.1Ud"),
         (i128::MAX, NumberOptions::new(), "170.1Ud"),
     ];
@@ -72,15 +68,14 @@ fn golden_numbers() {
         assert_eq!(
             number_with(input, opts).to_string(),
             expected,
-            "Golden mismatch for number: {input} with {opts:?}"
+            "number mismatch: {input} with {opts:?}"
         );
     }
 
-    // Unsigned extreme value handled separately to avoid sign-casting overflow issues
     assert_eq!(
         number_with(u128::MAX, NumberOptions::new()).to_string(),
         "340.3Ud",
-        "Golden mismatch for u128::MAX"
+        "number mismatch: u128::MAX"
     );
 }
 
@@ -102,7 +97,7 @@ fn golden_floats() {
         (
             0.004_f64,
             NumberOptions::new().precision(2).force_sign(true),
-            "0", // Rounds to zero, suppresses sign
+            "0",
         ),
         (f64::INFINITY, NumberOptions::new(), "inf"),
         (f64::NEG_INFINITY, NumberOptions::new(), "-inf"),
@@ -113,7 +108,7 @@ fn golden_floats() {
         assert_eq!(
             number_with(input, opts).to_string(),
             expected,
-            "Golden mismatch for float: {input} with {opts:?}"
+            "float mismatch: {input} with {opts:?}"
         );
     }
 }
@@ -165,7 +160,7 @@ fn golden_bytes() {
         assert_eq!(
             bytes_with(input, opts).to_string(),
             expected,
-            "Golden mismatch for bytes: {input} with {opts:?}"
+            "bytes mismatch: {input} with {opts:?}"
         );
     }
 }
@@ -186,20 +181,31 @@ fn golden_percent() {
             "50.00%",
         ),
         (0.15_f64, PercentOptions::new().force_sign(true), "+15%"),
-        (
-            -0.0004_f64,
-            PercentOptions::new(),
-            "0%", // Rounds to zero, suppresses minus
-        ),
+        (-0.0004_f64, PercentOptions::new(), "0%"),
         (f64::INFINITY, PercentOptions::new(), "inf%"),
         (f64::NAN, PercentOptions::new(), "NaN%"),
+        // Rounding mode golden values.
+        (
+            0.429_f64,
+            PercentOptions::new()
+                .precision(0)
+                .rounding(RoundingMode::Floor),
+            "42%",
+        ),
+        (
+            0.421_f64,
+            PercentOptions::new()
+                .precision(0)
+                .rounding(RoundingMode::Ceil),
+            "43%",
+        ),
     ];
 
     for (input, opts, expected) in cases {
         assert_eq!(
             percent_with(input, opts).to_string(),
             expected,
-            "Golden mismatch for percent: {input} with {opts:?}"
+            "percent mismatch: {input} with {opts:?}"
         );
     }
 }
@@ -230,7 +236,7 @@ fn golden_duration_and_ago() {
             Duration::from_secs(3661),
             DurationOptions::new(),
             "1h 1m",
-            "1h 1m ago", // Truncates seconds due to default max_units(2)
+            "1h 1m ago",
         ),
         (
             Duration::from_secs(3665),
@@ -250,12 +256,12 @@ fn golden_duration_and_ago() {
         assert_eq!(
             duration_with(input, opts).to_string(),
             expected_dur,
-            "Golden mismatch for duration: {input:?} with {opts:?}"
+            "duration mismatch: {input:?} with {opts:?}"
         );
         assert_eq!(
             ago_with(input, opts).to_string(),
             expected_ago,
-            "Golden mismatch for ago: {input:?} with {opts:?}"
+            "ago mismatch: {input:?} with {opts:?}"
         );
     }
 }
@@ -281,19 +287,15 @@ fn golden_ordinals() {
         assert_eq!(
             humfmt::ordinal(input).to_string(),
             expected,
-            "Golden mismatch for ordinal: {input}"
+            "ordinal mismatch: {input}"
         );
     }
 
-    // Explicitly test negative
     assert_eq!(humfmt::ordinal(-1).to_string(), "-1st");
 }
 
 #[test]
 fn golden_lists() {
-    // Cannot easily map arrays of different lengths in a single typed loop,
-    // so we evaluate them directly.
-
     let empty: &[&str] = &[];
     assert_eq!(list_with(empty, ListOptions::new()).to_string(), "");
 

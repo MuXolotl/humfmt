@@ -1,4 +1,4 @@
-use humfmt::{percent, percent_with, Humanize, PercentOptions};
+use humfmt::{percent, percent_with, Humanize, PercentOptions, RoundingMode};
 
 // --- Basic rendering ---
 
@@ -129,6 +129,48 @@ fn half_up_rounding() {
     assert_eq!(percent_with(0.4250_f64, opts).to_string(), "42.5%");
     assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.6%");
     assert_eq!(percent_with(0.4244_f64, opts).to_string(), "42.4%");
+}
+
+#[test]
+fn floor_rounding() {
+    let opts = PercentOptions::new()
+        .precision(0)
+        .rounding(RoundingMode::Floor);
+    // 42.9% with floor -> 42%
+    assert_eq!(percent_with(0.429_f64, opts).to_string(), "42%");
+    // 42.1% with floor -> 42%
+    assert_eq!(percent_with(0.421_f64, opts).to_string(), "42%");
+    // -42.1% with floor -> -43% (towards negative infinity)
+    assert_eq!(percent_with(-0.421_f64, opts).to_string(), "-43%");
+}
+
+#[test]
+fn ceil_rounding() {
+    let opts = PercentOptions::new()
+        .precision(0)
+        .rounding(RoundingMode::Ceil);
+    // 42.1% with ceil -> 43%
+    assert_eq!(percent_with(0.421_f64, opts).to_string(), "43%");
+    // 42.9% with ceil -> 43%
+    assert_eq!(percent_with(0.429_f64, opts).to_string(), "43%");
+    // -42.9% with ceil -> -42% (towards positive infinity)
+    assert_eq!(percent_with(-0.429_f64, opts).to_string(), "-42%");
+}
+
+#[test]
+fn rounding_mode_does_not_affect_exact_values() {
+    for mode in [
+        RoundingMode::HalfUp,
+        RoundingMode::Floor,
+        RoundingMode::Ceil,
+    ] {
+        let opts = PercentOptions::new().precision(1).rounding(mode);
+        assert_eq!(
+            percent_with(0.5_f64, opts).to_string(),
+            "50%",
+            "mode {mode:?} should not affect 0.5 at precision 1"
+        );
+    }
 }
 
 #[test]
