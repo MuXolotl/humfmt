@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [[Unreleased](https://github.com/MuXolotl/humfmt/compare/v0.6.0...HEAD)]
 
 ### Added
 
@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.6.0] - 2026-05-16
+## [[0.6.0](https://github.com/MuXolotl/humfmt/compare/v0.5.2...v0.6.0)] - 2026-05-16
 
 This release removes the entire i18n / locale subsystem to refocus the crate as a fast, English-only formatting toolkit. If you need locale-aware output, pin to `0.5.x`.
 
@@ -81,7 +81,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.5.2] - 2026-05-04
+## [[0.5.2](https://github.com/MuXolotl/humfmt/compare/v0.5.0...v0.5.2)] - 2026-05-04
 
 ### Changed
 
@@ -91,7 +91,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.5.0] - 2026-05-04
+## [[0.5.0](https://github.com/MuXolotl/humfmt/compare/v0.4.0...v0.5.0)] - 2026-05-04
 
 ### Added
 
@@ -122,7 +122,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.4.0] - 2026-05-01
+## [[0.4.0](https://github.com/MuXolotl/humfmt/compare/v0.3.0...v0.4.0)] - 2026-05-01
 
 ### Added
 
@@ -150,7 +150,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.3.0] - 2026-04-28
+## [[0.3.0](https://github.com/MuXolotl/humfmt/compare/v0.2.0...v0.3.0)] - 2026-04-28
 
 ### Added
 
@@ -172,7 +172,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.2.0] - 2026-04-25
+## [[0.2.0](https://github.com/MuXolotl/humfmt/compare/v0.1.1...v0.2.0)] - 2026-04-25
 
 ### Added
 
@@ -196,7 +196,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.1.1] - 2026-04-25
+## [[0.1.1](https://github.com/MuXolotl/humfmt/compare/v0.1.0...v0.1.1)] - 2026-04-25
 
 ### Fixed
 
@@ -211,7 +211,7 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 
 ---
 
-## [0.1.0] - 2026-04-25
+## [[0.1.0](https://github.com/MuXolotl/humfmt/compare/c61a85d110b72f2e0da0ced5889ac9814a4f1580...v0.1.0)] - 2026-04-25
 
 ### Added
 
