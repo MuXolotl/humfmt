@@ -1,7 +1,7 @@
 use core::fmt;
 use core::fmt::Write;
 
-use crate::common::fmt::write_u128;
+use crate::common::fmt::{write_frac_digits, write_u128};
 
 use super::PercentOptions;
 
@@ -63,9 +63,7 @@ pub fn format_percent(
 
         if options.fixed_precision {
             f.write_char(decimal_sep)?;
-            // SAFETY: bytes are ASCII digits produced above.
-            let s = unsafe { core::str::from_utf8_unchecked(&buf[..p]) };
-            f.write_str(s)?;
+            write_frac_digits(f, &buf[..p])?;
         } else {
             // Trim trailing zeros.
             let mut end = p;
@@ -74,9 +72,7 @@ pub fn format_percent(
             }
             if end > 0 {
                 f.write_char(decimal_sep)?;
-                // SAFETY: bytes are ASCII digits produced above.
-                let s = unsafe { core::str::from_utf8_unchecked(&buf[..end]) };
-                f.write_str(s)?;
+                write_frac_digits(f, &buf[..end])?;
             }
         }
     }
