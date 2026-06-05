@@ -3,6 +3,9 @@ name: Fuzzing
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   fuzz:
     runs-on: ubuntu-latest
