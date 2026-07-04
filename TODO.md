@@ -58,7 +58,11 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 
 - [ ] Add missing crates: `readable`, `human-readable`, `fancy-duration`, `duration-human`, `pretty-num`, `format_num`
 - [ ] Improve scenario alignment (e.g. IEC + `precision(2)` + `space(true)`)
-- [ ] Allocation-tracking benchmarks (`dhat-rs` or `cap`)
+- [ ] Allocation-tracking benchmarks
+- [ ] Allocation-counting benchmarks
+- [ ] Binary size benchmarks
+- [ ] Compile-time benchmarks
+- [ ] Criterion baselines for regression tracking
 
 ---
 
