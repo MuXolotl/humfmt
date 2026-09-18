@@ -122,5 +122,61 @@ jobs:
         with:
           components: clippy
 
+      # JSON output keeps the diagnostics machine-readable for the summary
+      # below; the exit code of this step still decides whether the job passes.
       - name: Run clippy (strict mode)
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        id: clippy
+        run: cargo clippy --all-targets --all-features --message-format=json -- -D warnings > clippy.json
+
+      # Reporting only: a failure here must not mask the lint result itself.
+      - name: Summarise clippy findings
+        if: always()
+        continue-on-error: true
+        env:
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+        run: |
+          if [ ! -f clippy.json ]; then
+            echo "### Clippy: the lint run produced no JSON output - see the step log" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          jq -r '
+            select(.reason == "compiler-message")
+            | .message
+            | select(.level == "error" or .level == "warning")
+            | [
+                .level,
+                (.code.code // "rustc"),
+                (.spans[0].file_name // "unknown"),
+                (.spans[0].line_start // 0),
+                (.spans[0].column_start // 0),
+                (.message | gsub("[\\n\\t]"; " "))
+              ]
+            | @tsv
+          ' clippy.json | sort -u > lints.tsv
+
+          count=$(wc -l < lints.tsv)
+
+          if [ "$count" -eq 0 ]; then
+            if [ "$CLIPPY_OUTCOME" = "success" ]; then
+              echo "### Clippy: clean" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "### Clippy: the lint run failed without emitting diagnostics - see the step log" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            exit 0
+          fi
+
+          {
+            echo "### Clippy: $count diagnostic(s)"
+            echo
+            echo "| Level | Lint | Location | Message |"
+            echo "|---|---|---|---|"
+            while IFS=$'\t' read -r level lint file line col message; do
+              echo "| $level | \`$lint\` | \`$file:$line\` | ${message//|/\\|} |"
+            done < lints.tsv
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Inline annotations, shown on the Checks tab of the commit.
+          while IFS=$'\t' read -r level lint file line col message; do
+            echo "::$level file=$file,line=$line,col=$col,title=${lint//::/-}::$message"
+          done < lints.tsv
