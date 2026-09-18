@@ -31,7 +31,7 @@ pub fn format_list<T: fmt::Display>(
                 f.write_str(",")?;
             }
 
-            write!(f, " {conjunction} {}", &items[items.len() - 1])
+            write!(f, " {conjunction} {}", items[items.len() - 1])
         }
     }
 }
