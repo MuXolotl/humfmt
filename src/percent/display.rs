@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::common::fmt::{write_padded, Pad, Render};
+use crate::common::fmt::{fmt_with_padding, Render};
 
 use super::{format::format_percent, PercentOptions};
 
@@ -30,6 +30,6 @@ impl Render for PercentDisplay {
 
 impl fmt::Display for PercentDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_padded(Pad::of(f), f, self)
+        fmt_with_padding(self, f)
     }
 }

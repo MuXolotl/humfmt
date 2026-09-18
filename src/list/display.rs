@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::common::fmt::{write_padded, Pad, Render};
+use crate::common::fmt::{fmt_with_padding, Render};
 
 use super::{format::format_list, ListOptions};
 
@@ -35,6 +35,6 @@ impl<T: fmt::Display> Render for ListDisplay<'_, T> {
 
 impl<T: fmt::Display> fmt::Display for ListDisplay<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_padded(Pad::of(f), f, self)
+        fmt_with_padding(self, f)
     }
 }

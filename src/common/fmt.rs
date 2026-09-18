@@ -75,24 +75,6 @@ pub(crate) struct Pad {
     align: Option<fmt::Alignment>,
 }
 
-impl Pad {
-    /// Reads the padding settings of a format specifier.
-    ///
-    /// Returns `None` when the caller did not ask for a width, which is the case
-    /// for plain `{}`.
-    #[inline]
-    pub(crate) fn of(f: &fmt::Formatter<'_>) -> Option<Self> {
-        match f.width() {
-            Some(width) if width > 0 => Some(Self {
-                width,
-                fill: f.fill(),
-                align: f.align(),
-            }),
-            _ => None,
-        }
-    }
-}
-
 /// Renders a value into a writer of any kind.
 ///
 /// The generic method lets one body run into both the width-counting sink inside
@@ -101,26 +83,42 @@ pub(crate) trait Render {
     fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result;
 }
 
-/// Writes the formatter output, padded to the width the caller requested.
+/// Renders a value, padded only when the specifier asks for a width.
 ///
-/// Without a width the value is written straight into the output, so the common
-/// path does not pay for the extra counting pass. With a width the value is
-/// rendered once into a character sink to learn its width, then again together
-/// with the padding.
+/// The check lives here rather than in [`write_padded`], so the common unpadded
+/// path calls the renderer directly instead of building padding settings.
+#[inline]
+pub(crate) fn fmt_with_padding<R>(body: &R, f: &mut fmt::Formatter<'_>) -> fmt::Result
+where
+    R: Render + ?Sized,
+{
+    match f.width() {
+        Some(width) if width > 0 => {
+            let pad = Pad {
+                width,
+                fill: f.fill(),
+                align: f.align(),
+            };
+
+            write_padded(pad, f, body)
+        }
+        _ => body.render(f),
+    }
+}
+
+/// Writes the renderer output, padded to the requested width.
+///
+/// The value is rendered once into a character sink to learn how wide it is and
+/// once into the output together with the padding.
 ///
 /// Alignment follows `Formatter` conventions, including left as the default. The
 /// precision is deliberately not used for truncation: cutting a formatted value
 /// would drop its unit suffix (`"15.3K"` would become `"15"`).
-pub(crate) fn write_padded<W, R>(pad: Option<Pad>, f: &mut W, body: &R) -> fmt::Result
+pub(crate) fn write_padded<W, R>(pad: Pad, f: &mut W, body: &R) -> fmt::Result
 where
     W: fmt::Write + ?Sized,
     R: Render + ?Sized,
 {
-    let pad = match pad {
-        Some(pad) => pad,
-        None => return body.render(f),
-    };
-
     let mut counter = CharCounter::default();
     body.render(&mut counter)?;
 
