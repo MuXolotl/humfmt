@@ -1,6 +1,8 @@
 use core::fmt;
+use core::fmt::Write;
 
-use crate::duration::{duration_with, DurationLike, DurationOptions};
+use crate::common::fmt::StackString;
+use crate::duration::{format_duration, DurationLike, DurationOptions};
 
 /// `Display` wrapper for relative time output (e.g. `"1m 30s ago"`).
 ///
@@ -26,6 +28,14 @@ impl AgoDisplay {
 
 impl fmt::Display for AgoDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ago", duration_with(self.value, self.options))
+        if f.width().is_none() {
+            format_duration(f, self.value, &self.options)?;
+            f.write_str(" ago")
+        } else {
+            let mut buf = StackString::<128>::new();
+            format_duration(&mut buf, self.value, &self.options)?;
+            buf.write_str(" ago")?;
+            f.pad(buf.as_str())
+        }
     }
 }

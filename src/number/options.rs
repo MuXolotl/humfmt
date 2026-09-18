@@ -1,10 +1,5 @@
+use crate::common::fmt::Precision;
 use crate::RoundingMode;
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum Precision {
-    Decimals(u8),
-    Significant(u8),
-}
 
 /// Builder-style configuration for compact number formatting.
 ///

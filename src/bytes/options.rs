@@ -1,3 +1,4 @@
+use crate::common::fmt::Precision;
 use crate::RoundingMode;
 
 /// Represents a magnitude of bytes.
@@ -21,12 +22,6 @@ pub enum ByteUnit {
     PB = 5,
     /// Exabytes (EB) or Exbibytes (EiB)
     EB = 6,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum Precision {
-    Decimals(u8),
-    Significant(u8),
 }
 
 /// Builder-style configuration for byte-size formatting.

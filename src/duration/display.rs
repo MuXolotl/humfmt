@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::StackString;
+
 use super::{format::format_duration, DurationOptions};
 
 /// `Display` wrapper for human-readable durations (e.g. `"1h 1m"`).
@@ -22,6 +24,12 @@ impl DurationDisplay {
 
 impl fmt::Display for DurationDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_duration(f, self.value, &self.options)
+        if f.width().is_none() {
+            format_duration(f, self.value, &self.options)
+        } else {
+            let mut buf = StackString::<128>::new();
+            format_duration(&mut buf, self.value, &self.options)?;
+            f.pad(buf.as_str())
+        }
     }
 }

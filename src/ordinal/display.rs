@@ -1,4 +1,7 @@
 use core::fmt;
+use core::fmt::Write;
+
+use crate::common::fmt::{write_u128, StackString};
 
 use super::{ordinal_suffix, traits::OrdinalValue};
 
@@ -18,13 +21,27 @@ impl OrdinalDisplay {
 
 impl fmt::Display for OrdinalDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (prefix, magnitude) = match self.value {
-            OrdinalValue::Int(value) if value < 0 => ("-", value.unsigned_abs()),
-            OrdinalValue::Int(value) => ("", value as u128),
-            OrdinalValue::UInt(value) => ("", value),
-        };
-
-        let suffix = ordinal_suffix(magnitude);
-        write!(f, "{prefix}{magnitude}{suffix}")
+        if f.width().is_none() {
+            write_ordinal(f, self.value)
+        } else {
+            let mut buf = StackString::<48>::new();
+            write_ordinal(&mut buf, self.value)?;
+            f.pad(buf.as_str())
+        }
     }
+}
+
+fn write_ordinal<W: fmt::Write>(f: &mut W, value: OrdinalValue) -> fmt::Result {
+    let (negative, magnitude) = match value {
+        OrdinalValue::Int(value) if value < 0 => (true, value.unsigned_abs()),
+        OrdinalValue::Int(value) => (false, value as u128),
+        OrdinalValue::UInt(value) => (false, value),
+    };
+
+    if negative {
+        f.write_char('-')?;
+    }
+
+    write_u128(f, magnitude, false, ',')?;
+    f.write_str(ordinal_suffix(magnitude))
 }

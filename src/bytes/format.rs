@@ -1,9 +1,8 @@
 use core::fmt;
 use core::fmt::Write;
 
-use super::options::Precision;
 use super::{traits::BytesValue, BytesOptions};
-use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
+use crate::common::fmt::{decimal_parts_rounded, write_decimal_frac, write_u128, Precision};
 
 // Each entry groups short label, long singular, and long plural for one unit tier.
 // Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.
@@ -185,8 +184,8 @@ const BINARY_UNITS: [u128; 7] = [
     1_152_921_504_606_846_976,
 ];
 
-pub fn format_bytes(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_bytes<W: fmt::Write>(
+    f: &mut W,
     value: BytesValue,
     options: &BytesOptions,
 ) -> fmt::Result {
@@ -251,19 +250,13 @@ pub fn format_bytes(
 
     write_u128(f, parts.integer, false, ',')?;
 
-    if options.fixed_precision {
-        if precision > 0 {
-            f.write_char(options.decimal_separator)?;
-            let existing = parts.frac_len as usize;
-            write_frac_digits(f, &parts.frac_digits[..existing])?;
-            for _ in existing..precision as usize {
-                f.write_char('0')?;
-            }
-        }
-    } else if parts.frac_len != 0 {
-        f.write_char(options.decimal_separator)?;
-        write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
-    }
+    write_decimal_frac(
+        f,
+        &parts,
+        precision,
+        options.fixed_precision,
+        options.decimal_separator,
+    )?;
 
     let labels = match (options.bits, options.binary) {
         (false, false) => &DECIMAL_LABELS,
@@ -278,7 +271,8 @@ pub fn format_bytes(
         } else {
             labels[idx].long_plural
         };
-        write!(f, " {label}")
+        f.write_char(' ')?;
+        f.write_str(label)
     } else {
         if options.space {
             f.write_char(' ')?;

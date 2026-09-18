@@ -25,6 +25,7 @@
 //! | `90s` | `"1m 30s"` | Two units (default cap) |
 //! | `3661s` | `"1h 1m"` | Seconds truncated |
 //! | `90061s` | `"1d 1h"` | Days included |
+//! | `Duration::MAX` | `"213503982334601d 7h"` | Largest `std` duration, no overflow |
 //!
 //! # Output control
 //!
@@ -41,6 +42,8 @@ mod traits;
 pub use display::DurationDisplay;
 pub use options::DurationOptions;
 pub use traits::DurationLike;
+
+pub(crate) use format::format_duration;
 
 /// Creates a human-readable duration formatter using default options.
 ///

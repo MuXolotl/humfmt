@@ -1,4 +1,7 @@
 use core::fmt;
+use core::fmt::Write;
+
+use crate::common::fmt::write_u128;
 
 use super::DurationOptions;
 
@@ -58,8 +61,8 @@ const UNITS: [Unit; 7] = [
 // Index of the "second" unit, used as the placeholder for zero durations.
 const SECOND_UNIT_IDX: usize = 3;
 
-pub fn format_duration(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_duration<W: fmt::Write>(
+    f: &mut W,
     value: core::time::Duration,
     options: &DurationOptions,
 ) -> fmt::Result {
@@ -94,21 +97,18 @@ pub fn format_duration(
     Ok(())
 }
 
-fn write_unit(
-    f: &mut fmt::Formatter<'_>,
-    count: u128,
-    unit: &Unit,
-    long_units: bool,
-) -> fmt::Result {
+fn write_unit<W: fmt::Write>(f: &mut W, count: u128, unit: &Unit, long_units: bool) -> fmt::Result {
+    write_u128(f, count, false, ',')?;
+
     if long_units {
         let label = if count == 1 {
             unit.long_singular
         } else {
             unit.long_plural
         };
-        write!(f, "{count} {label}")
+        f.write_char(' ')?;
+        f.write_str(label)
     } else {
-        let short = unit.short;
-        write!(f, "{count}{short}")
+        f.write_str(unit.short)
     }
 }

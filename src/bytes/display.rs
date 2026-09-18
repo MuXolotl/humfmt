@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::StackString;
+
 use super::{format::format_bytes, traits::BytesValue, BytesOptions};
 
 /// `Display` wrapper for human-readable byte sizes (e.g. `"1.5KB"`).

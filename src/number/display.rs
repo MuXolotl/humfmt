@@ -1,5 +1,6 @@
 use core::fmt;
 
+use crate::common::fmt::StackString;
 use crate::common::numeric::NumericValue;
 
 use super::{format::format_number, NumberOptions};
@@ -24,6 +25,12 @@ impl NumberDisplay {
 
 impl fmt::Display for NumberDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_number(f, self.value, &self.options)
+        if f.width().is_none() {
+            format_number(f, self.value, &self.options)
+        } else {
+            let mut buf = StackString::<512>::new();
+            format_number(&mut buf, self.value, &self.options)?;
+            f.pad(buf.as_str())
+        }
     }
 }

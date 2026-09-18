@@ -2,6 +2,70 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::fmt::Write;
 
+use crate::RoundingMode;
+
+/// Compact vs significant-digit precision mode, shared by number and bytes.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum Precision {
+    Decimals(u8),
+    Significant(u8),
+}
+
+/// 10^i for i in 0..=6. Used when rounding a non-negative finite f64.
+pub(crate) const POW10_F64: [f64; 7] = [
+    1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0,
+];
+
+/// Two-digit ASCII pairs `"00"`..`"99"`, used by the integer writer.
+const DIGIT_PAIRS: [u8; 200] = {
+    let mut table = [0u8; 200];
+    let mut i = 0;
+    while i < 100 {
+        table[i * 2] = b'0' + (i / 10) as u8;
+        table[i * 2 + 1] = b'0' + (i % 10) as u8;
+        i += 1;
+    }
+    table
+};
+
+/// Rounds a non-negative finite `f64` to `precision` decimal places.
+///
+/// Integer-cast rounding is used so this stays `no_std` without `libm`.
+#[inline]
+pub(crate) fn round_nonneg_f64(
+    value: f64,
+    precision: u8,
+    rounding: RoundingMode,
+    is_negative: bool,
+) -> f64 {
+    debug_assert!(value.is_finite() && value >= 0.0);
+
+    let p = precision.min(6) as usize;
+    let factor = POW10_F64[p];
+
+    if value > f64::MAX / factor {
+        return value;
+    }
+
+    let shifted = value * factor;
+    let trunc = shifted as u64;
+
+    if trunc as f64 >= u64::MAX as f64 {
+        return value;
+    }
+
+    let has_remainder = shifted > trunc as f64;
+
+    let carry = match rounding {
+        RoundingMode::HalfUp => (shifted + 0.5) as u64 > trunc,
+        RoundingMode::Floor => is_negative && has_remainder,
+        RoundingMode::Ceil => !is_negative && has_remainder,
+    };
+
+    let rounded_int = if carry { trunc + 1 } else { trunc };
+    rounded_int as f64 / factor
+}
+
 /// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
 ///
 /// Written to only via `fmt::Write::write_str`, which guarantees UTF-8 input,
@@ -55,8 +119,8 @@ impl<const N: usize> fmt::Write for StackString<N> {
 /// Writes an ASCII digit string with grouping separators every 3 digits from the right.
 ///
 /// Example with separator `','`: `"12345"` -> `"12,345"`.
-pub(crate) fn write_grouped_ascii_digits(
-    f: &mut fmt::Formatter<'_>,
+pub(crate) fn write_grouped_ascii_digits<W: fmt::Write>(
+    f: &mut W,
     digits: &str,
     group_separator: char,
 ) -> fmt::Result {
@@ -85,42 +149,82 @@ pub(crate) fn write_grouped_ascii_digits(
 }
 
 /// Writes a `u128` without heap allocation, with optional digit grouping.
-pub(crate) fn write_u128(
-    f: &mut fmt::Formatter<'_>,
+///
+/// Compact number/byte output almost always has a 1–3 digit integer part, so
+/// that case is a dedicated fast path (single `write_str`, no division loop).
+pub(crate) fn write_u128<W: fmt::Write>(
+    f: &mut W,
     mut value: u128,
     group: bool,
     group_separator: char,
 ) -> fmt::Result {
+    if !group && value < 1000 {
+        return write_small_u32(f, value as u32);
+    }
+
     if value == 0 {
         return f.write_str("0");
     }
 
-    // u128::MAX is 39 decimal digits.
-    let mut rev = [0u8; 39];
+    // u128::MAX is 39 decimal digits. Filled least-significant pair first.
+    let mut buf = [0u8; 39];
     let mut len = 0usize;
 
-    while value != 0 {
-        rev[len] = b'0' + (value % 10) as u8;
+    while value >= 100 {
+        let pair = (value % 100) as usize;
+        value /= 100;
+        buf[len] = DIGIT_PAIRS[pair * 2 + 1];
+        buf[len + 1] = DIGIT_PAIRS[pair * 2];
+        len += 2;
+    }
+
+    if value >= 10 {
+        let pair = value as usize;
+        buf[len] = DIGIT_PAIRS[pair * 2 + 1];
+        buf[len + 1] = DIGIT_PAIRS[pair * 2];
+        len += 2;
+    } else if value > 0 {
+        buf[len] = b'0' + value as u8;
         len += 1;
-        value /= 10;
     }
 
-    let mut fwd = [0u8; 39];
+    buf[..len].reverse();
 
-    for i in 0..len {
-        fwd[i] = rev[len - 1 - i];
-    }
-
-    debug_assert!(fwd[..len].iter().all(|b| b.is_ascii_digit()));
+    debug_assert!(buf[..len].iter().all(|b| b.is_ascii_digit()));
 
     // SAFETY: bytes are ASCII '0'..='9' produced above, valid UTF-8.
-    let digits = unsafe { core::str::from_utf8_unchecked(&fwd[..len]) };
+    let digits = unsafe { core::str::from_utf8_unchecked(&buf[..len]) };
 
     if group {
         write_grouped_ascii_digits(f, digits, group_separator)
     } else {
         f.write_str(digits)
     }
+}
+
+/// Writes an integer in `0..=999` as a decimal string.
+#[inline]
+fn write_small_u32<W: fmt::Write>(f: &mut W, n: u32) -> fmt::Result {
+    debug_assert!(n < 1000);
+
+    let mut buf = [0u8; 3];
+    let start = if n >= 100 {
+        buf[0] = b'0' + (n / 100) as u8;
+        buf[1] = DIGIT_PAIRS[((n % 100) * 2) as usize];
+        buf[2] = DIGIT_PAIRS[((n % 100) * 2 + 1) as usize];
+        0
+    } else if n >= 10 {
+        buf[1] = DIGIT_PAIRS[(n * 2) as usize];
+        buf[2] = DIGIT_PAIRS[(n * 2 + 1) as usize];
+        1
+    } else {
+        buf[2] = b'0' + n as u8;
+        2
+    };
+
+    // SAFETY: ASCII digits, valid UTF-8.
+    let s = unsafe { core::str::from_utf8_unchecked(&buf[start..]) };
+    f.write_str(s)
 }
 
 /// A compact "integer + fractional digits" representation used for scaled outputs.
@@ -381,14 +485,41 @@ pub(crate) fn compute_sigfigs_u128(
         let new_unit = unit.saturating_mul(round_factor);
 
         let mut parts = decimal_parts_rounded(magnitude, new_unit, 0, rounding, negative);
-        parts.integer *= round_factor;
+        parts.integer = parts.integer.saturating_mul(round_factor);
 
         (0, parts)
     }
 }
 
+/// Writes the fractional part of [`DecimalParts`], honouring trim vs fixed precision.
+pub(crate) fn write_decimal_frac<W: fmt::Write>(
+    f: &mut W,
+    parts: &DecimalParts,
+    precision: u8,
+    fixed_precision: bool,
+    decimal_separator: char,
+) -> fmt::Result {
+    if fixed_precision {
+        if precision > 0 {
+            f.write_char(decimal_separator)?;
+
+            let existing = parts.frac_len as usize;
+            write_frac_digits(f, &parts.frac_digits[..existing])?;
+
+            for _ in existing..precision as usize {
+                f.write_char('0')?;
+            }
+        }
+    } else if parts.frac_len != 0 {
+        f.write_char(decimal_separator)?;
+        write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
+    }
+
+    Ok(())
+}
+
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
-pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
+pub(crate) fn write_frac_digits<W: fmt::Write>(f: &mut W, digits: &[u8]) -> fmt::Result {
     debug_assert!(digits.iter().all(|b| b.is_ascii_digit()));
 
     // SAFETY: digits are always ASCII bytes in '0'..='9', produced by

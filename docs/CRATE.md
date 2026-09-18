@@ -53,6 +53,7 @@ This means:
 
 - `format!("{}", humfmt::number(x))` allocates — because `format!` must produce a `String`
 - `write!(&mut buf, "{}", humfmt::number(x))` reuses the buffer — no new allocation from the formatter
+- `format!("{:>10}", humfmt::number(x))` honours width, fill, and alignment. Default align is left (string-like). `{:.2}` precision on the format specifier is ignored; use `NumberOptions::precision` instead.
 
 Example:
 
@@ -506,6 +507,7 @@ assert_eq!(
 | `90s` | `"1m 30s"` | Two units (default) |
 | `3661s` | `"1h 1m"` | Seconds truncated |
 | `90061s` | `"1d 1h"` | Days included |
+| `Duration::MAX` | `"213503982334601d 7h"` | Largest `std` duration, no overflow |
 
 ---
 

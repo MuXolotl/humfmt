@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::StackString;
+
 use super::{format::format_percent, PercentOptions};
 
 /// `Display` wrapper for percentage formatting (e.g. `"42.3%"`).

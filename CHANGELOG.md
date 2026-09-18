@@ -11,20 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Fuzz testing harness (`cargo-fuzz`) with targets for `number`, `bytes`, `percent`, `duration`, `ordinal`, and `list`. Run via GitHub Actions or locally with `cargo +nightly fuzz run <target>`.
-- Golden snapshot tests (`tests/golden.rs`) as a strict regression net across all formatters ahead of the 1.0 API freeze.
-- `PercentOptions::rounding(RoundingMode)` — brings `percent` into full API parity with `number` and `bytes`. Previously `percent` always used half-up; `Floor` and `Ceil` are now available.
-- `ByteUnit` and `RoundingMode` re-exported from `humfmt::prelude` so a single `use humfmt::prelude::*` covers the most common option types.
+- `PercentOptions::rounding(RoundingMode)` — `percent` now supports `HalfUp`, `Floor`, and `Ceil` (it previously always used half-up).
+- `ByteUnit` and `RoundingMode` re-exported from `humfmt::prelude`.
+- Formatters honour `width`, fill, and alignment from `format!` / `Formatter::pad`. Default alignment is left (string-like); use `{:>10}` for right-aligned columns. `{:.n}` precision on the format specifier is ignored — use the options builders.
 
 ### Changed
 
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
-- `percent` formatter refactored to use the same rounding infrastructure as `number` and `bytes`, removing the previously hardcoded half-up path.
 
 ### Fixed
 
 - Overflow-safe fractional digit extraction in the `u128` long-division path. Extreme values near `u128::MAX` now round correctly.
 - Significant-digit rounding for `u128::MAX`, `i128::MAX`, and `i128::MIN`.
+
+### Performance
+
+- Integer digit writing uses a two-digit lookup table and a dedicated path for 1–3 digit values (the usual compact-number / byte integer part).
+- Compact float numbers write via integer parts instead of `"{:.*}"` for magnitudes below `1e12`.
+- Duration, relative-time, and ordinal formatters write digits directly instead of going through `write!` / `Display` for `u128`.
 
 ---
 

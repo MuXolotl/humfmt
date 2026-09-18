@@ -48,7 +48,6 @@ fn main() {
         15_320.human_number_with(NumberOptions::new().long_units())
     );
 
-    // Custom separators: replaces the old custom-locale demonstration.
     println!(
         "{}",
         humfmt::number_with(

@@ -257,6 +257,15 @@ fn formats_u128_max_without_overflow_artifacts() {
 }
 
 #[test]
+fn uncompacted_u128_max_significant_digits_do_not_overflow() {
+    let sig1 = NumberOptions::new().compact(false).significant_digits(1);
+    let out = number_with(u128::MAX, sig1).to_string();
+    assert!(out.starts_with('3'));
+    assert!(!out.contains("inf"));
+    assert!(!out.contains("NaN"));
+}
+
+#[test]
 fn uncompacted_u128_max_is_exact() {
     let opts = NumberOptions::new().compact(false);
     assert_eq!(

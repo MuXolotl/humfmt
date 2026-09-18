@@ -4,8 +4,8 @@ use humfmt::{ago_with, bytes, duration_with, list_with, number, number_with};
 use humfmt::{DurationOptions, ListOptions, NumberOptions};
 use proptest::prelude::*;
 
-const SHORT_SUFFIXES: [&str; 12] = [
-    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+const SHORT_SUFFIXES: [&str; 13] = [
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud",
 ];
 const BYTE_SUFFIXES: [&str; 7] = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
 

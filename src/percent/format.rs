@@ -1,16 +1,12 @@
 use core::fmt;
 use core::fmt::Write;
 
-use crate::common::fmt::{write_frac_digits, write_u128};
-use crate::RoundingMode;
+use crate::common::fmt::{round_nonneg_f64, write_frac_digits, write_u128, POW10_F64};
 
 use super::PercentOptions;
 
-// Lookup table: 10^i for i in 0..=6, used to shift fractional digits.
-const POW10: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
-
-pub fn format_percent(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_percent<W: fmt::Write>(
+    f: &mut W,
     value: f64,
     options: &PercentOptions,
 ) -> fmt::Result {
@@ -22,10 +18,10 @@ pub fn format_percent(
     let negative = percent.is_sign_negative();
     let abs = percent.abs();
     let precision = options.precision as usize;
-    let factor = POW10[precision];
+    let factor = POW10_F64[precision];
 
     // Round `abs` to `precision` decimal places using the selected mode.
-    let rounded = round_percent(abs, factor, options.rounding, negative);
+    let rounded = round_nonneg_f64(abs, options.precision, options.rounding, negative);
 
     let is_zero = rounded == 0.0;
     if negative && !is_zero {
@@ -44,36 +40,9 @@ pub fn format_percent(
     f.write_char('%')
 }
 
-/// Rounds `abs` (already multiplied by 100) to `precision` decimal places.
-///
-/// Uses the same rounding semantics as the number and bytes formatters.
-fn round_percent(abs: f64, factor: f64, rounding: RoundingMode, is_negative: bool) -> f64 {
-    // Overflow guard: values near f64::MAX * factor would wrap u64.
-    if abs * factor > u64::MAX as f64 {
-        return abs;
-    }
-
-    let shifted = abs * factor;
-    let trunc = shifted as u64;
-
-    let has_remainder = shifted > trunc as f64;
-
-    let carry = match rounding {
-        RoundingMode::HalfUp => {
-            // Ties round away from zero: 0.5 -> 1, -0.5 -> -1.
-            (shifted + 0.5) as u64 > trunc
-        }
-        RoundingMode::Floor => is_negative && has_remainder,
-        RoundingMode::Ceil => !is_negative && has_remainder,
-    };
-
-    let rounded_int = if carry { trunc + 1 } else { trunc };
-    rounded_int as f64 / factor
-}
-
 /// Writes the fractional part of a rounded percentage value.
-fn write_frac_part(
-    f: &mut fmt::Formatter<'_>,
+fn write_frac_part<W: fmt::Write>(
+    f: &mut W,
     rounded: f64,
     int_part: u128,
     factor: f64,

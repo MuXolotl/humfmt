@@ -2,11 +2,11 @@ use core::fmt;
 use core::fmt::Write;
 
 use crate::common::fmt::{
-    decimal_parts_rounded, write_frac_digits, write_grouped_ascii_digits, write_u128, StackString,
+    decimal_parts_rounded, round_nonneg_f64, write_decimal_frac, write_frac_digits,
+    write_grouped_ascii_digits, write_u128, Precision, StackString, POW10_F64,
 };
 use crate::common::numeric::NumericValue;
 
-use super::options::Precision;
 use super::NumberOptions;
 
 // Powers of 1000 as u128, for O(1) integer compact-unit selection.
@@ -47,9 +47,6 @@ const POW1000_F64: [f64; 13] = [
     1_000_000_000_000_000_000_000_000_000_000_000_000.0,
 ];
 
-// Powers of 10 as f64, indexed by precision (0..=6).
-const POW10_F64: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
-
 const SHORT_SUFFIXES: [&str; 13] = [
     "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud",
 ];
@@ -87,8 +84,8 @@ fn suffix_for(idx: usize, long: bool) -> &'static str {
     }
 }
 
-pub fn format_number(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_number<W: fmt::Write>(
+    f: &mut W,
     value: NumericValue,
     options: &NumberOptions,
 ) -> fmt::Result {
@@ -99,19 +96,19 @@ pub fn format_number(
     }
 }
 
-fn format_int(f: &mut fmt::Formatter<'_>, value: i128, options: &NumberOptions) -> fmt::Result {
+fn format_int<W: fmt::Write>(f: &mut W, value: i128, options: &NumberOptions) -> fmt::Result {
     let negative = value.is_negative();
     let magnitude = value.unsigned_abs();
 
     format_u128_magnitude(f, negative && magnitude != 0, magnitude, options)
 }
 
-fn format_uint(f: &mut fmt::Formatter<'_>, value: u128, options: &NumberOptions) -> fmt::Result {
+fn format_uint<W: fmt::Write>(f: &mut W, value: u128, options: &NumberOptions) -> fmt::Result {
     format_u128_magnitude(f, false, value, options)
 }
 
-fn format_u128_magnitude(
-    f: &mut fmt::Formatter<'_>,
+fn format_u128_magnitude<W: fmt::Write>(
+    f: &mut W,
     negative: bool,
     magnitude: u128,
     options: &NumberOptions,
@@ -158,7 +155,7 @@ fn format_u128_magnitude(
         options.group_separator,
     )?;
 
-    write_int_frac(
+    write_decimal_frac(
         f,
         &parts,
         decimals,
@@ -181,7 +178,7 @@ fn compact_unit_for_u128(magnitude: u128, max_idx: usize) -> (usize, u128) {
     (idx, POW1000[idx])
 }
 
-fn format_float(f: &mut fmt::Formatter<'_>, raw: f64, options: &NumberOptions) -> fmt::Result {
+fn format_float<W: fmt::Write>(f: &mut W, raw: f64, options: &NumberOptions) -> fmt::Result {
     if !raw.is_finite() {
         return write!(f, "{raw}");
     }
@@ -202,24 +199,109 @@ fn format_float(f: &mut fmt::Formatter<'_>, raw: f64, options: &NumberOptions) -
         f.write_char('+')?;
     }
 
-    // Stack buffer sized to safely fit any non-exponential f64:
-    // f64::MAX ~= 1.8e308, so 309 integer digits + '.' + up to 6 fractional
-    // digits fits comfortably.
-    let mut buf = StackString::<384>::new();
-
-    write!(&mut buf, "{:.*}", decimals as usize, scaled_abs)
-        .expect("StackString<384> overflow is impossible for valid display f64");
-
-    write_localized_float_str(
+    let group = options.separators && idx == 0;
+    write_scaled_f64(
         f,
-        buf.as_str(),
-        options.separators && idx == 0,
+        scaled_abs,
+        decimals,
+        group,
         options.fixed_precision,
         options.decimal_separator,
         options.group_separator,
     )?;
 
     f.write_str(suffix_for(idx, options.long_units))
+}
+
+/// Writes an already-rounded non-negative finite f64.
+///
+/// Compact output (and most uncompacted values) stays well below 1e12, so the
+/// integer path is used. Larger uncompacted floats fall back to the standard
+/// library formatter into a stack buffer.
+fn write_scaled_f64<W: fmt::Write>(
+    f: &mut W,
+    scaled_abs: f64,
+    decimals: u8,
+    group: bool,
+    fixed_precision: bool,
+    decimal_separator: char,
+    group_separator: char,
+) -> fmt::Result {
+    // 1e12 * 10^6 still fits in u64, and 1e12 is exact in f64.
+    if scaled_abs < 1e12 {
+        return write_scaled_f64_as_parts(
+            f,
+            scaled_abs,
+            decimals,
+            group,
+            fixed_precision,
+            decimal_separator,
+            group_separator,
+        );
+    }
+
+    let mut buf = StackString::<384>::new();
+    write!(&mut buf, "{:.*}", decimals as usize, scaled_abs)
+        .expect("StackString<384> overflow is impossible for valid display f64");
+
+    write_localized_float_str(
+        f,
+        buf.as_str(),
+        group,
+        fixed_precision,
+        decimal_separator,
+        group_separator,
+    )
+}
+
+fn write_scaled_f64_as_parts<W: fmt::Write>(
+    f: &mut W,
+    scaled_abs: f64,
+    decimals: u8,
+    group: bool,
+    fixed_precision: bool,
+    decimal_separator: char,
+    group_separator: char,
+) -> fmt::Result {
+    let p = decimals.min(6);
+    let scale = POW10_F64[p as usize] as u64;
+    let total = (scaled_abs * scale as f64 + 0.5) as u64;
+    let integer = (total / scale) as u128;
+    let frac = total % scale;
+
+    write_u128(f, integer, group, group_separator)?;
+
+    if p == 0 {
+        return Ok(());
+    }
+
+    if frac == 0 && !fixed_precision {
+        return Ok(());
+    }
+
+    let mut digits = [b'0'; 6];
+    let mut rem = frac;
+    for i in (0..p as usize).rev() {
+        digits[i] = b'0' + (rem % 10) as u8;
+        rem /= 10;
+    }
+
+    let end = if fixed_precision {
+        p as usize
+    } else {
+        let mut e = p as usize;
+        while e > 0 && digits[e - 1] == b'0' {
+            e -= 1;
+        }
+        e
+    };
+
+    if end == 0 {
+        return Ok(());
+    }
+
+    f.write_char(decimal_separator)?;
+    write_frac_digits(f, &digits[..end])
 }
 
 // Selects the compact scale index and the rounded scaled value for a
@@ -233,7 +315,7 @@ fn compact_unit_for_f64(
     is_negative: bool,
 ) -> (usize, u8, f64) {
     let get_scaled = |abs_val: f64| match *precision {
-        Precision::Decimals(d) => (d, round_f64(abs_val, d, rounding, is_negative)),
+        Precision::Decimals(d) => (d, round_nonneg_f64(abs_val, d, rounding, is_negative)),
         Precision::Significant(s) => compute_sigfigs_f64(abs_val, s, rounding, is_negative),
     };
 
@@ -296,7 +378,7 @@ fn compute_sigfigs_f64(
 
     if shift >= 0 {
         let decimals = (shift as u8).min(6);
-        let rounded = round_f64(abs, decimals, rounding, negative);
+        let rounded = round_nonneg_f64(abs, decimals, rounding, negative);
 
         let new_log10 = if rounded > 0.0 {
             f64_log10_floor(rounded)
@@ -320,7 +402,7 @@ fn compute_sigfigs_f64(
         let drop_digits = -shift;
         let factor = f64_pow10(drop_digits);
         let divided = abs / factor;
-        let rounded = round_f64(divided, 0, rounding, negative);
+        let rounded = round_nonneg_f64(divided, 0, rounding, negative);
 
         (0, rounded * factor)
     }
@@ -381,74 +463,12 @@ fn f64_log10_floor(val: f64) -> i32 {
     approx
 }
 
-// Rounds a non-negative finite f64 to `precision` decimal places.
-#[inline]
-fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negative: bool) -> f64 {
-    debug_assert!(value.is_finite() && value >= 0.0);
-
-    let p = precision.min(6) as usize;
-    let factor = POW10_F64[p];
-
-    if value > f64::MAX / factor {
-        return value;
-    }
-
-    let shifted = value * factor;
-    let trunc = shifted as u64;
-
-    if trunc as f64 >= u64::MAX as f64 {
-        return value;
-    }
-
-    let has_remainder = shifted > trunc as f64;
-
-    let carry = match rounding {
-        crate::RoundingMode::HalfUp => {
-            let half_shifted = shifted + 0.5;
-            (half_shifted as u64) > trunc
-        }
-        crate::RoundingMode::Floor => is_negative && has_remainder,
-        crate::RoundingMode::Ceil => !is_negative && has_remainder,
-    };
-
-    let rounded_int = if carry { trunc + 1 } else { trunc };
-
-    rounded_int as f64 / factor
-}
-
-// Writes the fractional part of a DecimalParts value.
-fn write_int_frac(
-    f: &mut fmt::Formatter<'_>,
-    parts: &crate::common::fmt::DecimalParts,
-    precision: u8,
-    fixed_precision: bool,
-    decimal_separator: char,
-) -> fmt::Result {
-    if fixed_precision {
-        if precision > 0 {
-            f.write_char(decimal_separator)?;
-
-            let existing = parts.frac_len as usize;
-            write_frac_digits(f, &parts.frac_digits[..existing])?;
-
-            for _ in existing..precision as usize {
-                f.write_char('0')?;
-            }
-        }
-    } else if parts.frac_len != 0 {
-        f.write_char(decimal_separator)?;
-        write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
-    }
-
-    Ok(())
-}
-
 // Writes a float string produced by Rust's "{:.*}" formatter with:
 // - decimal separator substitution
 // - optional digit grouping on the integer part
 // - trailing-zero trimming unless fixed_precision is enabled
-fn write_localized_float_str(
-    f: &mut fmt::Formatter<'_>,
+fn write_localized_float_str<W: fmt::Write>(
+    f: &mut W,
     input: &str,
     group: bool,
     fixed_precision: bool,

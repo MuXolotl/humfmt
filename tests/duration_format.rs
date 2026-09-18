@@ -8,6 +8,13 @@ fn formats_zero_duration() {
 }
 
 #[test]
+fn formats_duration_max_without_panic() {
+    let out = duration(Duration::MAX).to_string();
+    assert!(out.ends_with('d') || out.contains('d'));
+    assert!(!out.is_empty());
+}
+
+#[test]
 fn formats_compound_durations() {
     assert_eq!(duration(Duration::from_secs(3661)).to_string(), "1h 1m");
     assert_eq!(duration(Duration::from_secs(90061)).to_string(), "1d 1h");
