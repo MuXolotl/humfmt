@@ -1,6 +1,7 @@
 use core::fmt;
 
-use crate::duration::{duration_with, DurationLike, DurationOptions};
+use crate::common::fmt::{write_padded, Pad, Render};
+use crate::duration::{format_duration, DurationLike, DurationOptions};
 
 /// `Display` wrapper for relative time output (e.g. `"1m 30s ago"`).
 ///
@@ -24,8 +25,15 @@ impl AgoDisplay {
     }
 }
 
+impl Render for AgoDisplay {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        format_duration(f, self.value, &self.options)?;
+        f.write_str(" ago")
+    }
+}
+
 impl fmt::Display for AgoDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ago", duration_with(self.value, self.options))
+        write_padded(Pad::of(f), f, self)
     }
 }

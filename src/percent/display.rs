@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::{write_padded, Pad, Render};
+
 use super::{format::format_percent, PercentOptions};
 
 /// `Display` wrapper for percentage formatting (e.g. `"42.3%"`).
@@ -20,8 +22,14 @@ impl PercentDisplay {
     }
 }
 
+impl Render for PercentDisplay {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        format_percent(f, self.value, &self.options)
+    }
+}
+
 impl fmt::Display for PercentDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_percent(f, self.value, &self.options)
+        write_padded(Pad::of(f), f, self)
     }
 }

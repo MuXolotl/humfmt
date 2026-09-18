@@ -1,5 +1,6 @@
 use core::fmt;
 
+use crate::common::fmt::{write_padded, Pad, Render};
 use crate::common::numeric::NumericValue;
 
 use super::{format::format_number, NumberOptions};
@@ -22,8 +23,14 @@ impl NumberDisplay {
     }
 }
 
+impl Render for NumberDisplay {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        format_number(f, self.value, &self.options)
+    }
+}
+
 impl fmt::Display for NumberDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_number(f, self.value, &self.options)
+        write_padded(Pad::of(f), f, self)
     }
 }

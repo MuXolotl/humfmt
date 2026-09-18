@@ -1,6 +1,5 @@
 use core::cmp::Ordering;
 use core::fmt;
-use core::fmt::Write;
 
 /// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
 ///
@@ -52,11 +51,109 @@ impl<const N: usize> fmt::Write for StackString<N> {
     }
 }
 
+/// Counts the characters written to it.
+///
+/// Used to size a padded field: the formatter runs once into this sink to learn
+/// how wide the rendered value is, then again into the real output. Counting is
+/// character-based to match how `Formatter` measures padding.
+#[derive(Default)]
+pub(crate) struct CharCounter {
+    chars: usize,
+}
+
+impl fmt::Write for CharCounter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.chars += s.chars().count();
+        Ok(())
+    }
+}
+
+/// Padding requested by a format specifier: width, fill character and alignment.
+pub(crate) struct Pad {
+    width: usize,
+    fill: char,
+    align: Option<fmt::Alignment>,
+}
+
+impl Pad {
+    /// Reads the padding settings of a format specifier.
+    ///
+    /// Returns `None` when the caller did not ask for a width, which is the case
+    /// for plain `{}`.
+    #[inline]
+    pub(crate) fn of(f: &fmt::Formatter<'_>) -> Option<Self> {
+        match f.width() {
+            Some(width) if width > 0 => Some(Self {
+                width,
+                fill: f.fill(),
+                align: f.align(),
+            }),
+            _ => None,
+        }
+    }
+}
+
+/// Renders a value into a writer of any kind.
+///
+/// The generic method lets one body run into both the width-counting sink inside
+/// [`write_padded`] and the real output; a closure would be tied to one writer type.
+pub(crate) trait Render {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result;
+}
+
+/// Writes the formatter output, padded to the width the caller requested.
+///
+/// Without a width the value is written straight into the output, so the common
+/// path does not pay for the extra counting pass. With a width the value is
+/// rendered once into a character sink to learn its width, then again together
+/// with the padding.
+///
+/// Alignment follows `Formatter` conventions, including left as the default. The
+/// precision is deliberately not used for truncation: cutting a formatted value
+/// would drop its unit suffix (`"15.3K"` would become `"15"`).
+pub(crate) fn write_padded<W, R>(pad: Option<Pad>, f: &mut W, body: &R) -> fmt::Result
+where
+    W: fmt::Write + ?Sized,
+    R: Render + ?Sized,
+{
+    let pad = match pad {
+        Some(pad) => pad,
+        None => return body.render(f),
+    };
+
+    let mut counter = CharCounter::default();
+    body.render(&mut counter)?;
+
+    let width = pad.width.saturating_sub(counter.chars);
+
+    if width == 0 {
+        return body.render(f);
+    }
+
+    let (leading, trailing) = match pad.align {
+        Some(fmt::Alignment::Right) => (width, 0),
+        Some(fmt::Alignment::Center) => (width / 2, width - width / 2),
+        _ => (0, width),
+    };
+
+    for _ in 0..leading {
+        f.write_char(pad.fill)?;
+    }
+
+    body.render(f)?;
+
+    for _ in 0..trailing {
+        f.write_char(pad.fill)?;
+    }
+
+    Ok(())
+}
+
 /// Writes an ASCII digit string with grouping separators every 3 digits from the right.
 ///
 /// Example with separator `','`: `"12345"` -> `"12,345"`.
-pub(crate) fn write_grouped_ascii_digits(
-    f: &mut fmt::Formatter<'_>,
+pub(crate) fn write_grouped_ascii_digits<W: fmt::Write + ?Sized>(
+    f: &mut W,
     digits: &str,
     group_separator: char,
 ) -> fmt::Result {
@@ -124,8 +221,8 @@ fn write_digits_into(buf: &mut [u8], mut value: u128) -> usize {
 }
 
 /// Writes a `u128` without heap allocation, with optional digit grouping.
-pub(crate) fn write_u128(
-    f: &mut fmt::Formatter<'_>,
+pub(crate) fn write_u128<W: fmt::Write + ?Sized>(
+    f: &mut W,
     value: u128,
     group: bool,
     group_separator: char,
@@ -194,8 +291,8 @@ impl ScaledInteger {
 }
 
 /// Writes the integer part of a scaled value, honouring digit grouping.
-pub(crate) fn write_scaled_integer(
-    f: &mut fmt::Formatter<'_>,
+pub(crate) fn write_scaled_integer<W: fmt::Write + ?Sized>(
+    f: &mut W,
     integer: ScaledInteger,
     group: bool,
     group_separator: char,
@@ -494,7 +591,7 @@ pub(crate) fn compute_sigfigs_u128(
 }
 
 /// Writes fractional digits (ASCII bytes) directly to the formatter.
-pub(crate) fn write_frac_digits(f: &mut fmt::Formatter<'_>, digits: &[u8]) -> fmt::Result {
+pub(crate) fn write_frac_digits<W: fmt::Write + ?Sized>(f: &mut W, digits: &[u8]) -> fmt::Result {
     debug_assert!(digits.iter().all(|b| b.is_ascii_digit()));
 
     // SAFETY: digits are always ASCII bytes in '0'..='9', produced by

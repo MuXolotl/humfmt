@@ -2,8 +2,8 @@ use core::fmt;
 
 use super::ListOptions;
 
-pub fn format_list<T: fmt::Display>(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_list<W: fmt::Write + ?Sized, T: fmt::Display>(
+    f: &mut W,
     items: &[T],
     options: &ListOptions,
 ) -> fmt::Result {

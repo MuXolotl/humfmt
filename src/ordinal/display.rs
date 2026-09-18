@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::{write_padded, Pad, Render};
+
 use super::{ordinal_suffix, traits::OrdinalValue};
 
 /// `Display` wrapper for ordinal formatting (e.g. `"21st"`).
@@ -16,15 +18,20 @@ impl OrdinalDisplay {
     }
 }
 
-impl fmt::Display for OrdinalDisplay {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Render for OrdinalDisplay {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
         let (prefix, magnitude) = match self.value {
             OrdinalValue::Int(value) if value < 0 => ("-", value.unsigned_abs()),
             OrdinalValue::Int(value) => ("", value as u128),
             OrdinalValue::UInt(value) => ("", value),
         };
 
-        let suffix = ordinal_suffix(magnitude);
-        write!(f, "{prefix}{magnitude}{suffix}")
+        write!(f, "{}{}{}", prefix, magnitude, ordinal_suffix(magnitude))
+    }
+}
+
+impl fmt::Display for OrdinalDisplay {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_padded(Pad::of(f), f, self)
     }
 }

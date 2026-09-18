@@ -67,6 +67,35 @@ write!(&mut out, "{}", humfmt::bytes(9_876_543_210_u64)).unwrap();
 
 ---
 
+## Format specifiers
+
+Every formatter implements `Display`, so the usual width, fill and alignment
+specifiers apply to its output:
+
+```rust
+use core::time::Duration;
+
+assert_eq!(format!("{:>10}", humfmt::number(15_320)), "     15.3K");
+assert_eq!(format!("{:*^12}", humfmt::bytes(1536)), "***1.5KB****");
+assert_eq!(format!("{:<14}", humfmt::ordinal(21)), "21st          ");
+assert_eq!(format!("{:>18}", humfmt::ago(Duration::from_secs(90))), "        1m 30s ago");
+```
+
+| Specifier | Effect |
+|---|---|
+| width, `{:10}` | pads to at least that many characters, counted as `char`s |
+| fill, `{:*<10}` | padding character, a space by default |
+| alignment, `{:<10}` `{:>10}` `{:^10}` | left (default), right, center |
+| precision, `{:.2}` | ignored |
+| `+`, `#`, `0` | ignored |
+
+A value wider than the requested width is written in full; padding is only ever
+added. Precision is ignored on purpose: the `Display` contract would truncate the
+value to `N` characters and cut its unit off (`"1.5KB"` would become `"1."`).
+Digit counts belong to the options — `precision`, `significant_digits`.
+
+---
+
 ## Compact numbers
 
 Turns large values into short forms: `15320` -> `"15.3K"`, `1_500_000` -> `"1.5M"`.

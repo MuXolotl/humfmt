@@ -58,8 +58,8 @@ const UNITS: [Unit; 7] = [
 // Index of the "second" unit, used as the placeholder for zero durations.
 const SECOND_UNIT_IDX: usize = 3;
 
-pub fn format_duration(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_duration<W: fmt::Write + ?Sized>(
+    f: &mut W,
     value: core::time::Duration,
     options: &DurationOptions,
 ) -> fmt::Result {
@@ -94,8 +94,8 @@ pub fn format_duration(
     Ok(())
 }
 
-fn write_unit(
-    f: &mut fmt::Formatter<'_>,
+fn write_unit<W: fmt::Write + ?Sized>(
+    f: &mut W,
     count: u128,
     unit: &Unit,
     long_units: bool,

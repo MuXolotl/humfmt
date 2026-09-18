@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::{write_padded, Pad, Render};
+
 use super::{format::format_list, ListOptions};
 
 /// `Display` wrapper for natural-language list formatting.
@@ -25,8 +27,14 @@ impl<'a, T> ListDisplay<'a, T> {
     }
 }
 
+impl<T: fmt::Display> Render for ListDisplay<'_, T> {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        format_list(f, self.items, &self.options)
+    }
+}
+
 impl<T: fmt::Display> fmt::Display for ListDisplay<'_, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_list(f, self.items, &self.options)
+        write_padded(Pad::of(f), f, self)
     }
 }
