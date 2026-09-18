@@ -57,7 +57,7 @@ fn main() -> io::Result<()> {
     let criterion_root = repo_root.join("tools/benchmarks/target/criterion");
     let medians = load_medians(&criterion_root)?;
 
-    let md = build_markdown(&medians);
+    let md = build_markdown(&medians, &repo_root);
     fs::write(repo_root.join("BENCHMARKS.md"), md)?;
 
     let assets = repo_root.join("assets/benchmarks");
@@ -142,6 +142,145 @@ fn main() -> io::Result<()> {
 
     println!("Wrote BENCHMARKS.md + 3 SVGs under assets/benchmarks/");
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Environment
+// ---------------------------------------------------------------------------
+
+/// Writes the machine and toolchain details a timing number is only meaningful
+/// together with, so a report can be judged without access to the machine.
+fn push_environment(out: &mut String, repo_root: &Path) {
+    out.push_str("## Environment\n\n");
+    out.push_str("| Item | Value |\n|---|---|\n");
+
+    for (item, value) in environment_rows(repo_root) {
+        out.push_str(&format!("| {item} | {value} |\n"));
+    }
+
+    out.push_str(
+        "\nAll timings are Criterion median point estimates, taken with Criterion defaults ",
+    );
+    out.push_str("(100 samples, 3 s warm-up, 5 s measurement). `Time per value` divides a median ");
+    out.push_str("by the number of values formatted per iteration.\n\n");
+}
+
+fn environment_rows(repo_root: &Path) -> Vec<(&'static str, String)> {
+    vec![
+        ("CPU", cpu_model()),
+        ("Cores available", available_cores()),
+        (
+            "OS",
+            format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        ),
+        ("Rust", tool_version("rustc")),
+        ("Criterion", locked_crate_version(repo_root, "criterion")),
+        ("Build profile", bench_profile(repo_root)),
+    ]
+}
+
+/// Processor name, read from whichever source the platform provides:
+/// `/proc/cpuinfo` on Linux, `PROCESSOR_IDENTIFIER` on Windows, `sysctl` on macOS.
+fn cpu_model() -> String {
+    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
+        for line in cpuinfo.lines() {
+            if let Some(rest) = line.strip_prefix("model name") {
+                if let Some(name) = rest.split(':').nth(1) {
+                    return name.trim().to_string();
+                }
+            }
+        }
+    }
+
+    if let Ok(identifier) = std::env::var("PROCESSOR_IDENTIFIER") {
+        if !identifier.trim().is_empty() {
+            return identifier.trim().to_string();
+        }
+    }
+
+    if cfg!(target_os = "macos") {
+        if let Ok(output) = std::process::Command::new("sysctl")
+            .args(["-n", "machdep.cpu.brand_string"])
+            .output()
+        {
+            let brand = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+            if !brand.is_empty() {
+                return brand;
+            }
+        }
+    }
+
+    "unknown".to_string()
+}
+
+fn available_cores() -> String {
+    match std::thread::available_parallelism() {
+        Ok(count) => count.to_string(),
+        Err(_) => "unknown".to_string(),
+    }
+}
+
+fn tool_version(tool: &str) -> String {
+    match std::process::Command::new(tool).arg("--version").output() {
+        Ok(output) if output.status.success() => {
+            let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+            if text.is_empty() {
+                "unknown".to_string()
+            } else {
+                text
+            }
+        }
+        _ => "unknown".to_string(),
+    }
+}
+
+/// Version of a dependency as pinned by the benchmark crate's lockfile.
+fn locked_crate_version(repo_root: &Path, name: &str) -> String {
+    let lock = repo_root.join("tools/benchmarks/Cargo.lock");
+
+    let text = match std::fs::read_to_string(lock) {
+        Ok(text) => text,
+        Err(_) => return "unknown".to_string(),
+    };
+
+    let needle = format!("name = \"{name}\"");
+    let mut lines = text.lines();
+
+    while let Some(line) = lines.next() {
+        if line.trim() != needle {
+            continue;
+        }
+
+        for line in lines.by_ref() {
+            let line = line.trim();
+
+            if let Some(version) = line.strip_prefix("version = \"") {
+                return version.trim_end_matches('"').to_string();
+            }
+
+            if line.starts_with('[') {
+                break;
+            }
+        }
+    }
+
+    "unknown".to_string()
+}
+
+/// Settings the Criterion benches are compiled with.
+fn bench_profile(repo_root: &Path) -> String {
+    const DEFAULT: &str = "opt-level 3, LTO off, 16 codegen units";
+
+    let manifest = repo_root.join("tools/benchmarks/Cargo.toml");
+
+    match std::fs::read_to_string(manifest) {
+        Ok(text) if text.contains("[profile.") => {
+            format!("{DEFAULT} (overridden in tools/benchmarks/Cargo.toml)")
+        }
+        _ => DEFAULT.to_string(),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -657,7 +796,7 @@ fn ago_items() -> Vec<SvgItem> {
 // Markdown builder
 // ---------------------------------------------------------------------------
 
-fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
+fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
     let mut out = String::new();
 
     out.push_str("# Benchmarks\n\n");
@@ -665,14 +804,18 @@ fn build_markdown(medians: &BTreeMap<String, f64>) -> String {
     out.push_str("Regenerate locally:\n\n```bash\n");
     out.push_str("cargo bench --manifest-path tools/benchmarks/Cargo.toml\n");
     out.push_str("cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report\n");
-    out.push_str("```\n\n---\n\n");
+    out.push_str("```\n\n");
+
+    push_environment(&mut out, repo_root);
+
+    out.push_str("---\n\n");
 
     out.push_str("## Capability Matrix\n\n");
     out.push_str(CAPABILITY_MATRIX);
     out.push_str("\n\n---\n\n");
 
     out.push_str("## Notes\n\n");
-    out.push_str("- Results depend on machine / OS / CPU scaling.\n");
+    out.push_str("- Results are specific to the machine and toolchain listed under Environment.\n");
     out.push_str("- **Bold** = best (lowest) value in column.\n");
     out.push_str("- Limitation tags are shown next to each crate name.\n");
     out.push_str("- Rows are sorted fastest to slowest within each group.\n");
