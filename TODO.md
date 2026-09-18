@@ -10,7 +10,7 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 - *none*
 
 **bytes**
-- *none*
+- Short decimal labels are `KB` / `MB` (JEDEC-style capitals), not SI `kB`. Documented as 1000-based. Do not silently switch to `kB` — that would be a breaking output change.
 
 **percent**
 - [ ] Integer input support (`42_u8` → `42%` directly, as an alternative to the current ratio convention)
@@ -27,7 +27,7 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 - *none*
 
 **list**
-- [ ] `.disjunction()` shorthand — `"red, green, or blue"` (already possible via `.conjunction("or")`, question is whether a named method is worth it)
+- *none*
 
 **new**
 - [ ] Rate / throughput formatter — `1_200_000 -> "1.2 MB/s"`, `42_000 -> "42K ops/s"`
@@ -48,9 +48,8 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 
 ## Infrastructure
 
-- [ ] `no_std + alloc` tier (currently: full `std` or bare `no_std`)
-- [ ] `width()` / padding via `fmt::Formatter::width()`
-- [ ] Binary size and compile-time benchmarks (`cargo bloat --crates`, `cargo build --timings`)
+- [ ] `width()` / padding via `fmt::Formatter::pad()` (string-like default align)
+- [ ] Binary size and compile-time measurements (`cargo bloat --crates`, `cargo build --timings`)
 
 ---
 
