@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `significant_digits` could overflow `u128` when rounding up at the top of the range — `compact(false)`, `RoundingMode::Ceil`, or a forced byte unit turned `u128::MAX` into a debug-build panic and a truncated number in release builds. Rounding is now exact (`400000000000000000000000000000000000000`).
 - Overflow-safe fractional digit extraction in the `u128` long-division path. Extreme values near `u128::MAX` now round correctly.
 - Significant-digit rounding for `u128::MAX`, `i128::MAX`, and `i128::MIN`.
 

@@ -77,6 +77,19 @@ fn golden_numbers() {
         "340.3Ud",
         "number mismatch: u128::MAX"
     );
+
+    // Rounding up at the top of the range yields an integer wider than `u128`,
+    // so it is locked separately from the table above.
+    let sig1_ceil = NumberOptions::new()
+        .compact(false)
+        .significant_digits(1)
+        .rounding(RoundingMode::Ceil);
+
+    assert_eq!(
+        number_with(u128::MAX, sig1_ceil).to_string(),
+        "400000000000000000000000000000000000000",
+        "number mismatch: u128::MAX rounded to one significant digit"
+    );
 }
 
 #[test]

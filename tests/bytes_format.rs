@@ -79,6 +79,40 @@ fn formats_extreme_u128_in_binary_mode() {
 }
 
 #[test]
+fn significant_digits_round_up_across_decimal_unit_boundary() {
+    let opts = BytesOptions::new()
+        .min_unit(ByteUnit::KB)
+        .significant_digits(1);
+    assert_eq!(humfmt::bytes_with(999_900_u64, opts).to_string(), "1MB");
+}
+
+#[test]
+fn significant_digits_round_up_past_u128_range_in_forced_unit() {
+    let opts = BytesOptions::new()
+        .unit(ByteUnit::B)
+        .significant_digits(1)
+        .rounding(RoundingMode::Ceil);
+
+    assert_eq!(
+        humfmt::bytes_with(u128::MAX, opts).to_string(),
+        "400000000000000000000000000000000000000B"
+    );
+}
+
+#[test]
+fn significant_digits_keep_long_unit_labels_plural_when_rounded_up() {
+    let opts = BytesOptions::new()
+        .long_units()
+        .significant_digits(1)
+        .rounding(RoundingMode::Ceil);
+
+    assert_eq!(
+        humfmt::bytes_with(u128::MAX, opts).to_string(),
+        "400000000000000000000 exabytes"
+    );
+}
+
+#[test]
 fn rounds_up_across_decimal_unit_boundary() {
     assert_eq!(bytes(999_950).to_string(), "1MB");
 }

@@ -84,37 +84,135 @@ pub(crate) fn write_grouped_ascii_digits(
     Ok(())
 }
 
-/// Writes a `u128` without heap allocation, with optional digit grouping.
-pub(crate) fn write_u128(
-    f: &mut fmt::Formatter<'_>,
-    mut value: u128,
-    group: bool,
-    group_separator: char,
-) -> fmt::Result {
-    if value == 0 {
-        return f.write_str("0");
-    }
+/// Decimal digits in a `u128` when written out.
+const U128_DIGITS: usize = 39;
 
-    // u128::MAX is 39 decimal digits.
-    let mut rev = [0u8; 39];
+/// Largest trailing-zero run added by significant-digit rounding.
+///
+/// Rounding keeps at least one significant digit, so the shift is at most
+/// `int_digits - 1`.
+const MAX_ROUNDING_ZEROS: usize = U128_DIGITS - 1;
+
+/// Digits a scaled integer can print: significant digits followed by zeros.
+const MAX_SCALED_DIGITS: usize = U128_DIGITS + MAX_ROUNDING_ZEROS;
+
+/// Writes the decimal digits of `value` into `buf` and returns their count.
+///
+/// `buf` must hold at least [`U128_DIGITS`] bytes. Zero is written as a single `'0'`.
+#[inline]
+fn write_digits_into(buf: &mut [u8], mut value: u128) -> usize {
+    debug_assert!(buf.len() >= U128_DIGITS);
+
     let mut len = 0usize;
 
     while value != 0 {
-        rev[len] = b'0' + (value % 10) as u8;
+        buf[len] = b'0' + (value % 10) as u8;
         len += 1;
         value /= 10;
     }
 
-    let mut fwd = [0u8; 39];
-
-    for i in 0..len {
-        fwd[i] = rev[len - 1 - i];
+    if len == 0 {
+        buf[0] = b'0';
+        return 1;
     }
 
-    debug_assert!(fwd[..len].iter().all(|b| b.is_ascii_digit()));
+    buf[..len].reverse();
+
+    debug_assert!(buf[..len].iter().all(|b| b.is_ascii_digit()));
+
+    len
+}
+
+/// Writes a `u128` without heap allocation, with optional digit grouping.
+pub(crate) fn write_u128(
+    f: &mut fmt::Formatter<'_>,
+    value: u128,
+    group: bool,
+    group_separator: char,
+) -> fmt::Result {
+    let mut buf = [0u8; U128_DIGITS];
+    let len = write_digits_into(&mut buf, value);
 
     // SAFETY: bytes are ASCII '0'..='9' produced above, valid UTF-8.
-    let digits = unsafe { core::str::from_utf8_unchecked(&fwd[..len]) };
+    let digits = unsafe { core::str::from_utf8_unchecked(&buf[..len]) };
+
+    if group {
+        write_grouped_ascii_digits(f, digits, group_separator)
+    } else {
+        f.write_str(digits)
+    }
+}
+
+/// Integer part of a scaled value, which can be wider than `u128`.
+///
+/// Significant-digit rounding can produce an integer that no `u128` holds:
+/// `u128::MAX` rounded up to one significant digit is `4 * 10^38`. Keeping the
+/// significant digits next to a trailing-zero count represents that exactly
+/// without introducing a wider integer type.
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct ScaledInteger {
+    digits: u128,
+    zeros: u8,
+}
+
+impl ScaledInteger {
+    /// Creates a value with no trailing zeros.
+    #[inline]
+    pub(crate) const fn plain(digits: u128) -> Self {
+        Self { digits, zeros: 0 }
+    }
+
+    /// Creates a value from significant digits followed by `zeros` zeros.
+    #[inline]
+    pub(crate) const fn with_zeros(digits: u128, zeros: u8) -> Self {
+        debug_assert!(zeros as usize <= MAX_ROUNDING_ZEROS);
+        Self { digits, zeros }
+    }
+
+    /// Returns `true` when the value is exactly one.
+    #[inline]
+    pub(crate) fn is_one(self) -> bool {
+        self.digits == 1 && self.zeros == 0
+    }
+
+    /// Returns `true` when the value is at least `threshold`.
+    ///
+    /// Compares against the threshold scaled down by the zero run, because the
+    /// full value can exceed `u128`.
+    #[inline]
+    pub(crate) fn at_least(self, threshold: u128) -> bool {
+        if self.zeros == 0 {
+            return self.digits >= threshold;
+        }
+
+        let scale = 10u128.pow(self.zeros as u32);
+
+        // Ceiling division: `digits * 10^zeros >= threshold` is equivalent to
+        // `digits >= ceil(threshold / 10^zeros)`.
+        self.digits >= (threshold + scale - 1) / scale
+    }
+}
+
+/// Writes the integer part of a scaled value, honouring digit grouping.
+pub(crate) fn write_scaled_integer(
+    f: &mut fmt::Formatter<'_>,
+    integer: ScaledInteger,
+    group: bool,
+    group_separator: char,
+) -> fmt::Result {
+    if integer.zeros == 0 {
+        return write_u128(f, integer.digits, group, group_separator);
+    }
+
+    // The zeros sit behind the significant digits, so that grouping can count
+    // digit positions from the right of the whole number.
+    let mut buf = [b'0'; MAX_SCALED_DIGITS];
+    let len = write_digits_into(&mut buf, integer.digits);
+    let total = len + integer.zeros as usize;
+
+    // SAFETY: `buf[..total]` covers the digits written above plus the zero run,
+    // whose length is bounded by `with_zeros`; every byte written is ASCII.
+    let digits = unsafe { core::str::from_utf8_unchecked(&buf[..total]) };
 
     if group {
         write_grouped_ascii_digits(f, digits, group_separator)
@@ -129,7 +227,7 @@ pub(crate) fn write_u128(
 /// of significant digits after trimming trailing zeros.
 #[derive(Copy, Clone, Debug)]
 pub(crate) struct DecimalParts {
-    pub(crate) integer: u128,
+    pub(crate) integer: ScaledInteger,
     pub(crate) frac_digits: [u8; 6],
     pub(crate) frac_len: u8,
 }
@@ -138,7 +236,7 @@ impl DecimalParts {
     /// Returns `true` if the value is exactly `1` with no fractional part.
     /// Used for English singular/plural selection in byte labels.
     pub(crate) fn is_exactly_one(&self) -> bool {
-        self.integer == 1 && self.frac_len == 0
+        self.integer.is_one() && self.frac_len == 0
     }
 }
 
@@ -170,7 +268,7 @@ pub(crate) fn decimal_parts_rounded(
     }
 
     DecimalParts {
-        integer,
+        integer: ScaledInteger::plain(integer),
         frac_digits,
         frac_len,
     }
@@ -360,10 +458,10 @@ pub(crate) fn compute_sigfigs_u128(
         let mut decimals = (shift as u8).min(6);
         let mut parts = decimal_parts_rounded(magnitude, unit, decimals, rounding, negative);
 
-        let new_int_digits = if parts.integer == 0 {
+        let new_int_digits = if parts.integer.digits == 0 {
             1
         } else {
-            (parts.integer.ilog10() + 1) as u8
+            (parts.integer.digits.ilog10() + 1) as u8
         };
 
         if new_int_digits > int_digits && decimals > 0 {
@@ -378,10 +476,18 @@ pub(crate) fn compute_sigfigs_u128(
     } else {
         let drop_digits = (-shift) as u32;
         let round_factor = 10u128.pow(drop_digits);
-        let new_unit = unit.saturating_mul(round_factor);
 
+        // `unit * 10^drop_digits <= magnitude`, because `int_digits` counts the
+        // digits of `magnitude / unit`; the product therefore fits in `u128`.
+        debug_assert!(unit <= u128::MAX / round_factor);
+
+        let new_unit = unit * round_factor;
         let mut parts = decimal_parts_rounded(magnitude, new_unit, 0, rounding, negative);
-        parts.integer *= round_factor;
+
+        // The scaled integer is `parts.integer * 10^drop_digits`, which can
+        // exceed `u128`: `u128::MAX` rounded up to one significant digit is
+        // `4 * 10^38`.
+        parts.integer = ScaledInteger::with_zeros(parts.integer.digits, drop_digits as u8);
 
         (0, parts)
     }

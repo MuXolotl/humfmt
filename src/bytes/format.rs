@@ -3,7 +3,7 @@ use core::fmt::Write;
 
 use super::options::Precision;
 use super::{traits::BytesValue, BytesOptions};
-use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_u128};
+use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_scaled_integer};
 
 // Each entry groups short label, long singular, and long plural for one unit tier.
 // Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.
@@ -237,7 +237,7 @@ pub fn format_bytes(
     let (mut precision, mut parts) = get_parts(unit);
 
     let boundary = if options.binary { 1_024 } else { 1_000 };
-    if parts.integer >= boundary && idx < max_unit {
+    if parts.integer.at_least(boundary) && idx < max_unit {
         idx += 1;
         unit = table[idx];
         let res = get_parts(unit);
@@ -249,7 +249,7 @@ pub fn format_bytes(
         f.write_str("-")?;
     }
 
-    write_u128(f, parts.integer, false, ',')?;
+    write_scaled_integer(f, parts.integer, false, ',')?;
 
     if options.fixed_precision {
         if precision > 0 {

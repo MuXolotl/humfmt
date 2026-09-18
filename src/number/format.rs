@@ -2,7 +2,8 @@ use core::fmt;
 use core::fmt::Write;
 
 use crate::common::fmt::{
-    decimal_parts_rounded, write_frac_digits, write_grouped_ascii_digits, write_u128, StackString,
+    decimal_parts_rounded, write_frac_digits, write_grouped_ascii_digits, write_scaled_integer,
+    StackString,
 };
 use crate::common::numeric::NumericValue;
 
@@ -134,7 +135,7 @@ fn format_u128_magnitude(
 
     // Rounding can push the integer part to the next threshold:
     // 999_950 at precision=1 becomes 1000K, which should render as 1M.
-    if parts.integer >= 1_000 && idx < max_idx {
+    if parts.integer.at_least(1_000) && idx < max_idx {
         idx += 1;
         unit = POW1000[idx];
 
@@ -151,7 +152,7 @@ fn format_u128_magnitude(
     }
 
     // Digit grouping applies only when the value is not compacted.
-    write_u128(
+    write_scaled_integer(
         f,
         parts.integer,
         options.separators && idx == 0,

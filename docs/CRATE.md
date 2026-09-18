@@ -259,6 +259,7 @@ assert_eq!(number_with(1_000_000_000_000_000_000_000_000_000_000_000_000_u128, o
 | `-12_500` | `"-12.5K"` | Sign + compact |
 | `i128::MIN` | `"-170.1Ud"` | No panic, no overflow |
 | `u128::MAX` | `"340.3Ud"` | No panic, no overflow |
+| `u128::MAX` + `compact(false)` + `significant_digits(1)` + `Ceil` | `"400000000000000000000000000000000000000"` | Rounded up past the `u128` range; the value is written exactly |
 | `0.0` | `"0"` | |
 | `-0.0` | `"0"` | Negative zero suppressed |
 | `-0.004` | `"0"` | Rounds to zero, sign suppressed |
@@ -375,6 +376,7 @@ assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
 | `-1536` | `"-1.5KB"` | Negative supported |
 | `u128::MAX` | `"...EB"` | Largest unit, no overflow |
 | `999_950` | `"1MB"` | Rounds up across boundary |
+| `u128::MAX` + `unit(ByteUnit::B)` + `significant_digits(1)` + `Ceil` | `"400000000000000000000000000000000000000B"` | Rounded up past the `u128` range; the value is written exactly |
 
 ---
 
