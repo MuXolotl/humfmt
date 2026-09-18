@@ -11,12 +11,14 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 
 **bytes**
 - Short decimal labels are `KB` / `MB` (JEDEC-style capitals), not SI `kB`. Documented as 1000-based. Do not silently switch to `kB` — that would be a breaking output change.
+- [ ] `BytesOptions::force_sign(bool)` — `number` and `percent` support a leading `+`, `bytes` does not
 
 **percent**
 - [ ] Integer input support (`42_u8` → `42%` directly, as an alternative to the current ratio convention)
 
 **duration**
 - [ ] Configurable unit join style — space (`"1h 2m"`, default), comma (`"1h, 2m"`), or `"and"` (`"1 hour and 2 minutes"`)
+- [ ] One error type for the duration API — `NegativeDurationError` and `DurationConversionError::NegativeDuration` mean the same thing
 
 **ago**
 - [ ] Split `AgoOptions` from `DurationOptions`
@@ -36,7 +38,7 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 
 ## Docs
 
-- [ ] Finish edge-case behaviour tables (`0`, `i128::MIN`, `u128::MAX`, `f64::NAN`, `f64::INFINITY`, `Duration::MAX`) for `duration`, `ago`, `percent`, `list`
+- [ ] Edge-case behaviour table for `ago` (`0`, `1s`, `Duration::MAX`); `number`, `bytes`, `percent`, `duration` and `list` have one
 - [ ] Cookbook-style examples on docs.rs — focused, no walls of text
 - [ ] Real-world examples — CLI progress, log lines, dashboard output
 - [ ] Document `f64` precision loss above `2^53` in compact scaling
@@ -48,7 +50,6 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 
 ## Infrastructure
 
-- [ ] `width()` / padding via `fmt::Formatter::pad()` (string-like default align)
 - [ ] Binary size and compile-time measurements (`cargo bloat --crates`, `cargo build --timings`)
 
 ---
@@ -56,8 +57,6 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 ## Benchmarks
 
 - [ ] Add missing crates: `readable`, `human-readable`, `fancy-duration`, `duration-human`, `pretty-num`, `format_num`
-- [ ] Improve scenario alignment (e.g. IEC + `precision(2)` + `space(true)`)
-- [ ] Allocation-tracking benchmarks
 - [ ] Allocation-counting benchmarks
 - [ ] Binary size benchmarks
 - [ ] Compile-time benchmarks
@@ -77,12 +76,3 @@ Planned work and known gaps. See [CHANGELOG.md](./CHANGELOG.md) for what's alrea
 - [ ] Ratio formatter (`0.75 -> "3:4"` or `"75%"` depending on options)
 - [ ] WASM / embedded smoke tests in CI
 - [ ] Interactive examples website — <https://muxolotl.github.io/humfmt>
-
----
-
-## Done (unreleased)
-
-- [x] ~~`PercentOptions::rounding(RoundingMode)`~~
-- [x] ~~Common option types re-exported from `humfmt::prelude`~~
-- [x] ~~Fuzz targets for all formatters~~
-- [x] ~~Golden snapshot tests~~

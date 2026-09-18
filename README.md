@@ -76,101 +76,46 @@ println!("{}", humfmt::list(&["red", "green", "blue"]));      // red, green, and
 
 ## Customization
 
-Every formatter has a `*_with` variant that takes an options builder:
+Every formatter has a `*_with` variant that takes an options builder: `NumberOptions`,
+`BytesOptions`, `PercentOptions`, `DurationOptions` (shared by `duration` and `ago`),
+and `ListOptions`. Options are `Copy`, every setter is `const fn`, and the defaults
+are what most callers want.
 
 ```rust
 use core::time::Duration;
-use humfmt::{BytesOptions, DurationOptions, Humanize, NumberOptions, PercentOptions};
+use humfmt::{ByteUnit, BytesOptions, DurationOptions, Humanize, NumberOptions, PercentOptions};
 
-// Bytes: binary units, space before suffix
-let disk = 1536_u64.human_bytes_with(
-    BytesOptions::new().binary().precision(2).space(true)
-);
-println!("{disk}"); // 1.5 KiB
+// Bytes: binary units, space before the suffix
+let disk = 1536_u64.human_bytes_with(BytesOptions::new().binary().precision(2).space(true));
+assert_eq!(disk.to_string(), "1.5 KiB");
 
 // Bytes: bits mode for network speeds
-let speed = 1_500_000_u64.human_bytes_with(
-    BytesOptions::new().bits(true)
-);
-println!("{speed}"); // 12Mb
+let speed = 1_500_000_u64.human_bytes_with(BytesOptions::new().bits(true));
+assert_eq!(speed.to_string(), "12Mb");
 
-// Bytes: always show in megabytes
-let fixed = 1_500_000_u64.human_bytes_with(
-    BytesOptions::new().unit(humfmt::ByteUnit::MB).precision(3)
-);
-println!("{fixed}"); // 1.5MB
+// Bytes: always show megabytes
+let always_mb = 1_500_000_u64.human_bytes_with(BytesOptions::new().unit(ByteUnit::MB).precision(3));
+assert_eq!(always_mb.to_string(), "1.5MB");
 
-// Bytes: clamp minimum to KB (500 bytes -> 0.5 KB)
-let clamped = 500_u64.human_bytes_with(
-    BytesOptions::new().min_unit(humfmt::ByteUnit::KB).precision(2)
-);
-println!("{clamped}"); // 0.5KB
+// Numbers: full digits with grouping instead of compaction
+let full = 1_234_567.human_number_with(NumberOptions::new().compact(false).separators(true));
+assert_eq!(full.to_string(), "1,234,567");
 
-// Numbers: long-form
-let n = 15_320.human_number_with(
-    NumberOptions::new().precision(2).long_units()
-);
-println!("{n}"); // 15.32 thousand
+// Numbers: significant digits instead of decimal places
+let sig = 12_345.human_number_with(NumberOptions::new().significant_digits(3));
+assert_eq!(sig.to_string(), "12.3K");
 
-// Numbers: full number with digit grouping
-let full = 1_234_567.human_number_with(
-    NumberOptions::new().compact(false).separators(true)
-);
-println!("{full}"); // 1,234,567
+// Percentages: fixed precision
+let ratio = 0.425_f64.human_percent_with(PercentOptions::new().precision(2).fixed_precision(true));
+assert_eq!(ratio.to_string(), "42.50%");
 
-// Numbers: significant digits
-let sig = 12345.human_number_with(
-    NumberOptions::new().significant_digits(3)
-);
-println!("{sig}"); // 12.3K
-
-// Numbers: forced sign for deltas
-let delta = 1500.human_number_with(
-    NumberOptions::new().force_sign(true)
-);
-println!("{delta}"); // +1.5K
-
-// Numbers: rounding modes
-use humfmt::RoundingMode;
-let floor = 1_900.human_number_with(
-    NumberOptions::new().precision(0).rounding(RoundingMode::Floor)
-);
-println!("{floor}"); // 1K
-
-// Numbers: custom separators
-let european = 1_234_567.human_number_with(
-    NumberOptions::new()
-        .compact(false)
-        .separators(true)
-        .decimal_separator(',')
-        .group_separator(' ')
-);
-println!("{european}"); // 1 234 567
-
-// Percentages: 2 decimal places, fixed precision
-let ratio = 0.425_f64.human_percent_with(
-    PercentOptions::new().precision(2).fixed_precision(true)
-);
-println!("{ratio}"); // 42.50%
-
-// Percentages: forced sign
-let change = 0.15_f64.human_percent_with(
-    PercentOptions::new().force_sign(true)
-);
-println!("{change}"); // +15%
-
-// Duration: long-form, 3 units
-let elapsed = Duration::from_secs(3665).human_duration_with(
-    DurationOptions::new().long_units().max_units(3)
-);
-println!("{elapsed}"); // 1 hour 1 minute 5 seconds
-
-// Relative time: 3 units
-let ago = Duration::from_secs(3665).human_ago_with(
-    DurationOptions::new().max_units(3)
-);
-println!("{ago}"); // 1h 1m 5s ago
+// Durations: long labels, three units
+let elapsed = Duration::from_secs(3665).human_duration_with(DurationOptions::new().long_units().max_units(3));
+assert_eq!(elapsed.to_string(), "1 hour 1 minute 5 seconds");
 ```
+
+Every option, default, clamp, and edge case is tabulated in the
+[API documentation](https://docs.rs/humfmt).
 
 ---
 
@@ -310,6 +255,8 @@ No giant config ceremony. No formatting gymnastics. No "why is this so annoying?
 Just:
 
 ```rust
+use humfmt::Humanize;
+
 println!("{}", 1_500_000.human_number());
 ```
 

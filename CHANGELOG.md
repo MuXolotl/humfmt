@@ -11,8 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Fuzz testing harness (`cargo-fuzz`) with targets for `number`, `bytes`, `percent`, `duration`, `ordinal`, and `list`. Run via GitHub Actions or locally with `cargo +nightly fuzz run <target>`.
-- Golden snapshot tests (`tests/golden.rs`) as a strict regression net across all formatters ahead of the 1.0 API freeze.
 - `PercentOptions::rounding(RoundingMode)` — brings `percent` into full API parity with `number` and `bytes`. Previously `percent` always used half-up; `Floor` and `Ceil` are now available.
 - `ByteUnit` and `RoundingMode` re-exported from `humfmt::prelude` so a single `use humfmt::prelude::*` covers the most common option types.
 
@@ -20,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - All formatters now honour the `width`, `fill`, and `alignment` parts of a format specifier: `format!("{:>10}", number(15_320))` gives `"     15.3K"` where the specifier used to be ignored. `precision`, `+`, `#`, and `0` stay ignored — digits are controlled by the options.
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
-- `percent` formatter refactored to use the same rounding infrastructure as `number` and `bytes`, removing the previously hardcoded half-up path.
 
 ### Performance
 
@@ -31,8 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `percent` rendered a saturated constant for ratios whose scaled value reaches `u128::MAX`: `percent(f64::MAX)` returned `"340282366920938463463374607431768211455.9%"` and `percent(1e37)` lost the value's own digits. Such ratios are now written from the exact decimal expansion of the input, where the `* 100` step only appends two zeros — `percent(1e37)` is `"999999999999999953876265820212114227200%"`.
 - Half-up rounding of scaled values at `2^52` and above could come out one unit too high, because `shifted + 0.5` rounds to an even integer once `f64` has no fractional digits left. `number` and `percent` now base the half-up decision on the true fractional part — `number_with(503_421_021_549_041.9, NumberOptions::new().compact(false))` is `"503421021549041.9"` where it used to print `"503421021549042"`.
 - `significant_digits` could overflow `u128` when rounding up at the top of the range — `compact(false)`, `RoundingMode::Ceil`, or a forced byte unit turned `u128::MAX` into a debug-build panic and a truncated number in release builds. Rounding is now exact (`400000000000000000000000000000000000000`).
-- Overflow-safe fractional digit extraction in the `u128` long-division path. Extreme values near `u128::MAX` now round correctly.
-- Significant-digit rounding for `u128::MAX`, `i128::MAX`, and `i128::MIN`.
+- Extreme values near the top of the integer range rounded incorrectly: fractional digit extraction and significant-digit rounding now handle `u128::MAX`, `i128::MAX`, and `i128::MIN` exactly.
 
 ---
 
