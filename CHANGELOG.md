@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
 - `percent` formatter refactored to use the same rounding infrastructure as `number` and `bytes`, removing the previously hardcoded half-up path.
 
+### Performance
+
+- Integer formatting uses a `u64` fast path and a two-digit digit table when the magnitude fits in 64 bits, removing multi-word division from the common case. Values above `u64::MAX` keep the exact `u128` path, and all output strings are unchanged.
+
 ### Fixed
 
 - `significant_digits` could overflow `u128` when rounding up at the top of the range — `compact(false)`, `RoundingMode::Ceil`, or a forced byte unit turned `u128::MAX` into a debug-build panic and a truncated number in release builds. Rounding is now exact (`400000000000000000000000000000000000000`).
