@@ -380,3 +380,31 @@ fn formats_large_finite_f64_without_compaction() {
     assert!(!out.contains("inf"));
     assert!(!out.contains("NaN"));
 }
+
+// --- Rounding at the limits of f64 precision ---
+
+#[test]
+fn rounds_half_up_at_the_limits_of_f64_precision() {
+    // Scaled magnitudes at or above 2^52 have no `f64` fractional digits left,
+    // so the direction has to come from the first dropped decimal digit of the
+    // exact expansion rather than from `shifted + 0.5`, which rounds to an even
+    // integer there.
+    let plain = NumberOptions::new().compact(false);
+
+    assert_eq!(
+        number_with(-564_693_759_854_957.9_f64, plain).to_string(),
+        "-564693759854957.9"
+    );
+    assert_eq!(
+        number_with(503_421_021_549_041.9_f64, plain).to_string(),
+        "503421021549041.9"
+    );
+    assert_eq!(
+        number_with(
+            7_648_903_612.229_567_f64,
+            NumberOptions::new().precision(6).compact(false)
+        )
+        .to_string(),
+        "7648903612.229567"
+    );
+}

@@ -217,3 +217,76 @@ fn force_sign_avoids_plus_zero_when_rounding() {
     let opts = PercentOptions::new().force_sign(true).precision(1);
     assert_eq!(percent_with(0.0004_f64, opts).to_string(), "0%");
 }
+
+// --- Ratios above the u128 percentage range ---
+
+#[test]
+fn formats_ratios_above_the_u128_percent_range() {
+    // `1e37` is exactly 9999999999999999538762658202121142272 as f64, and the
+    // `* 100` step only appends two zeros to that expansion.
+    assert_eq!(
+        percent(1e37_f64).to_string(),
+        "999999999999999953876265820212114227200%"
+    );
+    assert_eq!(
+        percent(-1e37_f64).to_string(),
+        "-999999999999999953876265820212114227200%"
+    );
+    assert_eq!(
+        percent(3.5e36_f64).to_string(),
+        "349999999999999977953734933487183462400%"
+    );
+}
+
+#[test]
+fn largest_ratios_are_not_saturated() {
+    let out = percent(f64::MAX).to_string();
+
+    // f64::MAX has 309 integer digits, `* 100` appends two zeros, then '%'.
+    assert_eq!(out.len(), 312);
+    assert!(out.starts_with("1797693134862315708"));
+    assert!(out.ends_with("40402618412485836800%"));
+    assert!(!out.contains("340282366920938463463374607431768211455"));
+
+    assert!(percent(f64::MIN).to_string().starts_with('-'));
+}
+
+#[test]
+fn unbounded_ratios_ignore_the_rounding_mode() {
+    // There are no fractional digits to round away at this magnitude.
+    let expected = percent(f64::MAX).to_string();
+
+    for mode in [
+        RoundingMode::HalfUp,
+        RoundingMode::Floor,
+        RoundingMode::Ceil,
+    ] {
+        let opts = PercentOptions::new().rounding(mode);
+        assert_eq!(percent_with(f64::MAX, opts).to_string(), expected);
+    }
+}
+
+#[test]
+fn unbounded_ratios_keep_sign_and_fixed_precision() {
+    let fixed = PercentOptions::new().precision(2).fixed_precision(true);
+    assert!(percent_with(f64::MAX, fixed).to_string().ends_with(".00%"));
+
+    let signed = PercentOptions::new().force_sign(true);
+    assert!(percent_with(f64::MAX, signed)
+        .to_string()
+        .starts_with("+17"));
+}
+
+#[test]
+fn rounds_ratios_at_the_limits_of_f64_precision() {
+    // The scaled value reaches 2^52, where `f64` has no fractional digits left;
+    // the direction still has to come from the first dropped decimal digit.
+    assert_eq!(
+        percent(-8_599_595_309_949.889_f64).to_string(),
+        "-859959530994988.9%"
+    );
+    assert_eq!(
+        percent(8_494_863_370_152.222_f64).to_string(),
+        "849486337015222.1%"
+    );
+}
