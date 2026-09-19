@@ -2,7 +2,7 @@
 
 use humfmt::{
     time::{self as humtime, TimeHumanize},
-    DurationConversionError, DurationOptions, NegativeDurationError,
+    DurationConversionError, DurationOptions,
 };
 
 #[test]
@@ -17,9 +17,16 @@ fn rejects_negative_time_duration() {
     let delta = -::time::Duration::seconds(5);
     assert!(matches!(
         humtime::duration(delta),
-        Err(NegativeDurationError)
+        Err(DurationConversionError::NegativeDuration)
     ));
-    assert!(matches!(humtime::ago(delta), Err(NegativeDurationError)));
+    assert!(matches!(
+        humtime::ago(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
+    assert!(matches!(
+        delta.try_human_duration(),
+        Err(DurationConversionError::NegativeDuration)
+    ));
 }
 
 #[test]
@@ -43,15 +50,17 @@ fn supports_ago_since_for_offset_datetimes() {
 fn supports_ago_since_with_long_options() {
     let then = ::time::OffsetDateTime::from_unix_timestamp(0).unwrap();
     let now = ::time::OffsetDateTime::from_unix_timestamp(3665).unwrap();
-    let out = humtime::ago_since_with(then, now, DurationOptions::new().long_units().max_units(3))
-        .unwrap();
+    let out =
+        humtime::ago_since_with(then, now, DurationOptions::new().long_units().max_units(3)).unwrap();
 
     assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
 }
 
 #[test]
-fn checked_api_distinguishes_negative_duration_errors() {
+fn every_entry_point_reports_the_same_error_type() {
     let delta = -::time::Duration::seconds(5);
+
+    // The `*_checked` twins take the same path and report the same type.
     assert!(matches!(
         humtime::duration_checked(delta),
         Err(DurationConversionError::NegativeDuration)
