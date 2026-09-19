@@ -2,7 +2,7 @@
 
 use humfmt::{
     chrono::{self as humchrono, ChronoHumanize},
-    DurationConversionError, DurationOptions,
+    AgoOptions, DurationConversionError,
 };
 
 #[test]
@@ -32,7 +32,7 @@ fn rejects_negative_chrono_timedelta() {
 #[test]
 fn supports_custom_options_for_chrono_timedelta() {
     let delta = ::chrono::TimeDelta::milliseconds(1500);
-    let out = humchrono::ago_with(delta, DurationOptions::new().long_units()).unwrap();
+    let out = humchrono::ago_with(delta, AgoOptions::new().long_units()).unwrap();
     assert_eq!(out.to_string(), "1 second 500 milliseconds ago");
 }
 
@@ -51,7 +51,7 @@ fn supports_ago_since_with_long_options() {
     let then = ::chrono::DateTime::from_timestamp(0, 0).unwrap();
     let now = ::chrono::DateTime::from_timestamp(3665, 0).unwrap();
     let out =
-        humchrono::ago_since_with(then, now, DurationOptions::new().long_units().max_units(3)).unwrap();
+        humchrono::ago_since_with(then, now, AgoOptions::new().long_units().max_units(3)).unwrap();
 
     assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
 }

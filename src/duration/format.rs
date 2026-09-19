@@ -1,7 +1,5 @@
 use core::fmt;
 
-use super::DurationOptions;
-
 #[derive(Copy, Clone)]
 struct Unit {
     nanos: u128,
@@ -61,14 +59,14 @@ const SECOND_UNIT_IDX: usize = 3;
 pub fn format_duration<W: fmt::Write + ?Sized>(
     f: &mut W,
     value: core::time::Duration,
-    options: &DurationOptions,
+    max_units: u8,
+    long_units: bool,
 ) -> fmt::Result {
     let mut remaining = value.as_nanos();
     let mut written = 0u8;
-    let max_units = options.max_units;
 
     if remaining == 0 {
-        return write_unit(f, 0, &UNITS[SECOND_UNIT_IDX], options.long_units);
+        return write_unit(f, 0, &UNITS[SECOND_UNIT_IDX], long_units);
     }
 
     for unit in &UNITS {
@@ -83,7 +81,7 @@ pub fn format_duration<W: fmt::Write + ?Sized>(
             f.write_str(" ")?;
         }
 
-        write_unit(f, count, unit, options.long_units)?;
+        write_unit(f, count, unit, long_units)?;
         written += 1;
 
         if written >= max_units {

@@ -31,7 +31,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use humfmt::{time as humtime, DurationOptions};
+//! use humfmt::{time as humtime, AgoOptions};
 //!
 //! let delta = time::Duration::seconds(90);
 //! assert_eq!(humtime::duration(delta).unwrap().to_string(), "1m 30s");
@@ -41,13 +41,17 @@
 //! let out = humtime::ago_since_with(
 //!     then,
 //!     now,
-//!     DurationOptions::new().long_units().max_units(3),
+//!     AgoOptions::new().long_units().max_units(3),
 //! )
 //! .unwrap();
 //! assert_eq!(out.to_string(), "1 hour 1 minute 5 seconds ago");
 //! ```
 
-use crate::{ago::AgoDisplay, duration::DurationDisplay, DurationConversionError, DurationOptions};
+use crate::{
+    ago::{AgoDisplay, AgoOptions},
+    duration::DurationDisplay,
+    DurationConversionError, DurationOptions,
+};
 
 /// Extension methods for `time::Duration`.
 ///
@@ -81,7 +85,7 @@ pub trait TimeHumanize: Sized {
     /// Formats this duration as relative time using custom options.
     ///
     /// Returns [`DurationConversionError::NegativeDuration`] if the duration is negative.
-    fn try_human_ago_with(self, options: DurationOptions)
+    fn try_human_ago_with(self, options: AgoOptions)
         -> Result<AgoDisplay, DurationConversionError>;
 }
 
@@ -107,7 +111,7 @@ impl TimeHumanize for ::time::Duration {
     #[inline]
     fn try_human_ago_with(
         self,
-        options: DurationOptions,
+        options: AgoOptions,
     ) -> Result<AgoDisplay, DurationConversionError> {
         ago_with(self, options)
     }
@@ -174,7 +178,7 @@ pub fn duration_with_checked(
 /// assert_eq!(humtime::ago(delta).unwrap().to_string(), "1m 30s ago");
 /// ```
 pub fn ago(value: ::time::Duration) -> Result<AgoDisplay, DurationConversionError> {
-    ago_with(value, DurationOptions::new())
+    ago_with(value, AgoOptions::new())
 }
 
 /// Formats a non-negative `time::Duration` as relative time with custom options.
@@ -182,7 +186,7 @@ pub fn ago(value: ::time::Duration) -> Result<AgoDisplay, DurationConversionErro
 /// Returns [`DurationConversionError::NegativeDuration`] if the duration is negative.
 pub fn ago_with(
     value: ::time::Duration,
-    options: DurationOptions,
+    options: AgoOptions,
 ) -> Result<AgoDisplay, DurationConversionError> {
     ago_with_checked(value, options)
 }
@@ -191,7 +195,7 @@ pub fn ago_with(
 ///
 /// Explicitly named twin of the same operation; the conversion can fail.
 pub fn ago_checked(value: ::time::Duration) -> Result<AgoDisplay, DurationConversionError> {
-    ago_with_checked(value, DurationOptions::new())
+    ago_with_checked(value, AgoOptions::new())
 }
 
 /// Formats a `time::Duration` as relative time with custom options and explicit conversion errors.
@@ -199,7 +203,7 @@ pub fn ago_checked(value: ::time::Duration) -> Result<AgoDisplay, DurationConver
 /// Explicitly named twin of the same operation; the conversion can fail.
 pub fn ago_with_checked(
     value: ::time::Duration,
-    options: DurationOptions,
+    options: AgoOptions,
 ) -> Result<AgoDisplay, DurationConversionError> {
     Ok(crate::ago::ago_with(to_std_checked(value)?, options))
 }
@@ -231,7 +235,7 @@ pub fn ago_since(
 pub fn ago_since_with(
     then: ::time::OffsetDateTime,
     now: ::time::OffsetDateTime,
-    options: DurationOptions,
+    options: AgoOptions,
 ) -> Result<AgoDisplay, DurationConversionError> {
     ago_since_with_checked(then, now, options)
 }
@@ -254,7 +258,7 @@ pub fn ago_since_checked(
 pub fn ago_since_with_checked(
     then: ::time::OffsetDateTime,
     now: ::time::OffsetDateTime,
-    options: DurationOptions,
+    options: AgoOptions,
 ) -> Result<AgoDisplay, DurationConversionError> {
     ago_with_checked(now - then, options)
 }

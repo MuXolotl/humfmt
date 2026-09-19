@@ -21,6 +21,6 @@ pub use crate::traits::Humanize;
 
 // Option types that users reach for alongside the trait methods.
 pub use crate::{
-    ByteUnit, BytesOptions, DurationOptions, ListOptions, NumberOptions, PercentOptions,
-    RoundingMode,
+    AgoOptions, ByteUnit, BytesOptions, DurationOptions, ListOptions, NumberOptions,
+    PercentOptions, RoundingMode,
 };

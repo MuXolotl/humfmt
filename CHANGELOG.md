@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `PercentOptions::rounding(RoundingMode)` — brings `percent` into full API parity with `number` and `bytes`. Previously `percent` always used half-up; `Floor` and `Ceil` are now available.
 - `ByteUnit` and `RoundingMode` re-exported from `humfmt::prelude` so a single `use humfmt::prelude::*` covers the most common option types.
+- `AgoOptions` — relative time now has its own options builder (`max_units`, `long_units`). It converts to and from `DurationOptions`, so one option set can drive both formatters.
 - `BytesOptions::force_sign(bool)` — writes a leading `+` for positive byte sizes, matching `NumberOptions::force_sign` and `PercentOptions::force_sign`. Zero stays unsigned: `bytes_with(1536, BytesOptions::new().force_sign(true))` is `"+1.5KB"`.
 
 ### Changed
 
+- `ago_with`, `Humanize::human_ago_with`, and the `chrono` / `time` `ago_*` adapters take `AgoOptions` instead of `DurationOptions`. Pass `AgoOptions::new()` for the previous defaults or `DurationOptions::into()` to reuse an existing set.
 - `humfmt::chrono` and `humfmt::time` report one error type. Every function returns `DurationConversionError`, so the checked and unchecked entry points are now name-only twins; the `*_checked` names remain available.
 - All formatters now honour the `width`, `fill`, and `alignment` parts of a format specifier: `format!("{:>10}", number(15_320))` gives `"     15.3K"` where the specifier used to be ignored. `precision`, `+`, `#`, and `0` stay ignored — digits are controlled by the options.
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
