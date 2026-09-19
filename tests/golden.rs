@@ -289,6 +289,18 @@ fn golden_duration_and_ago() {
 }
 
 #[test]
+fn golden_ago_just_now() {
+    let opts = AgoOptions::new().just_now(Duration::from_secs(5));
+
+    assert_eq!(ago_with(Duration::ZERO, opts).to_string(), "just now");
+    assert_eq!(
+        ago_with(Duration::from_secs(3), opts).to_string(),
+        "just now"
+    );
+    assert_eq!(ago_with(Duration::from_secs(5), opts).to_string(), "5s ago");
+}
+
+#[test]
 fn golden_ordinals() {
     let cases = [
         (0, "0th"),

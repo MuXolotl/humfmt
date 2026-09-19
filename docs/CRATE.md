@@ -575,11 +575,15 @@ assert_eq!(
     ago_with(Duration::from_millis(1500), opts).to_string(),
     "1 second 500 milliseconds ago"
 );
+
+let recent = AgoOptions::new().just_now(Duration::from_secs(5));
+assert_eq!(ago_with(Duration::from_secs(3), recent).to_string(), "just now");
 ```
 
-`ago` is configured by `AgoOptions`. It carries the same two knobs as
-`DurationOptions`, and the two convert into each other with `From`, so a single
-option set can drive both formatters.
+`ago` is configured by `AgoOptions`. It carries the same knobs as
+`DurationOptions` plus `just_now`, and the two convert into each other with
+`From`, so a single option set can drive both formatters. Converting `AgoOptions`
+into `DurationOptions` drops `just_now`.
 
 ### Defaults
 
@@ -587,6 +591,7 @@ option set can drive both formatters.
 |---|---|---|
 | `max_units` | 2 | maximum number of non-zero units to render |
 | `long_units` | false | `h` vs ` hour` |
+| `just_now` | `0s` (off) | durations below this render as `just now` |
 
 ---
 

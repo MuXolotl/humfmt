@@ -77,3 +77,88 @@ fn default_options_match_new() {
         humfmt::ago_with(Duration::from_secs(3661), AgoOptions::new()).to_string()
     );
 }
+
+#[test]
+fn renders_short_durations_as_just_now() {
+    let opts = AgoOptions::new().just_now(Duration::from_secs(5));
+
+    assert_eq!(
+        humfmt::ago_with(Duration::ZERO, opts).to_string(),
+        "just now"
+    );
+    assert_eq!(
+        humfmt::ago_with(Duration::from_secs(3), opts).to_string(),
+        "just now"
+    );
+    assert_eq!(
+        humfmt::ago_with(Duration::from_secs(5), opts).to_string(),
+        "5s ago"
+    );
+    assert_eq!(
+        humfmt::ago_with(Duration::from_secs(90), opts).to_string(),
+        "1m 30s ago"
+    );
+
+    // The threshold is a plain comparison, so the extremes stay untouched.
+    let huge = humfmt::ago_with(Duration::MAX, opts).to_string();
+    assert!(huge.ends_with(" ago"), "unexpected output: {huge}");
+}
+
+#[test]
+fn just_now_is_off_by_default() {
+    assert_eq!(
+        humfmt::ago_with(Duration::ZERO, AgoOptions::default()).to_string(),
+        "0s ago"
+    );
+    assert_eq!(
+        humfmt::ago_with(Duration::from_secs(3), AgoOptions::new()).to_string(),
+        "3s ago"
+    );
+
+    // A zero threshold means "nothing is below it".
+    let disabled = AgoOptions::new().just_now(Duration::ZERO);
+    assert_eq!(
+        humfmt::ago_with(Duration::ZERO, disabled).to_string(),
+        "0s ago"
+    );
+}
+
+#[test]
+fn just_now_ignores_unit_options() {
+    let opts = AgoOptions::new()
+        .just_now(Duration::from_secs(5))
+        .long_units()
+        .max_units(1);
+
+    assert_eq!(
+        humfmt::ago_with(Duration::from_secs(2), opts).to_string(),
+        "just now"
+    );
+}
+
+#[test]
+fn supports_just_now_through_the_extension_trait() {
+    let opts = AgoOptions::new().just_now(Duration::from_millis(500));
+    assert_eq!(
+        Duration::from_millis(200).human_ago_with(opts).to_string(),
+        "just now"
+    );
+}
+
+#[test]
+fn from_duration_options_starts_with_just_now_off() {
+    let fresh = AgoOptions::from(DurationOptions::new());
+    assert_eq!(
+        humfmt::ago_with(Duration::ZERO, fresh).to_string(),
+        "0s ago"
+    );
+
+    // Converting back into DurationOptions drops the phrase, which has no
+    // meaning for plain duration output.
+    let with_phrase = AgoOptions::new().just_now(Duration::from_secs(5));
+    let back = DurationOptions::from(with_phrase);
+    assert_eq!(
+        humfmt::duration_with(Duration::from_secs(3), back).to_string(),
+        "3s"
+    );
+}
