@@ -251,3 +251,50 @@ fn supports_bits_mode_long_units() {
     assert_eq!(humfmt::bytes_with(1_u64, opts).to_string(), "8 bits");
     assert_eq!(humfmt::bytes_with(125_u64, opts).to_string(), "1 kilobit");
 }
+
+#[test]
+fn forces_sign_on_positive_values() {
+    let opts = BytesOptions::new().force_sign(true);
+
+    assert_eq!(humfmt::bytes_with(1_536_u64, opts).to_string(), "+1.5KB");
+    assert_eq!(humfmt::bytes_with(1_536_i64, opts).to_string(), "+1.5KB");
+    assert_eq!(humfmt::bytes_with(512_u64, opts).to_string(), "+512B");
+    assert_eq!(humfmt::bytes_with(-1_536_i64, opts).to_string(), "-1.5KB");
+}
+
+#[test]
+fn forced_sign_leaves_zero_unsigned() {
+    let opts = BytesOptions::new().force_sign(true);
+
+    assert_eq!(humfmt::bytes_with(0_u64, opts).to_string(), "0B");
+    assert_eq!(humfmt::bytes_with(0_i64, opts).to_string(), "0B");
+    assert_eq!(
+        humfmt::bytes_with(0_u64, BytesOptions::new().force_sign(false)).to_string(),
+        "0B"
+    );
+}
+
+#[test]
+fn forced_sign_combines_with_units_and_precision() {
+    let binary = BytesOptions::new()
+        .force_sign(true)
+        .binary()
+        .precision(2)
+        .space(true);
+    assert_eq!(
+        humfmt::bytes_with(1_536_u64, binary).to_string(),
+        "+1.5 KiB"
+    );
+
+    let bits = BytesOptions::new().force_sign(true).bits(true);
+    assert_eq!(humfmt::bytes_with(1_500_000_u64, bits).to_string(), "+12Mb");
+
+    let long = BytesOptions::new().force_sign(true).long_units();
+    assert_eq!(humfmt::bytes_with(1_u64, long).to_string(), "+1 byte");
+
+    let clamped = BytesOptions::new()
+        .force_sign(true)
+        .min_unit(humfmt::ByteUnit::KB)
+        .precision(2);
+    assert_eq!(humfmt::bytes_with(500_u64, clamped).to_string(), "+0.5KB");
+}

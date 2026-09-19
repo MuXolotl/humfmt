@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `PercentOptions::rounding(RoundingMode)` — brings `percent` into full API parity with `number` and `bytes`. Previously `percent` always used half-up; `Floor` and `Ceil` are now available.
 - `ByteUnit` and `RoundingMode` re-exported from `humfmt::prelude` so a single `use humfmt::prelude::*` covers the most common option types.
+- `BytesOptions::force_sign(bool)` — writes a leading `+` for positive byte sizes, matching `NumberOptions::force_sign` and `PercentOptions::force_sign`. Zero stays unsigned: `bytes_with(1536, BytesOptions::new().force_sign(true))` is `"+1.5KB"`.
 
 ### Changed
 

@@ -167,6 +167,8 @@ fn golden_bytes() {
             BytesOptions::new().max_unit(ByteUnit::GB),
             "2000GB",
         ),
+        (1_536_u64, BytesOptions::new().force_sign(true), "+1.5KB"),
+        (0_u64, BytesOptions::new().force_sign(true), "0B"),
     ];
 
     for (input, opts, expected) in cases {
@@ -176,6 +178,12 @@ fn golden_bytes() {
             "bytes mismatch: {input} with {opts:?}"
         );
     }
+
+    // The table above is `u64`; the signed path takes the same options.
+    assert_eq!(
+        bytes_with(-1_536_i64, BytesOptions::new().force_sign(true)).to_string(),
+        "-1.5KB"
+    );
 }
 
 #[test]
