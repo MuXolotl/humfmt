@@ -1,4 +1,4 @@
-use humfmt::{number, number_with, NumberOptions};
+use humfmt::{number, number_with, NumberOptions, RoundingMode};
 
 // --- Zero and one ---
 
@@ -319,6 +319,45 @@ fn significant_digits_round_extreme_unsigned_values_correctly() {
     assert_eq!(number_with(u128::MAX, sig1).to_string(), "300Ud");
     assert_eq!(number_with(u128::MAX, sig2).to_string(), "340Ud");
     assert_eq!(number_with(u128::MAX, sig4).to_string(), "340.3Ud");
+}
+
+// Rounding up at the top of the `u128` range produces an integer wider than
+// `u128` itself, which used to overflow the significant-digit path.
+#[test]
+fn significant_digits_round_up_past_u128_range() {
+    let opts = NumberOptions::new()
+        .compact(false)
+        .significant_digits(1)
+        .rounding(RoundingMode::Ceil);
+
+    assert_eq!(
+        number_with(u128::MAX, opts).to_string(),
+        "400000000000000000000000000000000000000"
+    );
+
+    assert_eq!(
+        number_with(u128::MAX - 1, opts).to_string(),
+        "400000000000000000000000000000000000000"
+    );
+}
+
+#[test]
+fn significant_digits_group_integer_part_when_rounding_adds_zeros() {
+    let opts = NumberOptions::new()
+        .compact(false)
+        .separators(true)
+        .significant_digits(3);
+
+    assert_eq!(
+        number_with(u128::MAX, opts).to_string(),
+        "340,000,000,000,000,000,000,000,000,000,000,000,000"
+    );
+
+    let ceil = opts.rounding(RoundingMode::Ceil);
+    assert_eq!(
+        number_with(u128::MAX, ceil).to_string(),
+        "341,000,000,000,000,000,000,000,000,000,000,000,000"
+    );
 }
 
 // --- Large finite floats ---

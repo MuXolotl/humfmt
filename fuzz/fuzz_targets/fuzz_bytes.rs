@@ -35,6 +35,10 @@ fuzz_target!(|data: &[u8]| {
         _ => ByteUnit::EB,
     };
 
+    // Significant digits override precision and are the path that can round an
+    // integer past `u128::MAX`.
+    let sig_digits = data[11] & 0b0011_1111;
+
     let max_unit = match (unit_selector / 7) % 7 {
         0 => ByteUnit::B,
         1 => ByteUnit::KB,
@@ -59,6 +63,9 @@ fuzz_target!(|data: &[u8]| {
     }
     if long_units {
         opts = opts.long_units();
+    }
+    if sig_digits != 0 {
+        opts = opts.significant_digits(sig_digits.clamp(1, 39));
     }
 
     let _ = bytes_with(value, opts).to_string();

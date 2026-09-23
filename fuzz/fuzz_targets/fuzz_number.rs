@@ -46,7 +46,7 @@ fuzz_target!(|data: &[u8]| {
 
     if data.len() >= 26 {
         let big = u128::from_le_bytes(data[10..26].try_into().unwrap());
-        let _ = number_with(big, NumberOptions::new()).to_string();
+        let _ = number_with(big, opts).to_string();
     }
 
     if data.len() >= 18 {
