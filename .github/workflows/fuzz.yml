@@ -20,17 +20,105 @@ jobs:
           - fuzz_ordinal
           - fuzz_list
 
+    env:
+      FUZZ_TARGET: ${{ matrix.target }}
+      FUZZ_SECONDS: 600
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
 
+      # Unpinned on purpose: cargo-fuzz tracks rustc nightly flags, so an old
+      # release is the likeliest source of a broken run. The version that
+      # actually ran is recorded in the job summary.
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz
 
+      # `pipefail` makes the step follow cargo-fuzz's exit code instead of
+      # `tee`'s. `continue-on-error` keeps the reporting steps below reachable
+      # after a crash; the crash check is a separate step, so a crash still
+      # fails the job.
       - name: Run fuzz target
-        run: |
-          cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=600
+        id: fuzz
         continue-on-error: true
+        run: |
+          set -o pipefail
+          cargo +nightly fuzz run "$FUZZ_TARGET" -- -max_total_time="$FUZZ_SECONDS" 2>&1 | tee "fuzz-$FUZZ_TARGET.log"
+
+      # libFuzzer writes every reproducer to `fuzz/artifacts/<target>/`, and a
+      # crash input on disk is the only reliable signal: the run step cannot
+      # report it, because `continue-on-error` hides its exit code from the job.
+      - name: Fail the job on a crash or an abnormal exit
+        id: result
+        if: always()
+        env:
+          FUZZ_OUTCOME: ${{ steps.fuzz.outcome }}
+        run: |
+          dir="fuzz/artifacts/$FUZZ_TARGET"
+          count=0
+
+          if [ -d "$dir" ]; then
+            count=$(find "$dir" -type f | wc -l)
+          fi
+
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+          status=0
+
+          if [ "$count" -gt 0 ]; then
+            echo "::error title=Fuzz crash::$FUZZ_TARGET wrote $count reproducer input(s) to $dir"
+            find "$dir" -type f -print
+            status=1
+          fi
+
+          if [ "${FUZZ_OUTCOME:-unknown}" != "success" ]; then
+            echo "::error title=Fuzz target did not finish::$FUZZ_TARGET exited abnormally, step outcome is ${FUZZ_OUTCOME:-unknown}"
+            status=1
+          fi
+
+          exit "$status"
+
+      - name: Write job summary
+        if: always()
+        continue-on-error: true
+        env:
+          FUZZ_OUTCOME: ${{ steps.fuzz.outcome }}
+          CRASH_COUNT: ${{ steps.result.outputs.count }}
+        run: |
+          log="fuzz-$FUZZ_TARGET.log"
+          last=""
+
+          if [ -f "$log" ]; then
+            last=$(grep -aE '^#[0-9]+' "$log" | tail -n 1 || true)
+          fi
+
+          {
+            echo "### Fuzzing: \`$FUZZ_TARGET\`"
+            echo
+            echo "- Budget: ${FUZZ_SECONDS}s"
+            echo "- Run step outcome: ${FUZZ_OUTCOME:-unknown}"
+            echo "- Crash inputs: ${CRASH_COUNT:-unknown}"
+
+            if [ -n "$last" ]; then
+              echo "- Last progress line: \`$last\`"
+            else
+              echo "- Last progress line: not found in the log"
+            fi
+
+            echo "- rustc: \`$(rustc +nightly --version 2>/dev/null || echo unknown)\`"
+            echo "- cargo-fuzz: \`$(cargo fuzz --version 2>/dev/null || echo unknown)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload crash inputs and fuzz log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: |
+            fuzz/artifacts/${{ matrix.target }}
+            fuzz-${{ matrix.target }}.log
+          if-no-files-found: ignore
+          retention-days: 14
