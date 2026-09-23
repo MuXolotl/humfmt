@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A branch that receives several pushes in a row only needs the newest verdict.
+concurrency:
+  group: "ci-${{ github.ref }}"
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -12,8 +17,15 @@ env:
 
 jobs:
   test:
-    name: Test Suite
-    runs-on: ubuntu-latest
+    name: Test Suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
 
     steps:
       - name: Checkout repository
@@ -21,8 +33,6 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
 
       - name: Run cargo check
         run: cargo check --all-targets --all-features
@@ -30,13 +40,27 @@ jobs:
       - name: Run tests
         run: cargo test --all-features --verbose
 
+  release-mode:
+    name: Test Suite (release)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Overflow checks and `debug_assert!` are compiled out here, so the
+      # release profile takes different branches than the debug suite.
+      - name: Run tests in release mode
+        run: cargo test --release --all-features
+
   msrv:
     name: MSRV (1.70)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
       - name: Install Rust 1.70
         uses: dtolnay/rust-toolchain@master
@@ -94,6 +118,29 @@ jobs:
 
       - name: Check ${{ matrix.label }}
         run: cargo check ${{ matrix.args }}
+
+  targets:
+    name: Cross targets
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain with cross targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-linux-gnu,thumbv7em-none-eabi,wasm32-unknown-unknown
+
+      # `usize` and `isize` are part of the input surface, and they are 32 bit here.
+      - name: Check 32-bit build
+        run: cargo check --all-features --target i686-unknown-linux-gnu
+
+      # Bare embedded target: no `std`, no allocator, no OS.
+      - name: Check no_std embedded build
+        run: cargo check --no-default-features --target thumbv7em-none-eabi
+
+      - name: Check wasm build
+        run: cargo check --target wasm32-unknown-unknown
 
   fmt:
     name: Format check
@@ -180,3 +227,72 @@ jobs:
           while IFS=$'\t' read -r level lint file line col message; do
             echo "::$level file=$file,line=$line,col=$col,title=${lint//::/-}::$message"
           done < lints.tsv
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # The crate documents itself from `docs/CRATE.md`, so a broken
+      # intra-doc link is a broken product page.
+      - name: Build docs with warnings denied
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: Build docs without default features
+        run: cargo doc --no-deps --no-default-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust nightly with miri
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      # Every formatter reaches the crate's only `unsafe` through `Display`:
+      # the stack buffer hands out a `&str` built from bytes written as UTF-8.
+      # The proptest and ecosystem-adapter suites stay out of this run because
+      # they are far slower under Miri without touching that code.
+      - name: Run the formatter tests under Miri
+        run: |
+          cargo miri test \
+            --test golden \
+            --test number_format \
+            --test number_edge_cases \
+            --test bytes_format \
+            --test percent_format \
+            --test duration_format \
+            --test ago_format \
+            --test ordinal_format \
+            --test list_format \
+            --test integer_paths \
+            --test formatter_flags
+
+  package:
+    name: Package (publish dry run)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Packages the crate and builds the archive the way crates.io would,
+      # which is also what proves the `include_str!` paths ship README.md and
+      # docs/CRATE.md inside the published files.
+      - name: Run cargo publish dry run
+        run: cargo publish --dry-run
