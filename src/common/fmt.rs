@@ -191,11 +191,73 @@ const MAX_ROUNDING_ZEROS: usize = U128_DIGITS - 1;
 /// Digits a scaled integer can print: significant digits followed by zeros.
 const MAX_SCALED_DIGITS: usize = U128_DIGITS + MAX_ROUNDING_ZEROS;
 
+/// Decimal digits in a `u64` when written out.
+const U64_DIGITS: usize = 20;
+
+/// ASCII digits of `00`..`99`, so two digits are written per step.
+const DIGIT_PAIRS: [u8; 200] = {
+    let mut pairs = [0u8; 200];
+    let mut value = 0usize;
+
+    while value < 100 {
+        pairs[value * 2] = b'0' + (value / 10) as u8;
+        pairs[value * 2 + 1] = b'0' + (value % 10) as u8;
+        value += 1;
+    }
+
+    pairs
+};
+
 /// Writes the decimal digits of `value` into `buf` and returns their count.
 ///
 /// `buf` must hold at least [`U128_DIGITS`] bytes. Zero is written as a single `'0'`.
 #[inline]
-fn write_digits_into(buf: &mut [u8], mut value: u128) -> usize {
+fn write_digits_into(buf: &mut [u8], value: u128) -> usize {
+    debug_assert!(buf.len() >= U128_DIGITS);
+
+    // Most values a formatter sees fit in a `u64`, where division is a single
+    // machine instruction instead of the multi-word sequence `u128` needs.
+    let len = if value <= u64::MAX as u128 {
+        write_digits_u64(buf, value as u64)
+    } else {
+        write_digits_u128(buf, value)
+    };
+
+    buf[..len].reverse();
+
+    debug_assert!(buf[..len].iter().all(|b| b.is_ascii_digit()));
+
+    len
+}
+
+/// Writes the decimal digits of a `u64` into `buf`, least significant first.
+fn write_digits_u64(buf: &mut [u8], mut value: u64) -> usize {
+    debug_assert!(buf.len() >= U64_DIGITS);
+
+    let mut len = 0usize;
+
+    while value >= 100 {
+        let pair = ((value % 100) * 2) as usize;
+        buf[len] = DIGIT_PAIRS[pair + 1];
+        buf[len + 1] = DIGIT_PAIRS[pair];
+        len += 2;
+        value /= 100;
+    }
+
+    if value >= 10 {
+        let pair = (value * 2) as usize;
+        buf[len] = DIGIT_PAIRS[pair + 1];
+        buf[len + 1] = DIGIT_PAIRS[pair];
+        return len + 2;
+    }
+
+    buf[len] = b'0' + value as u8;
+
+    len + 1
+}
+
+/// Writes the decimal digits of a `u128` into `buf`, least significant first.
+fn write_digits_u128(buf: &mut [u8], mut value: u128) -> usize {
     debug_assert!(buf.len() >= U128_DIGITS);
 
     let mut len = 0usize;
@@ -210,10 +272,6 @@ fn write_digits_into(buf: &mut [u8], mut value: u128) -> usize {
         buf[0] = b'0';
         return 1;
     }
-
-    buf[..len].reverse();
-
-    debug_assert!(buf[..len].iter().all(|b| b.is_ascii_digit()));
 
     len
 }
@@ -347,8 +405,17 @@ pub(crate) fn decimal_parts_rounded(
     is_negative: bool,
 ) -> DecimalParts {
     let precision = precision.min(6);
-    let mut integer = magnitude / unit;
-    let remainder = magnitude % unit;
+
+    // Values that fit in a `u64` divide in one instruction; the `u128` path is
+    // reserved for the top of the range, where the divisor may not fit either.
+    let (mut integer, remainder) = if magnitude <= u64::MAX as u128 && unit <= u64::MAX as u128 {
+        let magnitude = magnitude as u64;
+        let unit = unit as u64;
+
+        ((magnitude / unit) as u128, (magnitude % unit) as u128)
+    } else {
+        (magnitude / unit, magnitude % unit)
+    };
 
     let (frac_digits, mut frac_len, carry) =
         fractional_digits_rounded(remainder, unit, precision, rounding, is_negative);
@@ -443,12 +510,47 @@ fn mul10_div_mod(remainder: u128, unit: u128) -> (u128, u128) {
     debug_assert!(unit != 0);
     debug_assert!(remainder < unit);
 
+    if remainder <= u64::MAX as u128 && unit <= u64::MAX as u128 {
+        let (digit, rem) = mul10_div_mod_u64(remainder as u64, unit as u64);
+        return (digit as u128, rem as u128);
+    }
+
     if remainder <= u128::MAX / 10 {
         let product = remainder * 10;
         return (product / unit, product % unit);
     }
 
     mul10_div_mod_wide(remainder, unit)
+}
+
+/// Computes `(remainder * 10) / unit` and `(remainder * 10) % unit` for `u64` inputs.
+///
+/// `remainder < unit`, so the quotient is always a single digit.
+#[inline]
+fn mul10_div_mod_u64(remainder: u64, unit: u64) -> (u8, u64) {
+    debug_assert!(unit != 0);
+    debug_assert!(remainder < unit);
+
+    if remainder <= u64::MAX / 10 {
+        let product = remainder * 10;
+
+        return ((product / unit) as u8, product % unit);
+    }
+
+    // `remainder * 10` overflows `u64`, so the digit is found by counting down
+    // while comparing in `u128`, where `unit * digit` cannot overflow.
+    let product = u128::from(remainder) * 10;
+    let mut digit = 9u8;
+
+    loop {
+        let candidate = u128::from(unit) * u128::from(digit);
+
+        if candidate <= product {
+            return (digit, (product - candidate) as u64);
+        }
+
+        digit -= 1;
+    }
 }
 
 fn mul10_div_mod_wide(remainder: u128, unit: u128) -> (u128, u128) {
