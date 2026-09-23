@@ -94,8 +94,8 @@ output model overlap with humfmt. The humfmt-only groups cover features such as:
 ## Duration and relative-time benchmarks
 
 Duration and relative-time semantics vary significantly between crates. For
-example, some crates render all non-zero units while humfmt caps output via
-`DurationOptions::max_units`.
+example, some crates render all non-zero units while humfmt caps output via the
+`max_units` option.
 
 The generated report calls out these differences explicitly instead of treating
 all duration strings as identical outputs.

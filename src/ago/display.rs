@@ -8,7 +8,8 @@ use super::AgoOptions;
 /// `Display` wrapper for relative time output (e.g. `"1m 30s ago"`).
 ///
 /// Instances of this type are created via [`crate::ago()`] and [`crate::ago_with`].
-/// It builds on the duration formatter and appends `" ago"`.
+/// It builds on the duration formatter and appends `" ago"`, or renders
+/// `"just now"` when the value is below the configured threshold.
 ///
 /// This type does not allocate on its own; allocation only happens if the caller
 /// requests an owned `String` via `.to_string()` / `format!(...)`.
@@ -29,6 +30,10 @@ impl AgoDisplay {
 
 impl Render for AgoDisplay {
     fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        if self.value < self.options.just_now {
+            return f.write_str("just now");
+        }
+
         format_duration(
             f,
             self.value,

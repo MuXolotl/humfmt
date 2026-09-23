@@ -1,11 +1,11 @@
 /// Builder-style configuration for relative-time formatting.
 ///
-/// [`crate::ago_with`], `human_ago_with`, and the `chrono` / `time`
-/// `ago_*` adapters take this type. It carries the same two knobs as
-/// [`crate::DurationOptions`] today, but relative time owns its options type so
-/// it can grow features of its own without disturbing duration formatting. The
-/// two types convert into each other with `From`, so one option set can be
-/// reused for both formatters.
+/// [`crate::ago_with`], `human_ago_with`, and the `chrono` / `time` `ago_*`
+/// adapters take this type. It covers the two knobs of
+/// [`crate::DurationOptions`] plus the relative-time specific
+/// [`just_now`](AgoOptions::just_now) threshold. The types convert into each
+/// other with `From`, so one option set can be reused for both formatters;
+/// converting `AgoOptions` into `DurationOptions` drops `just_now`.
 ///
 /// # Examples
 ///
@@ -26,6 +26,7 @@
 pub struct AgoOptions {
     pub(crate) max_units: u8,
     pub(crate) long_units: bool,
+    pub(crate) just_now: core::time::Duration,
 }
 
 impl AgoOptions {
@@ -34,11 +35,13 @@ impl AgoOptions {
     /// Defaults:
     /// - max units: `2`
     /// - long units: `false` (compact labels like `h`, `m`, `s`)
+    /// - just now: `core::time::Duration::ZERO` (the phrase is off)
     #[inline]
     pub const fn new() -> Self {
         Self {
             max_units: 2,
             long_units: false,
+            just_now: core::time::Duration::ZERO,
         }
     }
 
@@ -89,6 +92,44 @@ impl AgoOptions {
         self.long_units = true;
         self
     }
+
+    /// Renders durations shorter than `threshold` as `"just now"`.
+    ///
+    /// The comparison is strict: a duration equal to `threshold` is rendered
+    /// normally. The default `core::time::Duration::ZERO` keeps the phrase off,
+    /// so `"0s ago"` stays the output unless a threshold is set. The phrase is
+    /// written as-is, regardless of [`long_units`](AgoOptions::long_units).
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | Default | `just_now(5s)` |
+    /// |---:|---|---|
+    /// | `0s` | `"0s ago"` | `"just now"` |
+    /// | `3s` | `"3s ago"` | `"just now"` |
+    /// | `5s` | `"5s ago"` | `"5s ago"` (threshold is exclusive) |
+    /// | `90s` | `"1m 30s ago"` | `"1m 30s ago"` |
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use core::time::Duration;
+    /// use humfmt::AgoOptions;
+    ///
+    /// let opts = AgoOptions::new().just_now(Duration::from_secs(5));
+    /// assert_eq!(
+    ///     humfmt::ago_with(Duration::from_secs(3), opts).to_string(),
+    ///     "just now"
+    /// );
+    /// assert_eq!(
+    ///     humfmt::ago_with(Duration::from_secs(5), opts).to_string(),
+    ///     "5s ago"
+    /// );
+    /// ```
+    #[inline]
+    pub const fn just_now(mut self, threshold: core::time::Duration) -> Self {
+        self.just_now = threshold;
+        self
+    }
 }
 
 impl Default for AgoOptions {
@@ -104,6 +145,7 @@ impl From<crate::DurationOptions> for AgoOptions {
         Self {
             max_units: options.max_units,
             long_units: options.long_units,
+            just_now: core::time::Duration::ZERO,
         }
     }
 }

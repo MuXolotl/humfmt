@@ -19,14 +19,19 @@
 //! );
 //! ```
 //!
+//! # Output control
+//!
+//! - **`max_units(n)`** — limits how many non-zero units are rendered
+//!   (default: 2, max: 7).
+//! - **`long_units()`** — switches from compact labels (`h`, `m`, `s`) to
+//!   long-form (`hour`, `minute`, `second`).
+//! - **`just_now(threshold)`** — renders durations below the threshold as
+//!   `"just now"`; off by default.
+//!
 //! # Limitations
 //!
 //! **Past only:** Currently `ago` only formats past durations (time that has
 //! already elapsed). Future-time support (`"in 5 minutes"`) is planned.
-//!
-//! **No "just now" case:** Very small durations (e.g. under 5 seconds) render
-//! as `"0s ago"` rather than a special "just now" phrase. A configurable
-//! threshold for this case is planned.
 
 mod display;
 mod options;

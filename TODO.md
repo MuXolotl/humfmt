@@ -22,7 +22,6 @@ Planned work and known gaps. Completed items are removed from this file;
 
 **ago**
 - Future-time support (`"in 5 minutes"` alongside existing `"5 minutes ago"`)
-- `"just now"` threshold — configurable cutoff for very short durations instead of `"0s ago"`
 
 **ordinal**
 - *none*
