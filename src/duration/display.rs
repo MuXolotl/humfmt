@@ -24,7 +24,12 @@ impl DurationDisplay {
 
 impl Render for DurationDisplay {
     fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
-        format_duration(f, self.value, &self.options)
+        format_duration(
+            f,
+            self.value,
+            self.options.max_units,
+            self.options.long_units,
+        )
     }
 }
 

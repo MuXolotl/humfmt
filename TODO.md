@@ -21,7 +21,6 @@ Planned work and known gaps. Completed items are removed from this file;
 - Configurable unit join style — space (`"1h 2m"`, default), comma (`"1h, 2m"`), or `"and"` (`"1 hour and 2 minutes"`)
 
 **ago**
-- Split `AgoOptions` from `DurationOptions`
 - Future-time support (`"in 5 minutes"` alongside existing `"5 minutes ago"`)
 - `"just now"` threshold — configurable cutoff for very short durations instead of `"0s ago"`
 

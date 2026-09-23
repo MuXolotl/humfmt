@@ -30,7 +30,7 @@ pub mod time;
 mod common;
 mod traits;
 
-pub use ago::{ago, ago_with, AgoDisplay};
+pub use ago::{ago, ago_with, AgoDisplay, AgoOptions};
 pub use bytes::{bytes, bytes_with, ByteUnit, BytesDisplay, BytesLike, BytesOptions};
 pub use duration::{duration, duration_with, DurationDisplay, DurationLike, DurationOptions};
 pub use error::DurationConversionError;

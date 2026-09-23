@@ -44,8 +44,8 @@ pub trait Humanize: Sized {
         crate::ago::ago(self)
     }
 
-    /// Formats this duration as relative time using custom duration options.
-    fn human_ago_with(self, options: crate::duration::DurationOptions) -> crate::ago::AgoDisplay
+    /// Formats this duration as relative time using custom options.
+    fn human_ago_with(self, options: crate::ago::AgoOptions) -> crate::ago::AgoDisplay
     where
         Self: crate::duration::DurationLike,
     {

@@ -15,7 +15,7 @@
 use std::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use humfmt::{ago, ago_with, DurationOptions};
+use humfmt::{ago, ago_with, AgoOptions};
 
 const VALUES: [Duration; 8] = [
     Duration::ZERO,
@@ -48,7 +48,7 @@ fn bench_ago(c: &mut Criterion) {
         })
     });
 
-    let humfmt_2 = DurationOptions::new().max_units(2);
+    let humfmt_2 = AgoOptions::new().max_units(2);
     group.bench_function("humfmt/short/2_units", |b| {
         b.iter(|| {
             for &v in &VALUES {
@@ -67,7 +67,7 @@ fn bench_ago(c: &mut Criterion) {
         })
     });
 
-    let humfmt_long = DurationOptions::new().long_units().max_units(2);
+    let humfmt_long = AgoOptions::new().long_units().max_units(2);
     group.bench_function("humfmt/long/2_units", |b| {
         b.iter(|| {
             for &v in &VALUES {

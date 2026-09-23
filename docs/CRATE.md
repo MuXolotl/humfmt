@@ -564,18 +564,29 @@ Builds on the duration formatter and appends `" ago"`.
 
 ```rust
 use core::time::Duration;
-use humfmt::{ago, ago_with, DurationOptions};
+use humfmt::{ago, ago_with, AgoOptions};
 
 assert_eq!(ago(Duration::from_secs(90)).to_string(), "1m 30s ago");
 assert_eq!(ago(Duration::from_secs(3661)).to_string(), "1h 1m ago");
 assert_eq!(ago(Duration::ZERO).to_string(), "0s ago");
 
-let opts = DurationOptions::new().long_units();
+let opts = AgoOptions::new().long_units();
 assert_eq!(
     ago_with(Duration::from_millis(1500), opts).to_string(),
     "1 second 500 milliseconds ago"
 );
 ```
+
+`ago` is configured by `AgoOptions`. It carries the same two knobs as
+`DurationOptions`, and the two convert into each other with `From`, so a single
+option set can drive both formatters.
+
+### Defaults
+
+| Option | Default | Meaning |
+|---|---|---|
+| `max_units` | 2 | maximum number of non-zero units to render |
+| `long_units` | false | `h` vs ` hour` |
 
 ---
 

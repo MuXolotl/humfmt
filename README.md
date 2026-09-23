@@ -77,7 +77,7 @@ println!("{}", humfmt::list(&["red", "green", "blue"]));      // red, green, and
 ## Customization
 
 Every formatter has a `*_with` variant that takes an options builder: `NumberOptions`,
-`BytesOptions`, `PercentOptions`, `DurationOptions` (shared by `duration` and `ago`),
+`BytesOptions`, `PercentOptions`, `DurationOptions`, `AgoOptions` (relative time),
 and `ListOptions`. Options are `Copy`, every setter is `const fn`, and the defaults
 are what most callers want.
 

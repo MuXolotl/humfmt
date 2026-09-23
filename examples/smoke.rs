@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use humfmt::{BytesOptions, DurationOptions, Humanize, ListOptions, NumberOptions};
+use humfmt::{AgoOptions, BytesOptions, DurationOptions, Humanize, ListOptions, NumberOptions};
 
 fn main() {
     println!("{}", humfmt::number(15320));
@@ -22,7 +22,7 @@ fn main() {
     println!("{}", humfmt::ago(Duration::from_secs(90)));
     println!(
         "{}",
-        Duration::from_secs(3665).human_ago_with(DurationOptions::new().max_units(3))
+        Duration::from_secs(3665).human_ago_with(AgoOptions::new().max_units(3))
     );
     println!("{}", humfmt::list(&["red", "green", "blue"]));
     println!(

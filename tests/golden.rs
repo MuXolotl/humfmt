@@ -6,8 +6,9 @@
 use core::time::Duration;
 
 use humfmt::{
-    ago_with, bytes_with, duration_with, list_with, number_with, percent_with, ByteUnit,
-    BytesOptions, DurationOptions, ListOptions, NumberOptions, PercentOptions, RoundingMode,
+    ago_with, bytes_with, duration_with, list_with, number_with, percent_with, AgoOptions,
+    ByteUnit, BytesOptions, DurationOptions, ListOptions, NumberOptions, PercentOptions,
+    RoundingMode,
 };
 
 #[test]
@@ -280,7 +281,7 @@ fn golden_duration_and_ago() {
             "duration mismatch: {input:?} with {opts:?}"
         );
         assert_eq!(
-            ago_with(input, opts).to_string(),
+            ago_with(input, AgoOptions::from(opts)).to_string(),
             expected_ago,
             "ago mismatch: {input:?} with {opts:?}"
         );

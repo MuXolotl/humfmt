@@ -1,7 +1,7 @@
 use core::time::Duration;
 
 use humfmt::{ago_with, bytes, duration_with, list_with, number, number_with};
-use humfmt::{DurationOptions, ListOptions, NumberOptions};
+use humfmt::{AgoOptions, DurationOptions, ListOptions, NumberOptions};
 use proptest::prelude::*;
 
 const SHORT_SUFFIXES: [&str; 12] = [
@@ -100,7 +100,7 @@ proptest! {
         let duration = Duration::from_nanos(total_nanos);
 
         let duration_rendered = duration_with(duration, options).to_string();
-        let ago_rendered = ago_with(duration, options).to_string();
+        let ago_rendered = ago_with(duration, AgoOptions::from(options)).to_string();
 
         prop_assert_eq!(ago_rendered, format!("{duration_rendered} ago"));
     }
