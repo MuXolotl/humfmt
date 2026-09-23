@@ -22,7 +22,8 @@ cargo run --release --manifest-path tools/benchmarks/Cargo.toml --bin report
 
 Outputs:
 
-- `BENCHMARKS.md`
+- `BENCHMARKS.md`, headed by an Environment block listing the CPU, OS, toolchain
+  versions and build profile the numbers were measured on
 - `assets/benchmarks/*_dark.svg`
 
 Criterion will also write HTML reports under:
