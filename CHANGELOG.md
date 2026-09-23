@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- All formatters now honour the `width`, `fill`, and `alignment` parts of a format specifier: `format!("{:>10}", number(15_320))` gives `"     15.3K"` where the specifier used to be ignored. `precision`, `+`, `#`, and `0` stay ignored — digits are controlled by the options.
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
 - `percent` formatter refactored to use the same rounding infrastructure as `number` and `bytes`, removing the previously hardcoded half-up path.
 

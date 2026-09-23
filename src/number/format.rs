@@ -88,8 +88,8 @@ fn suffix_for(idx: usize, long: bool) -> &'static str {
     }
 }
 
-pub fn format_number(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_number<W: fmt::Write + ?Sized>(
+    f: &mut W,
     value: NumericValue,
     options: &NumberOptions,
 ) -> fmt::Result {
@@ -100,19 +100,27 @@ pub fn format_number(
     }
 }
 
-fn format_int(f: &mut fmt::Formatter<'_>, value: i128, options: &NumberOptions) -> fmt::Result {
+fn format_int<W: fmt::Write + ?Sized>(
+    f: &mut W,
+    value: i128,
+    options: &NumberOptions,
+) -> fmt::Result {
     let negative = value.is_negative();
     let magnitude = value.unsigned_abs();
 
     format_u128_magnitude(f, negative && magnitude != 0, magnitude, options)
 }
 
-fn format_uint(f: &mut fmt::Formatter<'_>, value: u128, options: &NumberOptions) -> fmt::Result {
+fn format_uint<W: fmt::Write + ?Sized>(
+    f: &mut W,
+    value: u128,
+    options: &NumberOptions,
+) -> fmt::Result {
     format_u128_magnitude(f, false, value, options)
 }
 
-fn format_u128_magnitude(
-    f: &mut fmt::Formatter<'_>,
+fn format_u128_magnitude<W: fmt::Write + ?Sized>(
+    f: &mut W,
     negative: bool,
     magnitude: u128,
     options: &NumberOptions,
@@ -182,7 +190,11 @@ fn compact_unit_for_u128(magnitude: u128, max_idx: usize) -> (usize, u128) {
     (idx, POW1000[idx])
 }
 
-fn format_float(f: &mut fmt::Formatter<'_>, raw: f64, options: &NumberOptions) -> fmt::Result {
+fn format_float<W: fmt::Write + ?Sized>(
+    f: &mut W,
+    raw: f64,
+    options: &NumberOptions,
+) -> fmt::Result {
     if !raw.is_finite() {
         return write!(f, "{raw}");
     }
@@ -418,8 +430,8 @@ fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negati
 }
 
 // Writes the fractional part of a DecimalParts value.
-fn write_int_frac(
-    f: &mut fmt::Formatter<'_>,
+fn write_int_frac<W: fmt::Write + ?Sized>(
+    f: &mut W,
     parts: &crate::common::fmt::DecimalParts,
     precision: u8,
     fixed_precision: bool,
@@ -448,8 +460,8 @@ fn write_int_frac(
 // - decimal separator substitution
 // - optional digit grouping on the integer part
 // - trailing-zero trimming unless fixed_precision is enabled
-fn write_localized_float_str(
-    f: &mut fmt::Formatter<'_>,
+fn write_localized_float_str<W: fmt::Write + ?Sized>(
+    f: &mut W,
     input: &str,
     group: bool,
     fixed_precision: bool,

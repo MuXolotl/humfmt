@@ -41,7 +41,7 @@ println!("{}", humfmt::ordinal(21));        // 21st
 | `90s` | `ago` | `1m 30s ago` |
 | `["red", "green", "blue"]` | `list` | `red, green, and blue` |
 
-All formatters implement `Display` — no intermediate heap strings. Write directly into any buffer.
+All formatters implement `Display` — no intermediate heap strings. Write directly into any buffer, padded to a width with the usual format specifiers (`{:>10}`).
 
 ---
 

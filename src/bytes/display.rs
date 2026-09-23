@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::common::fmt::{fmt_with_padding, Render};
+
 use super::{format::format_bytes, traits::BytesValue, BytesOptions};
 
 /// `Display` wrapper for human-readable byte sizes (e.g. `"1.5KB"`).
@@ -20,8 +22,14 @@ impl BytesDisplay {
     }
 }
 
+impl Render for BytesDisplay {
+    fn render<W: fmt::Write + ?Sized>(&self, f: &mut W) -> fmt::Result {
+        format_bytes(f, self.value, &self.options)
+    }
+}
+
 impl fmt::Display for BytesDisplay {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        format_bytes(f, self.value, &self.options)
+        fmt_with_padding(self, f)
     }
 }

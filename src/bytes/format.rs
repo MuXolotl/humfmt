@@ -1,5 +1,4 @@
 use core::fmt;
-use core::fmt::Write;
 
 use super::options::Precision;
 use super::{traits::BytesValue, BytesOptions};
@@ -185,8 +184,8 @@ const BINARY_UNITS: [u128; 7] = [
     1_152_921_504_606_846_976,
 ];
 
-pub fn format_bytes(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_bytes<W: fmt::Write + ?Sized>(
+    f: &mut W,
     value: BytesValue,
     options: &BytesOptions,
 ) -> fmt::Result {

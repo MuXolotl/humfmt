@@ -1,5 +1,4 @@
 use core::fmt;
-use core::fmt::Write;
 
 use crate::common::fmt::{write_frac_digits, write_u128};
 use crate::RoundingMode;
@@ -9,8 +8,8 @@ use super::PercentOptions;
 // Lookup table: 10^i for i in 0..=6, used to shift fractional digits.
 const POW10: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
 
-pub fn format_percent(
-    f: &mut fmt::Formatter<'_>,
+pub fn format_percent<W: fmt::Write + ?Sized>(
+    f: &mut W,
     value: f64,
     options: &PercentOptions,
 ) -> fmt::Result {
@@ -72,8 +71,8 @@ fn round_percent(abs: f64, factor: f64, rounding: RoundingMode, is_negative: boo
 }
 
 /// Writes the fractional part of a rounded percentage value.
-fn write_frac_part(
-    f: &mut fmt::Formatter<'_>,
+fn write_frac_part<W: fmt::Write + ?Sized>(
+    f: &mut W,
     rounded: f64,
     int_part: u128,
     factor: f64,

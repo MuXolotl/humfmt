@@ -42,6 +42,8 @@ pub use display::DurationDisplay;
 pub use options::DurationOptions;
 pub use traits::DurationLike;
 
+pub(crate) use format::format_duration;
+
 /// Creates a human-readable duration formatter using default options.
 ///
 /// # Examples
