@@ -246,6 +246,8 @@ pub fn format_bytes<W: fmt::Write + ?Sized>(
 
     if negative && magnitude != 0 {
         f.write_str("-")?;
+    } else if options.force_sign && magnitude != 0 {
+        f.write_str("+")?;
     }
 
     write_scaled_integer(f, parts.integer, false, ',')?;

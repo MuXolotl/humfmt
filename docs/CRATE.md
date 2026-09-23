@@ -321,6 +321,7 @@ assert_eq!(bytes_with(1536_u64, BytesOptions::new().binary()).to_string(), "1.5K
 | `long_units` | false | `KB` vs ` kilobytes` |
 | `decimal_separator` | `.` | decimal separator for scaled output |
 | `space` | false | add a space before short unit labels |
+| `force_sign` | false | leading `+` for positive values |
 | `fixed_precision` | false | keep trailing zeros (`1.50KB`) |
 | `min_unit` | `B` | clamp minimum unit |
 | `max_unit` | `EB` | clamp maximum unit |
@@ -394,6 +395,17 @@ let opts = BytesOptions::new().decimal_separator(',');
 assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
 ```
 
+### Forced sign
+
+```rust
+use humfmt::{bytes_with, BytesOptions};
+
+let opts = BytesOptions::new().force_sign(true);
+assert_eq!(bytes_with(1536_u64, opts).to_string(), "+1.5KB");
+assert_eq!(bytes_with(-1536_i64, opts).to_string(), "-1.5KB");
+assert_eq!(bytes_with(0_u64, opts).to_string(), "0B");
+```
+
 ### Edge cases
 
 | Input | Output | Notes |
@@ -403,6 +415,7 @@ assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
 | `1000` | `"1KB"` | SI threshold |
 | `1024` | `"1KB"` (SI) / `"1KiB"` (IEC) | Threshold difference |
 | `-1536` | `"-1.5KB"` | Negative supported |
+| `1536` + `force_sign` | `"+1.5KB"` | Zero never carries a sign |
 | `u128::MAX` | `"...EB"` | Largest unit, no overflow |
 | `999_950` | `"1MB"` | Rounds up across boundary |
 | `u128::MAX` + `unit(ByteUnit::B)` + `significant_digits(1)` + `Ceil` | `"400000000000000000000000000000000000000B"` | Rounded up past the `u128` range; the value is written exactly |

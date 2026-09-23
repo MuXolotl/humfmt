@@ -37,6 +37,7 @@ pub enum ByteUnit {
 /// | [`rounding(mode)`] | `HalfUp` | `HalfUp`, `Floor`, `Ceil` |
 /// | [`long_units()`] | `false` | `"KB"` -> `" kilobytes"` |
 /// | [`space(bool)`] | `false` | `"1.5KB"` -> `"1.5 KB"` |
+/// | [`force_sign(bool)`] | `false` | `"1.5KB"` -> `"+1.5KB"` |
 /// | [`decimal_separator(c)`] | `'.'` | Decimal separator character |
 /// | [`fixed_precision(bool)`] | `false` | `"1.5KB"` -> `"1.50KB"` |
 /// | [`min_unit(u)`] | `B` | Clamp minimum unit |
@@ -50,6 +51,7 @@ pub enum ByteUnit {
 /// [`rounding(mode)`]: BytesOptions::rounding
 /// [`long_units()`]: BytesOptions::long_units
 /// [`space(bool)`]: BytesOptions::space
+/// [`force_sign(bool)`]: BytesOptions::force_sign
 /// [`decimal_separator(c)`]: BytesOptions::decimal_separator
 /// [`fixed_precision(bool)`]: BytesOptions::fixed_precision
 /// [`min_unit(u)`]: BytesOptions::min_unit
@@ -83,6 +85,7 @@ pub struct BytesOptions {
     pub(crate) fixed_precision: bool,
     pub(crate) min_unit: ByteUnit,
     pub(crate) max_unit: ByteUnit,
+    pub(crate) force_sign: bool,
 }
 
 impl BytesOptions {
@@ -98,6 +101,7 @@ impl BytesOptions {
     /// - fixed precision: `false` (trailing zeros are trimmed)
     /// - min unit: `ByteUnit::B`
     /// - max unit: `ByteUnit::EB`
+    /// - forced sign: `false`
     #[inline]
     pub const fn new() -> Self {
         Self {
@@ -111,6 +115,7 @@ impl BytesOptions {
             fixed_precision: false,
             min_unit: ByteUnit::B,
             max_unit: ByteUnit::EB,
+            force_sign: false,
         }
     }
 
@@ -287,6 +292,35 @@ impl BytesOptions {
     #[inline]
     pub const fn space(mut self, enabled: bool) -> Self {
         self.space = enabled;
+        self
+    }
+
+    /// Forces the output of a `+` sign for strictly positive values.
+    ///
+    /// Zero never carries a sign. Useful for deltas and change indicators, and
+    /// it matches `NumberOptions::force_sign` and `PercentOptions::force_sign`.
+    ///
+    /// # Behaviour table
+    ///
+    /// | Input | `force_sign(false)` (default) | `force_sign(true)` |
+    /// |---:|---|---|
+    /// | `1_536` | `"1.5KB"` | `"+1.5KB"` |
+    /// | `0` | `"0B"` | `"0B"` (no sign on zero) |
+    /// | `-1_536` | `"-1.5KB"` | `"-1.5KB"` (negatives unchanged) |
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use humfmt::BytesOptions;
+    ///
+    /// let opts = BytesOptions::new().force_sign(true);
+    /// assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "+1.5KB");
+    /// assert_eq!(humfmt::bytes_with(-1536_i64, opts).to_string(), "-1.5KB");
+    /// assert_eq!(humfmt::bytes_with(0_u64, opts).to_string(), "0B");
+    /// ```
+    #[inline]
+    pub const fn force_sign(mut self, yes: bool) -> Self {
+        self.force_sign = yes;
         self
     }
 
