@@ -1,6 +1,8 @@
 use core::cmp::Ordering;
 use core::fmt;
 
+use crate::rounding::carry_after_truncation;
+
 /// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
 ///
 /// Written to only via `fmt::Write::write_str`, which guarantees UTF-8 input,
@@ -456,7 +458,7 @@ fn fractional_digits_rounded(
         } else {
             0
         };
-        let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
+        let carry = carry_after_truncation(next_digit >= 5, has_remainder, rounding, is_negative);
 
         return (digits, 0, carry);
     }
@@ -466,7 +468,7 @@ fn fractional_digits_rounded(
 
         debug_assert!(digit <= 9);
 
-        *slot = b'0' + digit as u8;
+        *slot = b'0' + digit;
         rem = next_rem;
     }
 
@@ -476,7 +478,7 @@ fn fractional_digits_rounded(
     } else {
         0
     };
-    let carry = evaluate_carry(next_digit, has_remainder, rounding, is_negative);
+    let carry = carry_after_truncation(next_digit >= 5, has_remainder, rounding, is_negative);
 
     if !carry {
         return (digits, precision, false);
@@ -503,21 +505,22 @@ fn fractional_digits_rounded(
 
 /// Computes `(remainder * 10) / unit` and `(remainder * 10) % unit` without overflow.
 ///
-/// The common path uses normal `u128` arithmetic. The wide fallback is only used
-/// for extreme values near the top of the `u128` range.
+/// `remainder < unit`, so the returned digit is always in `0..=9`. The common
+/// path uses normal `u64` arithmetic; the wide fallback is only used for
+/// extreme values near the top of the `u128` range.
 #[inline]
-fn mul10_div_mod(remainder: u128, unit: u128) -> (u128, u128) {
+fn mul10_div_mod(remainder: u128, unit: u128) -> (u8, u128) {
     debug_assert!(unit != 0);
     debug_assert!(remainder < unit);
 
     if remainder <= u64::MAX as u128 && unit <= u64::MAX as u128 {
         let (digit, rem) = mul10_div_mod_u64(remainder as u64, unit as u64);
-        return (digit as u128, rem as u128);
+        return (digit, rem as u128);
     }
 
     if remainder <= u128::MAX / 10 {
         let product = remainder * 10;
-        return (product / unit, product % unit);
+        return ((product / unit) as u8, product % unit);
     }
 
     mul10_div_mod_wide(remainder, unit)
@@ -553,7 +556,7 @@ fn mul10_div_mod_u64(remainder: u64, unit: u64) -> (u8, u64) {
     }
 }
 
-fn mul10_div_mod_wide(remainder: u128, unit: u128) -> (u128, u128) {
+fn mul10_div_mod_wide(remainder: u128, unit: u128) -> (u8, u128) {
     debug_assert!(unit != 0);
     debug_assert!(remainder < unit);
     debug_assert!(remainder > u128::MAX / 10);
@@ -570,7 +573,7 @@ fn mul10_div_mod_wide(remainder: u128, unit: u128) -> (u128, u128) {
             debug_assert_eq!(rem_hi, 0);
             debug_assert!(rem_lo < unit);
 
-            return (digit as u128, rem_lo);
+            return (digit, rem_lo);
         }
     }
 
@@ -610,20 +613,6 @@ fn sub_wide(a_hi: u128, a_lo: u128, b_hi: u128, b_lo: u128) -> (u128, u128) {
     let hi = a_hi - b_hi - u128::from(borrowed);
 
     (hi, lo)
-}
-
-#[inline]
-fn evaluate_carry(
-    next_digit: u128,
-    has_remainder: bool,
-    rounding: crate::RoundingMode,
-    is_negative: bool,
-) -> bool {
-    match rounding {
-        crate::RoundingMode::HalfUp => next_digit >= 5,
-        crate::RoundingMode::Floor => is_negative && has_remainder,
-        crate::RoundingMode::Ceil => !is_negative && has_remainder,
-    }
 }
 
 /// Computes significant digits for u128 magnitudes.

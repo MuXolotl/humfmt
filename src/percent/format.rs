@@ -1,12 +1,13 @@
 use core::fmt;
 
 use crate::common::fmt::{write_frac_digits, write_u128};
-use crate::RoundingMode;
+use crate::rounding::{decimal_factor, round_to_decimals};
 
 use super::PercentOptions;
 
-// Lookup table: 10^i for i in 0..=6, used to shift fractional digits.
-const POW10: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
+/// `u128::MAX` as `f64`: the smallest scaled magnitude the integer path cannot
+/// write, because such a value no longer fits in a `u128`.
+const U128_MAX_F64: f64 = u128::MAX as f64;
 
 pub fn format_percent<W: fmt::Write + ?Sized>(
     f: &mut W,
@@ -20,11 +21,18 @@ pub fn format_percent<W: fmt::Write + ?Sized>(
     let percent = value * 100.0;
     let negative = percent.is_sign_negative();
     let abs = percent.abs();
+
+    // The product overflows to infinity for the largest ratios, and products at
+    // or above `u128::MAX` cannot be written as an integer.
+    if abs >= U128_MAX_F64 {
+        return write_unbounded_percent(f, value, negative, options);
+    }
+
     let precision = options.precision as usize;
-    let factor = POW10[precision];
+    let factor = decimal_factor(options.precision);
 
     // Round `abs` to `precision` decimal places using the selected mode.
-    let rounded = round_percent(abs, factor, options.rounding, negative);
+    let rounded = round_to_decimals(abs, options.precision, options.rounding, negative);
 
     let is_zero = rounded == 0.0;
     if negative && !is_zero {
@@ -43,31 +51,37 @@ pub fn format_percent<W: fmt::Write + ?Sized>(
     f.write_char('%')
 }
 
-/// Rounds `abs` (already multiplied by 100) to `precision` decimal places.
+/// Writes percentages whose scaled magnitude does not fit in a `u128`.
 ///
-/// Uses the same rounding semantics as the number and bytes formatters.
-fn round_percent(abs: f64, factor: f64, rounding: RoundingMode, is_negative: bool) -> f64 {
-    // Overflow guard: values near f64::MAX * factor would wrap u64.
-    if abs * factor > u64::MAX as f64 {
-        return abs;
+/// The product is at or above `u128::MAX` for these ratios, and overflows to
+/// infinity for the largest ones. Either way the magnitude is far beyond what
+/// `f64` can hold fractionally, so the exact decimal expansion of `value` only
+/// needs two zeros appended for the `* 100` step, and rounding cannot change
+/// the result because there is nothing left to round away.
+fn write_unbounded_percent<W: fmt::Write + ?Sized>(
+    f: &mut W,
+    value: f64,
+    negative: bool,
+    options: &PercentOptions,
+) -> fmt::Result {
+    if negative {
+        f.write_char('-')?;
+    } else if options.force_sign {
+        f.write_char('+')?;
     }
 
-    let shifted = abs * factor;
-    let trunc = shifted as u64;
+    write!(f, "{:.0}", value.abs())?;
+    f.write_str("00")?;
 
-    let has_remainder = shifted > trunc as f64;
+    if options.fixed_precision && options.precision > 0 {
+        f.write_char(options.decimal_separator)?;
 
-    let carry = match rounding {
-        RoundingMode::HalfUp => {
-            // Ties round away from zero: 0.5 -> 1, -0.5 -> -1.
-            (shifted + 0.5) as u64 > trunc
+        for _ in 0..options.precision {
+            f.write_char('0')?;
         }
-        RoundingMode::Floor => is_negative && has_remainder,
-        RoundingMode::Ceil => !is_negative && has_remainder,
-    };
+    }
 
-    let rounded_int = if carry { trunc + 1 } else { trunc };
-    rounded_int as f64 / factor
+    f.write_char('%')
 }
 
 /// Writes the fractional part of a rounded percentage value.

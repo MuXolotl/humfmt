@@ -1,8 +1,8 @@
 use core::fmt;
 
-use super::options::Precision;
 use super::{traits::BytesValue, BytesOptions};
 use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_scaled_integer};
+use crate::rounding::Precision;
 
 // Each entry groups short label, long singular, and long plural for one unit tier.
 // Index 0 = bytes, 1 = kilo/kibi, ..., 6 = exa/exbi.

@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `percent` rendered a saturated constant for ratios whose scaled value reaches `u128::MAX`: `percent(f64::MAX)` returned `"340282366920938463463374607431768211455.9%"` and `percent(1e37)` lost the value's own digits. Such ratios are now written from the exact decimal expansion of the input, where the `* 100` step only appends two zeros — `percent(1e37)` is `"999999999999999953876265820212114227200%"`.
+- Half-up rounding of scaled values at `2^52` and above could come out one unit too high, because `shifted + 0.5` rounds to an even integer once `f64` has no fractional digits left. `number` and `percent` now base the half-up decision on the true fractional part — `number_with(503_421_021_549_041.9, NumberOptions::new().compact(false))` is `"503421021549041.9"` where it used to print `"503421021549042"`.
 - `significant_digits` could overflow `u128` when rounding up at the top of the range — `compact(false)`, `RoundingMode::Ceil`, or a forced byte unit turned `u128::MAX` into a debug-build panic and a truncated number in release builds. Rounding is now exact (`400000000000000000000000000000000000000`).
 - Overflow-safe fractional digit extraction in the `u128` long-division path. Extreme values near `u128::MAX` now round correctly.
 - Significant-digit rounding for `u128::MAX`, `i128::MAX`, and `i128::MIN`.

@@ -5,7 +5,10 @@
 //!
 //! Input is expected to be a ratio in the range `0.0..=1.0`, but values
 //! outside this range (e.g. `1.5 -> "150%"`) are accepted and rendered as-is.
-//! Non-finite inputs (`inf`, `-inf`, `NaN`) render with a `%` suffix.
+//! Non-finite inputs (`inf`, `-inf`, `NaN`) render with a `%` suffix. Ratios
+//! whose scaled magnitude is at or above `u128::MAX as f64` are written from
+//! the exact decimal expansion of the input: at that magnitude the `f64` has no
+//! fractional digits, so the `* 100` step only appends two zeros.
 //!
 //! # Quick start
 //!
@@ -31,6 +34,8 @@
 //! | `1.5` | `"150%"` | Above 100% accepted |
 //! | `-0.423` | `"-42.3%"` | Negative accepted |
 //! | `-0.0004` | `"0%"` | Rounds to zero, sign suppressed |
+//! | `1e37` | `"999999999999999953876265820212114227200%"` | Scaled value exceeds `u128::MAX` |
+//! | `f64::MAX` | `"1797693134862315708…40402618412485836800%"` | 311 digits, scaled exactly |
 //! | `f64::NAN` | `"NaN%"` | Non-finite preserved |
 //! | `f64::INFINITY` | `"inf%"` | Non-finite preserved |
 //! | `f64::NEG_INFINITY` | `"-inf%"` | Non-finite preserved |

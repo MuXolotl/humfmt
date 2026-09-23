@@ -6,8 +6,8 @@ use crate::common::fmt::{
     StackString,
 };
 use crate::common::numeric::NumericValue;
+use crate::rounding::{round_to_decimals, Precision};
 
-use super::options::Precision;
 use super::NumberOptions;
 
 // Powers of 1000 as u128, for O(1) integer compact-unit selection.
@@ -47,9 +47,6 @@ const POW1000_F64: [f64; 13] = [
     1_000_000_000_000_000_000_000_000_000_000_000.0,
     1_000_000_000_000_000_000_000_000_000_000_000_000.0,
 ];
-
-// Powers of 10 as f64, indexed by precision (0..=6).
-const POW10_F64: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
 
 const SHORT_SUFFIXES: [&str; 13] = [
     "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud",
@@ -246,7 +243,7 @@ fn compact_unit_for_f64(
     is_negative: bool,
 ) -> (usize, u8, f64) {
     let get_scaled = |abs_val: f64| match *precision {
-        Precision::Decimals(d) => (d, round_f64(abs_val, d, rounding, is_negative)),
+        Precision::Decimals(d) => (d, round_to_decimals(abs_val, d, rounding, is_negative)),
         Precision::Significant(s) => compute_sigfigs_f64(abs_val, s, rounding, is_negative),
     };
 
@@ -309,7 +306,7 @@ fn compute_sigfigs_f64(
 
     if shift >= 0 {
         let decimals = (shift as u8).min(6);
-        let rounded = round_f64(abs, decimals, rounding, negative);
+        let rounded = round_to_decimals(abs, decimals, rounding, negative);
 
         let new_log10 = if rounded > 0.0 {
             f64_log10_floor(rounded)
@@ -333,7 +330,7 @@ fn compute_sigfigs_f64(
         let drop_digits = -shift;
         let factor = f64_pow10(drop_digits);
         let divided = abs / factor;
-        let rounded = round_f64(divided, 0, rounding, negative);
+        let rounded = round_to_decimals(divided, 0, rounding, negative);
 
         (0, rounded * factor)
     }
@@ -392,41 +389,6 @@ fn f64_log10_floor(val: f64) -> i32 {
     }
 
     approx
-}
-
-// Rounds a non-negative finite f64 to `precision` decimal places.
-#[inline]
-fn round_f64(value: f64, precision: u8, rounding: crate::RoundingMode, is_negative: bool) -> f64 {
-    debug_assert!(value.is_finite() && value >= 0.0);
-
-    let p = precision.min(6) as usize;
-    let factor = POW10_F64[p];
-
-    if value > f64::MAX / factor {
-        return value;
-    }
-
-    let shifted = value * factor;
-    let trunc = shifted as u64;
-
-    if trunc as f64 >= u64::MAX as f64 {
-        return value;
-    }
-
-    let has_remainder = shifted > trunc as f64;
-
-    let carry = match rounding {
-        crate::RoundingMode::HalfUp => {
-            let half_shifted = shifted + 0.5;
-            (half_shifted as u64) > trunc
-        }
-        crate::RoundingMode::Floor => is_negative && has_remainder,
-        crate::RoundingMode::Ceil => !is_negative && has_remainder,
-    };
-
-    let rounded_int = if carry { trunc + 1 } else { trunc };
-
-    rounded_int as f64 / factor
 }
 
 // Writes the fractional part of a DecimalParts value.

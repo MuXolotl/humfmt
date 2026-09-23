@@ -414,7 +414,10 @@ assert_eq!(humfmt::bytes_with(1536_u64, opts).to_string(), "1,5KB");
 Converts a ratio to a percentage: `0.423` -> `"42.3%"`.
 
 The input is a ratio where `1.0` = `100%`. Values outside `0.0..=1.0` are
-accepted and rendered as-is.
+accepted and rendered as-is. Ratios whose scaled magnitude is at or above
+`u128::MAX as f64` are written from the exact decimal expansion of the input:
+at that magnitude the `f64` has no fractional digits, so the `* 100` step only
+appends two zeros.
 
 ```rust
 use humfmt::{percent, percent_with, PercentOptions};
@@ -470,6 +473,8 @@ assert_eq!(percent_with(0.421_f64, ceil).to_string(), "43%");
 | `1.5` | `"150%"` | Above 100% accepted |
 | `-0.423` | `"-42.3%"` | Negative accepted |
 | `-0.0004` | `"0%"` | Rounds to zero, sign suppressed |
+| `1e37` | `"999999999999999953876265820212114227200%"` | Scaled value exceeds `u128::MAX` |
+| `f64::MAX` | `"1797693134862315708…40402618412485836800%"` | 311 digits, scaled exactly |
 | `f64::NAN` | `"NaN%"` | Non-finite preserved |
 | `f64::INFINITY` | `"inf%"` | Non-finite preserved |
 | `f64::NEG_INFINITY` | `"-inf%"` | Non-finite preserved |
