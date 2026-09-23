@@ -676,19 +676,23 @@ assert_eq!(
 );
 ```
 
-### Checked variants
+### Conversion errors
 
-Both integrations provide `*_checked` functions that return `DurationConversionError`:
+Every function in both integrations returns `DurationConversionError`, because
+`core::time::Duration` is non-negative:
 
 ```rust
 use humfmt::{chrono as humchrono, DurationConversionError};
 
 let delta = chrono::TimeDelta::try_seconds(-5).unwrap();
 assert!(matches!(
-    humchrono::duration_checked(delta),
+    humchrono::duration(delta),
     Err(DurationConversionError::NegativeDuration)
 ));
 ```
+
+The `*_checked` functions (`duration_checked`, `ago_since_checked`, ...) are
+name-only twins of `duration`, `ago`, and `ago_since`.
 
 ---
 

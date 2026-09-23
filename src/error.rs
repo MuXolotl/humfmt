@@ -1,31 +1,16 @@
 use core::fmt;
 
-/// Error returned when a duration-like value is negative.
+/// Error returned by the duration adapters in `humfmt::chrono` and `humfmt::time`.
 ///
-/// This is primarily used by optional ecosystem adapters (`chrono` / `time`)
-/// when converting into `core::time::Duration` (which is always non-negative).
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct NegativeDurationError;
-
-/// Conversion error for duration adapters.
-///
-/// This error provides more explicit semantics than [`NegativeDurationError`]
-/// by distinguishing between:
-///
-/// - negative inputs
-/// - values that cannot be represented as `core::time::Duration`
+/// `core::time::Duration` is always non-negative and has a limited range, so
+/// converting an ecosystem duration into one can fail in two ways. Both are
+/// reported by this single type.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DurationConversionError {
     /// The provided duration is negative.
     NegativeDuration,
     /// The provided duration is out of the supported range.
     OutOfRange,
-}
-
-impl fmt::Display for NegativeDurationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("negative durations are not supported by this formatter")
-    }
 }
 
 impl fmt::Display for DurationConversionError {
@@ -38,15 +23,6 @@ impl fmt::Display for DurationConversionError {
         }
     }
 }
-
-impl From<NegativeDurationError> for DurationConversionError {
-    fn from(_: NegativeDurationError) -> Self {
-        Self::NegativeDuration
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for NegativeDurationError {}
 
 #[cfg(feature = "std")]
 impl std::error::Error for DurationConversionError {}

@@ -19,7 +19,6 @@ Planned work and known gaps. Completed items are removed from this file;
 
 **duration**
 - Configurable unit join style — space (`"1h 2m"`, default), comma (`"1h, 2m"`), or `"and"` (`"1 hour and 2 minutes"`)
-- One error type for the duration API — `NegativeDurationError` and `DurationConversionError::NegativeDuration` mean the same thing
 
 **ago**
 - Split `AgoOptions` from `DurationOptions`
@@ -40,6 +39,7 @@ Planned work and known gaps. Completed items are removed from this file;
 ## Docs
 
 - Edge-case behaviour table for `ago` (`0`, `1s`, `Duration::MAX`); `number`, `bytes`, `percent`, `duration` and `list` have one
+- Decide the fate of the `humfmt::chrono` / `humfmt::time` `*_checked` functions: since the single error type landed they are name-only twins of `duration`, `ago`, and `ago_since`
 - Cookbook-style examples on docs.rs — focused, no walls of text
 - Real-world examples — CLI progress, log lines, dashboard output
 - Document `f64` precision loss above `2^53` in compact scaling

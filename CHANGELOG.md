@@ -17,12 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `humfmt::chrono` and `humfmt::time` report one error type. Every function returns `DurationConversionError`, so the checked and unchecked entry points are now name-only twins; the `*_checked` names remain available.
 - All formatters now honour the `width`, `fill`, and `alignment` parts of a format specifier: `format!("{:>10}", number(15_320))` gives `"     15.3K"` where the specifier used to be ignored. `precision`, `+`, `#`, and `0` stay ignored — digits are controlled by the options.
 - Number formatter suffix range extended to `Ud` / undecillion (`10^36`), covering the full `u128` / `i128` range without falling back to very large `Dc` values. `u128::MAX` now formats as `"340.3Ud"`, `i128::MIN` as `"-170.1Ud"`. This is an intentional output change for values ≥ `10^36`.
 
 ### Performance
 
 - Integer formatting uses a `u64` fast path and a two-digit digit table when the magnitude fits in 64 bits, removing multi-word division from the common case. Values above `u64::MAX` keep the exact `u128` path, and all output strings are unchanged.
+
+### Removed
+
+- `NegativeDurationError` — it carried the same meaning as `DurationConversionError::NegativeDuration`. Match on `DurationConversionError` instead.
 
 ### Fixed
 

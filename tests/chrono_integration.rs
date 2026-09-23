@@ -2,7 +2,7 @@
 
 use humfmt::{
     chrono::{self as humchrono, ChronoHumanize},
-    DurationConversionError, DurationOptions, NegativeDurationError,
+    DurationConversionError, DurationOptions,
 };
 
 #[test]
@@ -17,9 +17,16 @@ fn rejects_negative_chrono_timedelta() {
     let delta = ::chrono::TimeDelta::try_seconds(-5).unwrap();
     assert!(matches!(
         humchrono::duration(delta),
-        Err(NegativeDurationError)
+        Err(DurationConversionError::NegativeDuration)
     ));
-    assert!(matches!(humchrono::ago(delta), Err(NegativeDurationError)));
+    assert!(matches!(
+        humchrono::ago(delta),
+        Err(DurationConversionError::NegativeDuration)
+    ));
+    assert!(matches!(
+        delta.try_human_duration(),
+        Err(DurationConversionError::NegativeDuration)
+    ));
 }
 
 #[test]
@@ -51,8 +58,10 @@ fn supports_ago_since_with_long_options() {
 }
 
 #[test]
-fn checked_api_distinguishes_negative_duration_errors() {
+fn every_entry_point_reports_the_same_error_type() {
     let delta = ::chrono::TimeDelta::try_seconds(-5).unwrap();
+
+    // The `*_checked` twins take the same path and report the same type.
     assert!(matches!(
         humchrono::duration_checked(delta),
         Err(DurationConversionError::NegativeDuration)
