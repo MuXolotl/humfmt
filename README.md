@@ -49,7 +49,7 @@ All formatters implement `Display` — no intermediate heap strings. Write direc
 
 ```toml
 [dependencies]
-humfmt = "0.6"
+humfmt = "0.7"
 ```
 
 ```rust
@@ -221,14 +221,14 @@ For `no_std` targets:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.6", default-features = false }
+humfmt = { version = "0.7", default-features = false }
 ```
 
 With ecosystem integrations:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.6", features = ["chrono", "time"] }
+humfmt = { version = "0.7", features = ["chrono", "time"] }
 ```
 
 ---

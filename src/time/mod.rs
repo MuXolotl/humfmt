@@ -8,7 +8,7 @@
 //! Enable with:
 //!
 //! ```toml
-//! humfmt = { version = "0.6", features = ["time"] }
+//! humfmt = { version = "0.7", features = ["time"] }
 //! ```
 //!
 //! # What this module provides

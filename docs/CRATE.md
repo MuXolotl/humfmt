@@ -650,9 +650,9 @@ Enable via feature flags:
 
 ```toml
 [dependencies]
-humfmt = { version = "0.6", features = ["chrono"] }
+humfmt = { version = "0.7", features = ["chrono"] }
 # or
-humfmt = { version = "0.6", features = ["time"] }
+humfmt = { version = "0.7", features = ["time"] }
 ```
 
 ### chrono
@@ -718,7 +718,7 @@ name-only twins of `duration`, `ago`, and `ago_since`.
 
 ```toml
 [dependencies]
-humfmt = { version = "0.6", default-features = false }
+humfmt = { version = "0.7", default-features = false }
 ```
 
 This disables the `std` feature. Optional integrations (`chrono`, `time`) can
