@@ -3,6 +3,13 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(missing_docs)]
 
+// Compiles and runs the Rust code blocks in the README as doctests, so the
+// examples on the repository front page cannot drift from the API. The item
+// itself is documentation-only and not part of the crate.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeExamples;
+
 pub mod ago;
 pub mod bytes;
 #[cfg(feature = "chrono")]
