@@ -23,8 +23,7 @@ Planned work and known gaps. Completed items are removed from this file;
 
 **percent**
 - Integer input support (`42_u8` → `42%` directly, as an alternative to the current ratio convention)
-- Fix `round_to_decimals` — `percent_with(0.15, precision(0).rounding(Floor))` gives `"15%"`, must be `"14%"`
-- Remove the second rounding of the fractional part
+- Decide the `percent` semantics — round the exact product (`0.15` → `14.9999…%`, `Floor` → `14%`) or the `f64` product (`15.0` → `15%`)
 - Unify the two output shapes around `u128::MAX`
 - Document that `percent` never uses exponent notation
 
@@ -64,7 +63,7 @@ Planned work and known gaps. Completed items are removed from this file;
 - Add a numeric oracle test — exact reference, assert full strings across precision, significant digits, rounding modes and unit options
 - Add a differential test: `number_with(v, precision(p).compact(false))` must match `format!("{:.*}", p, v)` for finite `f64`
 - Extend fuzz inputs to `u128` and fuzz the option set (`significant_digits`, `min_unit` / `max_unit` / `unit`, `bits`, `rounding`); run on push; assert values, not only absence of panics
-- Widen the property-test suffix domain to `u128::MAX` and add the missing `Ud`
+- Extend the suffix property tests to `u128` inputs and add the missing `Ud`
 - Verify the `time` pin `<0.3.42` on MSRV 1.70 — the MSRV job currently skips it
 - Binary size and compile-time measurements (`cargo bloat --crates`, `cargo build --timings`)
 
