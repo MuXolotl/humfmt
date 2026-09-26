@@ -9,8 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [[Unreleased](https://github.com/MuXolotl/humfmt/compare/v0.7.0...HEAD)]
 
+### Performance
+
+- Eliminated hardware `div` instructions in the hot path for integer scaling (`number`, `bytes`). Explicit unit divisors now correctly compile to fast reciprocal multiplications in LLVM.
+
 ### Fixed
 
+- `bytes` now suppresses the negative sign if the value rounds to zero, matching the behaviour of `number` and `percent`.
+- `bytes` and `number` now correctly compute significant digits when the value is smaller than the selected unit (`bytes_with(12_345, BytesOptions::new().unit(ByteUnit::MB).significant_digits(3))` now correctly yields `"0.0123MB"` instead of `"0.01MB"`).
 - Mathematical rounding for `f64` inputs using `HalfUp`, `Floor`, and `Ceil` is now exact. Previously, `value * 10^P` introduced floating-point noise that caused values like `0.15` at `precision(1)` to round to `"0.2"` instead of `"0.1"`. Rounding is now performed exactly using bitwise exponent shifts.
 - `significant_digits` formatting on `f64::MAX` no longer overflows to `"inf"`.
 
@@ -40,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `NegativeDurationError` — it carried the same meaning as `DurationConversionError::NegativeDuration`. Match on `DurationConversionError` instead.
+
+### Performance
+
+- Eliminated hardware `div` instructions in the hot path for integer scaling (`number`, `bytes`). Explicit unit divisors now correctly compile to fast reciprocal multiplications in LLVM.
 
 ### Fixed
 
@@ -132,6 +142,10 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 - Shared sig-figs logic (`compute_sigfigs_u128`) moved to `common::fmt`.
 - Float scaling in `number`, `bytes`, and `percent` rewritten to use custom `no_std`-compatible helpers (`f64_log10_floor`, `f64_pow10`), removing any dependency on `libm` or `std` math.
 
+### Performance
+
+- Eliminated hardware `div` instructions in the hot path for integer scaling (`number`, `bytes`). Explicit unit divisors now correctly compile to fast reciprocal multiplications in LLVM.
+
 ### Fixed
 
 - `number` float path: removed an unreachable fallback that silently dropped the decimal separator on `StackString` overflow.
@@ -162,6 +176,10 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 - Float compact-number scaling rewritten from O(n) loop to O(1) via IEEE 754 exponent.
 - `DurationOptions::max_units` clamp widened from `1..=4` to `1..=7`.
 - Internal `Options` types expose fields as `pub(crate)` directly, removing the `_value()`-suffixed getter layer.
+
+### Performance
+
+- Eliminated hardware `div` instructions in the hot path for integer scaling (`number`, `bytes`). Explicit unit divisors now correctly compile to fast reciprocal multiplications in LLVM.
 
 ### Fixed
 
@@ -219,6 +237,10 @@ let opts = ListOptions::new().conjunction("plus").separator(" | ");
 ---
 
 ## [[0.1.1](https://github.com/MuXolotl/humfmt/compare/v0.1.0...v0.1.1)] - 2026-04-25
+
+### Performance
+
+- Eliminated hardware `div` instructions in the hot path for integer scaling (`number`, `bytes`). Explicit unit divisors now correctly compile to fast reciprocal multiplications in LLVM.
 
 ### Fixed
 

@@ -275,6 +275,21 @@ fn forced_sign_leaves_zero_unsigned() {
 }
 
 #[test]
+fn negative_value_rounding_to_zero_suppresses_minus() {
+    let opts = BytesOptions::new().unit(humfmt::ByteUnit::KB).precision(1);
+    assert_eq!(humfmt::bytes_with(-1_i64, opts).to_string(), "0KB");
+}
+
+#[test]
+fn positive_value_rounding_to_zero_with_force_sign_suppresses_plus() {
+    let opts = BytesOptions::new()
+        .unit(humfmt::ByteUnit::KB)
+        .precision(1)
+        .force_sign(true);
+    assert_eq!(humfmt::bytes_with(1_u64, opts).to_string(), "0KB");
+}
+
+#[test]
 fn forced_sign_combines_with_units_and_precision() {
     let binary = BytesOptions::new()
         .force_sign(true)

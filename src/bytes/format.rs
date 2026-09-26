@@ -244,9 +244,11 @@ pub fn format_bytes<W: fmt::Write + ?Sized>(
         parts = res.1;
     }
 
-    if negative && magnitude != 0 {
+    let is_zero = parts.integer.is_zero() && parts.frac_len == 0;
+
+    if negative && !is_zero {
         f.write_str("-")?;
-    } else if options.force_sign && magnitude != 0 {
+    } else if options.force_sign && !is_zero {
         f.write_str("+")?;
     }
 

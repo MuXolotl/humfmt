@@ -12,10 +12,7 @@ Planned work and known gaps. Completed items are removed from this file;
 
 **bytes**
 - Short decimal labels are `KB` / `MB` (JEDEC-style capitals), not SI `kB`. Documented as 1000-based. Do not silently switch to `kB` — that would be a breaking output change.
-- Drop the sign when a value rounds to zero — `bytes_with(-1i64, unit(KB))` gives `"-0KB"`
-- Fix `significant_digits` below one unit — `bytes_with(12_345u64, unit(MB).significant_digits(3))` gives `"0.01MB"`, must be `"0.0123MB"`
 - Decide `bits(true)` at `u128::MAX` — silent saturation or a fallible API
-- Fix the `precision(2)` row for `999_950` in the `BytesOptions` table — says `"1MB"`, actual `"999.95KB"`
 
 **percent**
 - Integer input support (`42_u8` → `42%` directly, as an alternative to the current ratio convention)

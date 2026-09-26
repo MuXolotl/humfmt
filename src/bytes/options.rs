@@ -128,7 +128,7 @@ impl BytesOptions {
     /// | Input | `precision(0)` | `precision(1)` (default) | `precision(2)` |
     /// |---:|---|---|---|
     /// | `1_536` | `"2KB"` | `"1.5KB"` | `"1.54KB"` |
-    /// | `999_950` | `"1MB"` | `"1MB"` | `"1MB"` (rescaled) |
+    /// | `999_950` | `"1MB"` | `"1MB"` | `"999.95KB"` |
     ///
     /// # Examples
     ///

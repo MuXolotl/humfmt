@@ -324,6 +324,12 @@ impl ScaledInteger {
         Self { digits, zeros }
     }
 
+    /// Returns `true` when the value is exactly zero.
+    #[inline]
+    pub(crate) fn is_zero(self) -> bool {
+        self.digits == 0
+    }
+
     /// Returns `true` when the value is exactly one.
     #[inline]
     pub(crate) fn is_one(self) -> bool {
