@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [[Unreleased](https://github.com/MuXolotl/humfmt/compare/v0.7.0...HEAD)]
 
+### Fixed
+
+- Mathematical rounding for `f64` inputs using `HalfUp`, `Floor`, and `Ceil` is now exact. Previously, `value * 10^P` introduced floating-point noise that caused values like `0.15` at `precision(1)` to round to `"0.2"` instead of `"0.1"`. Rounding is now performed exactly using bitwise exponent shifts.
+- `significant_digits` formatting on `f64::MAX` no longer overflows to `"inf"`.
+
 ---
 
 ## [[0.7.0](https://github.com/MuXolotl/humfmt/compare/v0.6.0...v0.7.0)] - 2026-09-24

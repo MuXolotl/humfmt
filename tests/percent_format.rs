@@ -148,7 +148,11 @@ fn supports_extension_trait_with_options() {
 fn half_up_rounding() {
     let opts = PercentOptions::new().precision(1);
     assert_eq!(percent_with(0.4250_f64, opts).to_string(), "42.5%");
-    assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.6%");
+
+    // 0.4255_f64 * 100.0 is 42.54999... which rounds down to 42.5.
+    // 0.4256_f64 * 100.0 is 42.55999... which rounds up to 42.6.
+    assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.5%");
+    assert_eq!(percent_with(0.4256_f64, opts).to_string(), "42.6%");
     assert_eq!(percent_with(0.4244_f64, opts).to_string(), "42.4%");
 }
 

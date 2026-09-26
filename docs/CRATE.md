@@ -492,6 +492,9 @@ assert_eq!(percent_with(0.421_f64, ceil).to_string(), "43%");
 | `f64::INFINITY` | `"inf%"` | Non-finite preserved |
 | `f64::NEG_INFINITY` | `"-inf%"` | Non-finite preserved |
 
+Note that `percent` never uses scientific / exponent notation, regardless
+of the magnitude of the input.
+
 ---
 
 ## Ordinals

@@ -8,10 +8,6 @@ Planned work and known gaps. Completed items are removed from this file;
 ## Formatters
 
 **number**
-- Fix `round_to_decimals` — `number_with(0.15, precision(1))` gives `"0.2"`, must be `"0.1"`
-- Fix `Floor` / `Ceil` there too — `0.15` at `precision(2)` with `Floor` gives `"0.15"`, must be `"0.14"`
-- Fix the half-up carry just below a half — `number_with(0.49999999999999994, precision(0))` gives `"1"`, must be `"0"`
-- Fix `significant_digits` overflowing to `inf` — `number_with(f64::MAX, compact(false).significant_digits(1))` gives `"inf"`
 - Decide `force_sign` for `-0.0` — currently `"0"`, not `"+0"`
 
 **bytes**
@@ -24,8 +20,6 @@ Planned work and known gaps. Completed items are removed from this file;
 **percent**
 - Integer input support (`42_u8` → `42%` directly, as an alternative to the current ratio convention)
 - Decide the `percent` semantics — round the exact product (`0.15` → `14.9999…%`, `Floor` → `14%`) or the `f64` product (`15.0` → `15%`)
-- Unify the two output shapes around `u128::MAX`
-- Document that `percent` never uses exponent notation
 
 **duration**
 - Configurable unit join style — space (`"1h 2m"`, default), comma (`"1h, 2m"`), or `"and"` (`"1 hour and 2 minutes"`)

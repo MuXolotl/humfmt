@@ -39,6 +39,9 @@
 //! | `f64::NAN` | `"NaN%"` | Non-finite preserved |
 //! | `f64::INFINITY` | `"inf%"` | Non-finite preserved |
 //! | `f64::NEG_INFINITY` | `"-inf%"` | Non-finite preserved |
+//!
+//! Note that `percent` never uses scientific / exponent notation, regardless
+//! of the magnitude of the input.
 
 mod display;
 mod format;

@@ -54,9 +54,6 @@ pub(crate) enum Precision {
     Significant(u8),
 }
 
-/// Magnitude at which `f64` values are all integers.
-const TWO_POW_52: f64 = (1u64 << 52) as f64;
-
 // Powers of ten as f64, indexed by decimal precision (0..=6).
 const POW10_F64: [f64; 7] = [1.0, 10.0, 100.0, 1_000.0, 10_000.0, 100_000.0, 1_000_000.0];
 
@@ -101,21 +98,54 @@ pub(crate) fn round_to_decimals(
     debug_assert!(value.is_finite() && value >= 0.0);
 
     let factor = decimal_factor(precision);
-    let shifted = value * factor;
 
-    if shifted >= u64::MAX as f64 {
+    if value * factor >= u64::MAX as f64 {
         return value;
     }
 
-    let truncated = shifted as u64;
-    let has_remainder = shifted > truncated as f64;
+    let bits = value.to_bits();
+    let exp_bias = ((bits >> 52) & 0x7FF) as i32;
+    let mantissa = bits & 0xFFFFFFFFFFFFF;
 
-    // Adding `0.5` is exact below 2^52 and answers the half-up question
-    // directly; at 2^52 and above it rounds to an even integer and would report
-    // a carry for a scaled value that has no fractional digits left.
-    let dropped_at_least_half = shifted < TWO_POW_52 && (shifted + 0.5) as u64 > truncated;
+    let (m, e) = if exp_bias == 0 {
+        // Subnormal
+        (mantissa, -1022 - 52)
+    } else {
+        // Normal
+        (mantissa | 0x10000000000000, exp_bias - 1023 - 52)
+    };
 
-    let carry = carry_after_truncation(dropped_at_least_half, has_remainder, rounding, is_negative);
+    let p = precision as i32;
+    let pow5 = 5_u128.pow(precision as u32);
+    // m is at most 53 bits. 5^6 is 15625 (14 bits).
+    // m_pow5 fits comfortably in 67 bits, well within u128.
+    let m_pow5 = (m as u128) * pow5;
+
+    // We want X = M * 2^E * 10^P = (M * 5^P) * 2^{E+P}
+    let shift = e + p;
+
+    let (truncated, remainder_is_zero, dropped_at_least_half) = if shift >= 0 {
+        ((m_pow5 << shift) as u64, true, false)
+    } else {
+        let right_shift = -shift as u32;
+        if right_shift >= 128 {
+            (0, m_pow5 == 0, false)
+        } else {
+            let truncated = (m_pow5 >> right_shift) as u64;
+            let mask = (1_u128 << right_shift) - 1;
+            let remainder = m_pow5 & mask;
+            let half = 1_u128 << (right_shift - 1);
+            let dropped_at_least_half = remainder >= half;
+            (truncated, remainder == 0, dropped_at_least_half)
+        }
+    };
+
+    let carry = carry_after_truncation(
+        dropped_at_least_half,
+        !remainder_is_zero,
+        rounding,
+        is_negative,
+    );
 
     let rounded = if carry { truncated + 1 } else { truncated };
 

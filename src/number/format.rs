@@ -332,7 +332,12 @@ fn compute_sigfigs_f64(
         let divided = abs / factor;
         let rounded = round_to_decimals(divided, 0, rounding, negative);
 
-        (0, rounded * factor)
+        let mut res = rounded * factor;
+        if res.is_infinite() {
+            res = abs;
+        }
+
+        (0, res)
     }
 }
 

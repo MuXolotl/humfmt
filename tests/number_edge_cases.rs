@@ -381,6 +381,16 @@ fn formats_large_finite_f64_without_compaction() {
     assert!(!out.contains("NaN"));
 }
 
+#[test]
+fn formats_large_finite_f64_with_significant_digits_without_inf() {
+    let opts = NumberOptions::new().compact(false).significant_digits(1);
+    let out = number_with(f64::MAX, opts).to_string();
+
+    assert!(!out.is_empty());
+    assert!(!out.contains("inf"));
+    assert!(!out.contains("NaN"));
+}
+
 // --- Rounding at the limits of f64 precision ---
 
 #[test]
