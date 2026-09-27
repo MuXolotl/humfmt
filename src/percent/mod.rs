@@ -7,8 +7,9 @@
 //! outside this range (e.g. `1.5 -> "150%"`) are accepted and rendered as-is.
 //! Non-finite inputs (`inf`, `-inf`, `NaN`) render with a `%` suffix. The
 //! ratio is scaled by a hundred and rounded at the requested decimal place,
-//! both on the exact decimal digits of the input, so a value keeps every digit
-//! it has: `f64::MAX` prints all 311 digits of `f64::MAX * 100`.
+//! both on the exact decimal digits of the input, and the result is written
+//! without exponent notation: `f64::MAX` prints all 311 digits of
+//! `f64::MAX * 100`.
 //!
 //! # Quick start
 //!

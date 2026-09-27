@@ -435,8 +435,8 @@ Converts a ratio to a percentage: `0.423` -> `"42.3%"`.
 
 The input is a ratio where `1.0` = `100%`. Values outside `0.0..=1.0` are
 accepted and rendered as-is. The ratio is scaled by a hundred and rounded at the
-requested decimal place, both on the exact decimal digits of the input, so the
-result keeps every digit the value has: `f64::MAX` prints all 311 digits of
+requested decimal place, both on the exact decimal digits of the input, and the
+result is written without exponent notation: `f64::MAX` prints all 311 digits of
 `f64::MAX * 100`.
 
 ```rust
