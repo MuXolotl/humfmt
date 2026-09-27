@@ -68,20 +68,20 @@ fn main() -> io::Result<()> {
         "bytes_comparison_dark.svg",
         &[
             SvgSection {
-                title: "Bytes — allocating (to_string) — lower is better",
+                title: "Bytes: allocating (to_string), lower is better",
                 items: bytes_alloc_items(),
             },
             SvgSection {
-                title: "Bytes — allocating (aligned: IEC + space + precision=2) — lower is better",
+                title: "Bytes: allocating (aligned: IEC + space + precision=2), lower is better",
                 items: bytes_alloc_aligned_items(),
             },
             SvgSection {
-                title: "Bytes — reused buffer (write!) — lower is better",
+                title: "Bytes: reused buffer (write!), lower is better",
                 items: bytes_reuse_items(),
             },
             SvgSection {
                 title:
-                    "Bytes — reused buffer (aligned: IEC + space + precision=2) — lower is better",
+                    "Bytes: reused buffer (aligned: IEC + space + precision=2), lower is better",
                 items: bytes_reuse_aligned_items(),
             },
         ],
@@ -93,11 +93,11 @@ fn main() -> io::Result<()> {
         "time_comparison_dark.svg",
         &[
             SvgSection {
-                title: "Duration formatting — allocating — lower is better",
+                title: "Duration formatting: allocating, lower is better",
                 items: duration_items(),
             },
             SvgSection {
-                title: "Relative time (ago) — allocating — lower is better",
+                title: "Relative time (ago): allocating, lower is better",
                 items: ago_items(),
             },
         ],
@@ -109,31 +109,31 @@ fn main() -> io::Result<()> {
         "numbers_dark.svg",
         &[
             SvgSection {
-                title: "Numbers — allocating, mixed inputs — lower is better",
+                title: "Numbers: allocating, mixed inputs, lower is better",
                 items: numbers_allocating_items(),
             },
             SvgSection {
-                title: "Numbers — allocating, u64 inputs (apples-to-apples) — lower is better",
+                title: "Numbers: allocating, u64 inputs (apples-to-apples), lower is better",
                 items: numbers_allocating_int_items(),
             },
             SvgSection {
-                title: "Numbers — allocating, f64 inputs — lower is better",
+                title: "Numbers: allocating, f64 inputs, lower is better",
                 items: numbers_allocating_float_items(),
             },
             SvgSection {
-                title: "Numbers — humfmt option coverage (allocating) — lower is better",
+                title: "Numbers: humfmt option coverage (allocating), lower is better",
                 items: numbers_humfmt_options_items(),
             },
             SvgSection {
-                title: "Numbers — extended u128 range (humfmt only) — lower is better",
+                title: "Numbers: extended u128 range (humfmt only), lower is better",
                 items: numbers_u128_extreme_items(),
             },
             SvgSection {
-                title: "Numbers — reused buffer (write!) — lower is better",
+                title: "Numbers: reused buffer (write!), lower is better",
                 items: numbers_reused_buffer_items(),
             },
             SvgSection {
-                title: "Numbers — reused buffer, humfmt option coverage — lower is better",
+                title: "Numbers: reused buffer, humfmt option coverage, lower is better",
                 items: numbers_reused_buffer_humfmt_options_items(),
             },
         ],
@@ -844,7 +844,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — allocating (`to_string`), u64 inputs",
+        "Bytes: allocating (`to_string`), u64 inputs",
         Some(
             "> prettier-bytes, bytesize, humansize, and indicatif are **u64-only** in this harness. humfmt accepts i8–i128 and u8–u128.",
         ),
@@ -854,7 +854,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — allocating (`to_string`) — aligned (IEC + space + precision=2), u64 inputs",
+        "Bytes: allocating (`to_string`), aligned (IEC + space + precision=2), u64 inputs",
         Some(
             "> This group aligns unit system and spacing. Decimal digit policy can still differ (fixed digits vs trimmed zeros).",
         ),
@@ -864,7 +864,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — reused buffer (`write!` into `String`), u64 inputs",
+        "Bytes: reused buffer (`write!` into `String`), u64 inputs",
         None,
         &bytes_reuse_items(),
         medians,
@@ -872,13 +872,13 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Bytes — reused buffer (`write!` into `String`) — aligned (IEC + space + precision=2), u64 inputs",
+        "Bytes: reused buffer (`write!` into `String`), aligned (IEC + space + precision=2), u64 inputs",
         None,
         &bytes_reuse_aligned_items(),
         medians,
     );
 
-    out.push_str("## Bytes — extended range (u128 > u64::MAX) — humfmt only\n\n");
+    out.push_str("## Bytes: extended range (u128 > u64::MAX), humfmt only\n\n");
     out.push_str("> No other benchmarked crate handles values above `u64::MAX`.\n\n");
     out.push_str("| Scenario | Median per-iteration | Time per value |\n");
     out.push_str("|---|---:|---:|\n");
@@ -890,7 +890,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
     ));
     out.push('\n');
 
-    out.push_str("## Bytes — negative values (i64)\n\n");
+    out.push_str("## Bytes: negative values (i64)\n\n");
     out.push_str(
         "> bytesize and prettier-bytes do not participate (unsigned-only). This harness includes humfmt and humansize.\n\n",
     );
@@ -912,7 +912,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — allocating (`to_string`), mixed i64 inputs",
+        "Numbers: allocating (`to_string`), mixed i64 inputs",
         Some(
             "> human_format accepts f64 only and always returns an owned `String`. humfmt accepts all integer and float primitives and implements `Display`. numfmt accepts u64/i64/f64 and returns a borrowed `&str` from an internal buffer.",
         ),
@@ -922,7 +922,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — allocating (`to_string`), u64 inputs (apples-to-apples)",
+        "Numbers: allocating (`to_string`), u64 inputs (apples-to-apples)",
         Some(
             "> human_format receives u64 cast to f64. All three crates produce compact `K/M/B` style output.",
         ),
@@ -932,7 +932,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — allocating (`to_string`), f64 inputs",
+        "Numbers: allocating (`to_string`), f64 inputs",
         Some(
             "> Float path only. human_format accepts f64 natively. human-repr and readable do not produce compact suffixes and are excluded.",
         ),
@@ -942,7 +942,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — humfmt option coverage (allocating)",
+        "Numbers: humfmt option coverage (allocating)",
         Some(
             "> Humfmt-only group. These rows measure the cost of individual number-formatting options; they are not competitor comparisons.",
         ),
@@ -952,7 +952,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — extended range (u128 > u64::MAX) — humfmt only",
+        "Numbers: extended range (u128 > u64::MAX), humfmt only",
         Some(
             "> Competitor crates in this harness either do not accept u128 inputs or do not cover the full u128/i128 range. This group tracks humfmt's extended integer path.",
         ),
@@ -962,7 +962,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — reused buffer (`write!` into `String`), u64 inputs",
+        "Numbers: reused buffer (`write!` into `String`), u64 inputs",
         Some(
             "> humfmt writes via `Display` with no intermediate allocation. human_format always allocates a `String`; we `push_str` it into the buffer. numfmt returns a `&str` from its internal buffer; we `push_str` it.",
         ),
@@ -972,7 +972,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Numbers — reused buffer, humfmt option coverage",
+        "Numbers: reused buffer, humfmt option coverage",
         Some(
             "> Humfmt-only group. These rows measure reused-buffer formatting for option-heavy and extended-range number scenarios.",
         ),
@@ -982,7 +982,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Duration formatting — allocating",
+        "Duration formatting: allocating",
         Some(
             "> humantime renders all non-zero units. humfmt caps at `max_units` (default 2). These produce different output for the same input.",
         ),
@@ -992,7 +992,7 @@ fn build_markdown(medians: &BTreeMap<String, f64>, repo_root: &Path) -> String {
 
     push_md_group(
         &mut out,
-        "Relative time — allocating",
+        "Relative time: allocating",
         Some(
             "> timeago returns an owned `String` from `convert()`. humfmt implements `Display` and writes directly with no intermediate allocation.",
         ),
@@ -1543,7 +1543,7 @@ fn load_medians(criterion_root: &Path) -> io::Result<BTreeMap<String, f64>> {
     if !criterion_root.exists() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
-            "criterion directory not found — run `cargo bench` first",
+            "criterion directory not found, run `cargo bench` first",
         ));
     }
 

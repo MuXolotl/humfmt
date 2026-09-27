@@ -48,9 +48,9 @@ trimmed decimals, spacing, compact suffix names, and input types).
 To keep comparisons interpretable, the generated report separates benchmark
 groups into two categories:
 
-1. **Comparison groups** — scenarios where multiple crates can reasonably
+1. **Comparison groups**: scenarios where multiple crates can reasonably
    produce similar output for similar inputs.
-2. **humfmt-only groups** — scenarios that measure humfmt feature cost or
+2. **humfmt-only groups**: scenarios that measure humfmt feature cost or
    extended input ranges that the compared crates do not support.
 
 Humfmt-only groups are intentionally not presented as competitor comparisons.

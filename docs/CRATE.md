@@ -3,15 +3,15 @@
 Ergonomic human-readable formatting toolkit for Rust.
 
 `humfmt` turns raw machine values into readable text. All formatters implement
-`Display` and write directly into the output — no intermediate heap strings,
-no hidden allocations.
+`Display` and write directly into the output, so no intermediate heap string is
+allocated.
 
 ## Quick start
 
 The crate exposes two usage styles for every formatter:
 
-1. **Free functions** — `humfmt::number(15320)` -> `"15.3K"`
-2. **Extension trait** — `15320.human_number()` -> `"15.3K"`
+1. **Free functions**: `humfmt::number(15320)` -> `"15.3K"`
+2. **Extension trait**: `15320.human_number()` -> `"15.3K"`
 
 ```rust
 use humfmt::Humanize;
@@ -51,8 +51,8 @@ assert_eq!(humfmt::list(&["red", "green", "blue"]).to_string(), "red, green, and
 All formatters implement `Display` and write directly into the provided formatter.
 This means:
 
-- `format!("{}", humfmt::number(x))` allocates — because `format!` must produce a `String`
-- `write!(&mut buf, "{}", humfmt::number(x))` reuses the buffer — no new allocation from the formatter
+- `format!("{}", humfmt::number(x))` allocates, because `format!` must produce a `String`
+- `write!(&mut buf, "{}", humfmt::number(x))` reuses the buffer, with no new allocation from the formatter
 
 Example:
 
@@ -92,7 +92,7 @@ assert_eq!(format!("{:>18}", humfmt::ago(Duration::from_secs(90))), "        1m 
 A value wider than the requested width is written in full; padding is only ever
 added. Precision is ignored on purpose: the `Display` contract would truncate the
 value to `N` characters and cut its unit off (`"1.5KB"` would become `"1."`).
-Digit counts belong to the options — `precision`, `significant_digits`.
+Digit counts belong to the options: `precision`, `significant_digits`.
 
 ---
 
