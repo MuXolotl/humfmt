@@ -1,12 +1,9 @@
 use core::fmt;
-use core::fmt::Write;
 
-use crate::common::fmt::{
-    decimal_parts_rounded, write_frac_digits, write_grouped_ascii_digits, write_scaled_integer,
-    StackString,
-};
+use crate::common::decimal::Digits;
+use crate::common::fmt::{decimal_parts_rounded, write_frac_digits, write_scaled_integer};
 use crate::common::numeric::NumericValue;
-use crate::rounding::{round_to_decimals, Precision};
+use crate::rounding::Precision;
 
 use super::NumberOptions;
 
@@ -29,23 +26,6 @@ const POW1000: [u128; 13] = [
     1_000_000_000_000_000_000_000_000_000_000,
     1_000_000_000_000_000_000_000_000_000_000_000,
     1_000_000_000_000_000_000_000_000_000_000_000_000,
-];
-
-// Powers of 1000 as f64, for O(1) float compact-unit selection.
-const POW1000_F64: [f64; 13] = [
-    1.0,
-    1_000.0,
-    1_000_000.0,
-    1_000_000_000.0,
-    1_000_000_000_000.0,
-    1_000_000_000_000_000.0,
-    1_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000_000_000_000_000.0,
-    1_000_000_000_000_000_000_000_000_000_000_000_000.0,
 ];
 
 const SHORT_SUFFIXES: [&str; 13] = [
@@ -199,12 +179,15 @@ fn format_float<W: fmt::Write + ?Sized>(
     let max_idx = if options.compact { MAX_SUFFIX_INDEX } else { 0 };
 
     let negative = raw.is_sign_negative();
-    let abs = raw.abs();
+    let (idx, digits, decimals) = scaled_digits(
+        raw.abs(),
+        &options.precision,
+        max_idx,
+        options.rounding,
+        negative,
+    );
 
-    let (idx, decimals, scaled_abs) =
-        compact_unit_for_f64(abs, &options.precision, max_idx, options.rounding, negative);
-
-    let is_zero = scaled_abs == 0.0;
+    let is_zero = digits.is_zero();
 
     if negative && !is_zero {
         f.write_char('-')?;
@@ -212,183 +195,119 @@ fn format_float<W: fmt::Write + ?Sized>(
         f.write_char('+')?;
     }
 
-    // Stack buffer sized to safely fit any non-exponential f64:
-    // f64::MAX ~= 1.8e308, so 309 integer digits + '.' + up to 6 fractional
-    // digits fits comfortably.
-    let mut buf = StackString::<384>::new();
-
-    write!(&mut buf, "{:.*}", decimals as usize, scaled_abs)
-        .expect("StackString<384> overflow is impossible for valid display f64");
-
-    write_localized_float_str(
+    digits.write(
         f,
-        buf.as_str(),
-        options.separators && idx == 0,
+        decimals as usize,
         options.fixed_precision,
-        options.decimal_separator,
+        options.separators && idx == 0,
         options.group_separator,
+        options.decimal_separator,
     )?;
 
     f.write_str(suffix_for(idx, options.long_units))
 }
 
-// Selects the compact scale index and the rounded scaled value for a
-// non-negative finite f64. Uses the IEEE 754 binary exponent for O(1) index
-// estimation, then corrects by at most one step for floating-point imprecision.
-fn compact_unit_for_f64(
+// Fraction digits a scaled value may show. The option setters clamp decimal
+// precision to the same number.
+const MAX_FRACTION_DIGITS: i32 = 6;
+
+// Rounds `abs` into its display unit: the compact scale index, the rounded
+// digits of the scaled value, and the number of fraction digits to show.
+//
+// The rounding runs on the exact decimal digits of the value, so a value that
+// was written as a short decimal rounds the way it reads: `0.15` at one decimal
+// place is `0.2`, not the `0.1` that the binary value really falls below.
+fn scaled_digits(
     abs: f64,
     precision: &Precision,
     max_idx: usize,
     rounding: crate::RoundingMode,
     is_negative: bool,
-) -> (usize, u8, f64) {
-    let get_scaled = |abs_val: f64| match *precision {
-        Precision::Decimals(d) => (d, round_to_decimals(abs_val, d, rounding, is_negative)),
-        Precision::Significant(s) => compute_sigfigs_f64(abs_val, s, rounding, is_negative),
-    };
+) -> (usize, Digits, u8) {
+    let hint = leading_place_hint(abs);
+    let mut idx = compact_index(hint, max_idx);
 
-    if abs < 1_000.0 || max_idx == 0 {
-        let (decimals, scaled) = get_scaled(abs);
+    loop {
+        let (digits, decimals) = round_scaled(abs, precision, idx, hint, rounding, is_negative);
 
-        // Rounding can push a value just below 1000 to exactly 1000.
-        if scaled >= 1_000.0 && max_idx > 0 {
-            let (d2, s2) = get_scaled(abs / 1_000.0);
-            return (1, d2, s2);
+        // Rounding the top of a unit can reach the start of the next one, which
+        // is the scale those digits belong to.
+        if idx < max_idx && digits.leading_place().is_some_and(|place| place >= 3) {
+            idx += 1;
+            continue;
         }
 
-        return (0, decimals, scaled);
+        return (idx, digits, decimals);
     }
-
-    let bits = abs.to_bits();
-    let biased_exp = ((bits >> 52) & 0x7FF) as i32;
-    let unbiased_exp = biased_exp - 1023;
-
-    let approx_idx = if unbiased_exp <= 0 {
-        0usize
-    } else {
-        ((unbiased_exp as usize) * 1_000 / 9_966).min(max_idx)
-    };
-
-    let mut idx =
-        if approx_idx > 0 && approx_idx < POW1000_F64.len() && abs < POW1000_F64[approx_idx] {
-            approx_idx - 1
-        } else {
-            approx_idx
-        }
-        .min(max_idx);
-
-    let divisor = POW1000_F64[idx.min(POW1000_F64.len() - 1)];
-    let (mut decimals, mut scaled) = get_scaled(abs / divisor);
-
-    if scaled >= 1_000.0 && idx < max_idx {
-        idx += 1;
-
-        let res = get_scaled(abs / POW1000_F64[idx]);
-        decimals = res.0;
-        scaled = res.1;
-    }
-
-    (idx, decimals, scaled)
 }
 
-fn compute_sigfigs_f64(
+// Rounds `abs` at the display place of scale index `idx`.
+fn round_scaled(
     abs: f64,
-    sig_figs: u8,
+    precision: &Precision,
+    idx: usize,
+    hint: i32,
     rounding: crate::RoundingMode,
-    negative: bool,
-) -> (u8, f64) {
-    if abs == 0.0 {
-        return (sig_figs.saturating_sub(1), 0.0);
-    }
+    is_negative: bool,
+) -> (Digits, u8) {
+    let shift = 3 * idx as i32;
+    let scaled_hint = hint - shift;
 
-    let log10 = f64_log10_floor(abs);
-    let shift = sig_figs as i32 - 1 - log10;
-
-    if shift >= 0 {
-        let decimals = (shift as u8).min(6);
-        let rounded = round_to_decimals(abs, decimals, rounding, negative);
-
-        let new_log10 = if rounded > 0.0 {
-            f64_log10_floor(rounded)
-        } else {
-            log10
-        };
-
-        if new_log10 > log10 {
-            let new_shift = sig_figs as i32 - 1 - new_log10;
-            let new_decimals = if new_shift >= 0 {
-                (new_shift as u8).min(6)
-            } else {
-                0
-            };
-
-            return (new_decimals, rounded);
+    // The digits are printed in the value's own scale and shifted afterwards.
+    // Significant-digit rounding needs the leading digit, whose place decides
+    // where the kept digits end, so the print has to reach it.
+    let place_hint = match *precision {
+        Precision::Decimals(places) => -(i32::from(places)),
+        Precision::Significant(sig_figs) => {
+            (scaled_hint - (i32::from(sig_figs) - 1)).max(-MAX_FRACTION_DIGITS)
         }
+    };
 
-        (decimals, rounded)
-    } else {
-        let drop_digits = -shift;
-        let factor = f64_pow10(drop_digits);
-        let divided = abs / factor;
-        let rounded = round_to_decimals(divided, 0, rounding, negative);
+    let mut digits = Digits::covering(abs, place_hint + shift, hint - 2);
+    digits.shift(shift);
 
-        (0, rounded * factor)
-    }
+    let place = match (*precision, digits.leading_place()) {
+        (Precision::Decimals(places), _) => -(i32::from(places)),
+        (Precision::Significant(sig_figs), Some(leading)) => {
+            (leading - (i32::from(sig_figs) - 1)).max(-MAX_FRACTION_DIGITS)
+        }
+        // Zero has no leading digit; keeping the request in the place makes
+        // fixed precision pad zeros the same way for every value.
+        (Precision::Significant(sig_figs), None) => -(i32::from(sig_figs) - 1),
+    };
+
+    digits.round_at(place, rounding, is_negative);
+
+    (digits, (-place).max(0) as u8)
 }
 
-// no_std-compatible base-10 exponentiation by squaring.
-#[inline]
-fn f64_pow10(mut exp: i32) -> f64 {
-    let mut res = 1.0;
-    let is_neg = exp < 0;
-
-    exp = exp.abs();
-
-    let mut base = 10.0;
-
-    while exp > 0 {
-        if exp % 2 == 1 {
-            res *= base;
-        }
-
-        base *= base;
-        exp /= 2;
-    }
-
-    if is_neg {
-        1.0 / res
-    } else {
-        res
-    }
-}
-
-// no_std-compatible base-10 logarithm floor based on IEEE 754 exponents.
-#[inline]
-fn f64_log10_floor(val: f64) -> i32 {
-    if val <= 0.0 {
+// Compact scale index that shows a value with the given leading decimal place.
+fn compact_index(leading: i32, max_idx: usize) -> usize {
+    if leading < 3 {
         return 0;
     }
 
-    let bits = val.to_bits();
-    let exp = ((bits >> 52) & 0x7FF) as i32 - 1023;
+    ((leading / 3) as usize).min(max_idx)
+}
 
-    let log2_val = exp as f64 * core::f64::consts::LOG10_2;
-    let mut approx = log2_val as i32;
+// Estimate of the leading decimal place of a positive finite value, within one
+// place of the truth.
+//
+// The binary exponent gives it directly: `log10(2)` is `0.30103`, and the
+// mantissa moves the result by less than one place.
+fn leading_place_hint(abs: f64) -> i32 {
+    let bits = abs.to_bits();
+    let biased = ((bits >> 52) & 0x7FF) as i32;
+    let fraction = bits & ((1u64 << 52) - 1);
 
-    if log2_val < 0.0 && log2_val != approx as f64 {
-        approx -= 1;
-    }
+    // A subnormal has no implicit bit, so its highest set bit is the exponent.
+    let exponent = if biased == 0 {
+        63 - fraction.leading_zeros() as i32 - 1074
+    } else {
+        biased - 1023
+    };
 
-    let p = f64_pow10(approx);
-    let p_next = f64_pow10(approx + 1);
-
-    if val < p {
-        approx -= 1;
-    } else if val >= p_next {
-        approx += 1;
-    }
-
-    approx
+    (exponent * 30103) / 100_000
 }
 
 // Writes the fractional part of a DecimalParts value.
@@ -413,45 +332,6 @@ fn write_int_frac<W: fmt::Write + ?Sized>(
     } else if parts.frac_len != 0 {
         f.write_char(decimal_separator)?;
         write_frac_digits(f, &parts.frac_digits[..parts.frac_len as usize])?;
-    }
-
-    Ok(())
-}
-
-// Writes a float string produced by Rust's "{:.*}" formatter with:
-// - decimal separator substitution
-// - optional digit grouping on the integer part
-// - trailing-zero trimming unless fixed_precision is enabled
-fn write_localized_float_str<W: fmt::Write + ?Sized>(
-    f: &mut W,
-    input: &str,
-    group: bool,
-    fixed_precision: bool,
-    decimal_separator: char,
-    group_separator: char,
-) -> fmt::Result {
-    let (int_part, frac_part) = match input.split_once('.') {
-        Some((a, b)) => (a, Some(b)),
-        None => (input, None),
-    };
-
-    if group {
-        write_grouped_ascii_digits(f, int_part, group_separator)?;
-    } else {
-        f.write_str(int_part)?;
-    }
-
-    if let Some(frac) = frac_part {
-        let trimmed = if fixed_precision {
-            frac
-        } else {
-            frac.trim_end_matches('0')
-        };
-
-        if !trimmed.is_empty() {
-            f.write_char(decimal_separator)?;
-            f.write_str(trimmed)?;
-        }
     }
 
     Ok(())

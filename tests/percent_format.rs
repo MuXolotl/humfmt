@@ -12,7 +12,9 @@ fn formats_common_ratios() {
 #[test]
 fn formats_fractional_ratio_with_default_precision() {
     assert_eq!(percent(0.423_f64).to_string(), "42.3%");
-    assert_eq!(percent(0.4235_f64).to_string(), "42.4%");
+    // `0.4235` is `0.42349999999999998756` as an `f64`, so the dropped tenth of
+    // a percent is a four and the value rounds down.
+    assert_eq!(percent(0.4235_f64).to_string(), "42.3%");
 }
 
 #[test]
@@ -42,7 +44,9 @@ fn supports_precision_override_for_f32() {
 fn precision_zero_rounds_to_integer() {
     let opts = PercentOptions::new().precision(0);
     assert_eq!(percent_with(0.424_f64, opts).to_string(), "42%");
-    assert_eq!(percent_with(0.425_f64, opts).to_string(), "43%");
+    // `0.425` is `0.42499999999999998889` as an `f64`: the percentage stays
+    // below the tie, whatever the written form suggests.
+    assert_eq!(percent_with(0.425_f64, opts).to_string(), "42%");
     assert_eq!(percent_with(0.426_f64, opts).to_string(), "43%");
 }
 
@@ -148,7 +152,9 @@ fn supports_extension_trait_with_options() {
 fn half_up_rounding() {
     let opts = PercentOptions::new().precision(1);
     assert_eq!(percent_with(0.4250_f64, opts).to_string(), "42.5%");
-    assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.6%");
+    // `0.4255` is `0.42549999999999998934` as an `f64`, so the hundredth of a
+    // percent is a four and the tie never happens.
+    assert_eq!(percent_with(0.4255_f64, opts).to_string(), "42.5%");
     assert_eq!(percent_with(0.4244_f64, opts).to_string(), "42.4%");
 }
 
@@ -280,13 +286,15 @@ fn unbounded_ratios_keep_sign_and_fixed_precision() {
 #[test]
 fn rounds_ratios_at_the_limits_of_f64_precision() {
     // The scaled value reaches 2^52, where `f64` has no fractional digits left;
-    // the direction still has to come from the first dropped decimal digit.
+    // the direction still has to come from the first dropped decimal digit. The
+    // exact product for the positive case is `849486337015222.16796875`, and an
+    // `f64` multiplication would round that to `849486337015222.125`.
     assert_eq!(
         percent(-8_599_595_309_949.889_f64).to_string(),
         "-859959530994988.9%"
     );
     assert_eq!(
         percent(8_494_863_370_152.222_f64).to_string(),
-        "849486337015222.1%"
+        "849486337015222.2%"
     );
 }

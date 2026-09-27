@@ -3,56 +3,6 @@ use core::fmt;
 
 use crate::rounding::carry_after_truncation;
 
-/// A tiny stack-backed string buffer used to avoid heap allocations during formatting.
-///
-/// Written to only via `fmt::Write::write_str`, which guarantees UTF-8 input,
-/// so the buffer content is always valid UTF-8.
-pub(crate) struct StackString<const N: usize> {
-    buf: [u8; N],
-    len: usize,
-}
-
-impl<const N: usize> StackString<N> {
-    pub(crate) const fn new() -> Self {
-        Self {
-            buf: [0u8; N],
-            len: 0,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn as_str(&self) -> &str {
-        // Invariant: the buffer is only ever written via `fmt::Write::write_str`,
-        // which only accepts valid UTF-8 `&str` input. The bytes therefore form
-        // valid UTF-8 by construction.
-        debug_assert!(core::str::from_utf8(&self.buf[..self.len]).is_ok());
-
-        // SAFETY: see invariant above.
-        unsafe { core::str::from_utf8_unchecked(&self.buf[..self.len]) }
-    }
-}
-
-impl<const N: usize> Default for StackString<N> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<const N: usize> fmt::Write for StackString<N> {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        let bytes = s.as_bytes();
-
-        if self.len + bytes.len() > N {
-            return Err(fmt::Error);
-        }
-
-        self.buf[self.len..self.len + bytes.len()].copy_from_slice(bytes);
-        self.len += bytes.len();
-
-        Ok(())
-    }
-}
-
 /// Counts the characters written to it.
 ///
 /// Used to size a padded field: the formatter runs once into this sink to learn
