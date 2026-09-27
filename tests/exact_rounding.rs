@@ -54,6 +54,21 @@ fn keeps_the_rounding_direction_of_the_exact_tail() {
     assert_eq!(number_with(0.15_f64, floor).to_string(), "0.14");
     assert_eq!(number_with(0.15_f64, ceil).to_string(), "0.15");
 
+    // `0.05` reads as an exact half of a tenth but is
+    // `0.05000000000000000277…`, so it is above the cut and ceils to `0.06`.
+    // The same tail in a ratio is below `0.15`, so the floor of `15%` is `14%`.
+    assert_eq!(number_with(0.05_f64, ceil).to_string(), "0.06");
+    assert_eq!(
+        percent_with(
+            0.15_f64,
+            PercentOptions::new()
+                .precision(0)
+                .rounding(RoundingMode::Floor)
+        )
+        .to_string(),
+        "14%"
+    );
+
     // The direction belongs to the signed value, so a negative magnitude still
     // floors towards negative infinity.
     assert_eq!(number_with(-0.15_f64, floor).to_string(), "-0.15");

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [[Unreleased](https://github.com/MuXolotl/humfmt/compare/v0.7.0...HEAD)]
 
+### Changed
+
+- `number` and `percent` round the exact decimal digits of the input instead of a value scaled with `f64` arithmetic earlier in the same function. A value written as a short decimal no longer rounds away from what it reads: `number_with(0.15, NumberOptions::new().precision(1))` is `"0.1"` where it was `"0.2"`, `number_with(2.675, NumberOptions::new().precision(2))` is `"2.67"` where it was `"2.68"`, and `percent(0.4235)` is `"42.3%"` where it was `"42.4%"`. The same applies to the half above the cut, so `number_with(1.0005, NumberOptions::new().precision(3))` is `"1"` and `number_with(0.49999999999999994, NumberOptions::new().precision(0))` is `"0"`.
+- Scaling up keeps every digit of the value: `percent(f64::MAX)` and `percent(1e37)` write the exact product rather than a saturated constant, and `number_with(f64::MAX, NumberOptions::new())` writes the value's own digits.
+- `RoundingMode::Floor` and `RoundingMode::Ceil` look at the exact remainder, so a value below the kept place rounds in the direction it is asked for: `percent_with(1e-300, PercentOptions::new().precision(0).rounding(RoundingMode::Ceil))` is `"1%"` and `RoundingMode::Floor` gives `"0%"`.
+- Byte sizes drop the sign when the value rounds to zero: `bytes_with(-1i64, BytesOptions::new().min_unit(ByteUnit::KB))` is `"0KB"` where it was `"-0KB"`.
+
+### Fixed
+
+- `BytesOptions::significant_digits` counted significant digits from the wrong place below one unit: `bytes_with(12_345u64, BytesOptions::new().min_unit(ByteUnit::MB).significant_digits(3))` was `"0.01MB"` and is now `"0.0123MB"`.
+- `BytesOptions::bits(true)` scaled the magnitude by eight, which saturates above `2^125`, and left the unit alone; the unit is divided by eight instead, so the whole range stays exact: `bytes_with(u128::MAX, BytesOptions::new().bits(true))` was `"340282366920938463463.4Eb"` and is now `"2722258935367507707707Eb"`. Raw bits (`unit(ByteUnit::B)`) still saturate above `2^125`, as documented.
+- `NumberOptions::significant_digits` overflowed to `inf` when rounding up at the top of the `f64` range: `number_with(f64::MAX, NumberOptions::new().compact(false).significant_digits(1))` now writes the rounded 309-digit value.
+
 ---
 
 ## [[0.7.0](https://github.com/MuXolotl/humfmt/compare/v0.6.0...v0.7.0)] - 2026-09-24
