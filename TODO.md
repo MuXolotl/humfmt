@@ -70,8 +70,8 @@ Planned work and known gaps. Completed items are removed from this file;
 
 - Add missing crates: `readable`, `human-readable`, `fancy-duration`,
   `duration-human`, `pretty-num`, `format_num`.
-- Allocation counting in the benchmark harness. A zero-allocation test now
-  covers the formatters themselves.
+- Allocation counts per crate in the harness, next to the timings;
+  `tests/display_allocations.rs` covers the formatters themselves.
 - Binary size and compile-time benchmarks.
 - Criterion baselines for regression tracking.
 - Confidence intervals, with overlapping comparisons marked.
