@@ -416,22 +416,41 @@ fn count_fives(mut value: u64) -> i32 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn expansion_ends_at_the_last_nonzero_digit() {
-        assert_eq!(expansion_end(0.0), None);
-        // Exactly `2^-1`, and exactly `125 * 2^3`.
-        assert_eq!(expansion_end(0.5), Some(-1));
-        assert_eq!(expansion_end(1_000.0), Some(3));
-        // `0.2` is `3602879701896397 * 2^-54`.
-        assert_eq!(expansion_end(0.2), Some(-54));
-        // `1.5` ends in a five at the first decimal place.
-        assert_eq!(expansion_end(1.5), Some(-1));
+    /// Renders the digits into a stack buffer and compares them, so that these
+    /// tests need neither `std` nor an allocator.
+    fn assert_rendered(digits: &Digits, decimals: usize, fixed_precision: bool, expected: &str) {
+        let mut buf = [0u8; 64];
+        let mut sink = Sink {
+            buf: &mut buf,
+            len: 0,
+        };
+
+        digits
+            .write(&mut sink, decimals, fixed_precision, false, ',', '.')
+            .expect("the test buffer is large enough");
+
+        let text = core::str::from_utf8(&sink.buf[..sink.len]).expect("the sink holds ASCII");
+
+        assert_eq!(text, expected);
     }
 
     #[test]
-    fn printing_reaches_below_what_core_would_round_away() {
-        // `0.145` is `0.1449999999999999900079881107…`: the exact tail decides
-        // the second decimal place.
+    fn expansion_ends_where_the_last_nonzero_digit_sits() {
+        assert_eq!(expansion_end(0.0), None);
+        assert_eq!(expansion_end(1.0), Some(0));
+        // `0.5` is exactly `2^-1`, and `1.5` is `3 * 2^-1`.
+        assert_eq!(expansion_end(0.5), Some(-1));
+        assert_eq!(expansion_end(1.5), Some(-1));
+        // `0.2` is `3602879701896397 * 2^-54`.
+        assert_eq!(expansion_end(0.2), Some(-54));
+        // `1000` is `125 * 2^3`, and `125` carries three factors of five.
+        assert_eq!(expansion_end(1_000.0), Some(3));
+    }
+
+    #[test]
+    fn printing_keeps_the_digits_below_the_rounding_place() {
+        // The exact value of `0.145` is `0.14499999999999999000798…`, so the
+        // digit below the second place is a four and not a five.
         let digits = Digits::new(0.145, -2);
 
         assert_eq!(digits.leading_place(), Some(-1));
@@ -442,41 +461,51 @@ mod tests {
     }
 
     #[test]
-    fn rounds_with_the_digit_below_the_cut() {
-        let mut half_up = Digits::new(0.145, -2);
-        half_up.round_at(-2, RoundingMode::HalfUp, false);
-        assert_eq!(half_up.leading_place(), Some(-1));
-        assert_eq!(half_up.last_nonzero(), Some(-2));
+    fn rounding_reads_the_digit_below_the_cut() {
+        let mut below_five = Digits::new(0.145, -2);
+        below_five.round_at(-2, RoundingMode::HalfUp, false);
+        assert_eq!(below_five.leading_place(), Some(-1));
+        assert_eq!(below_five.last_nonzero(), Some(-2));
 
-        let mut tail = Digits::new(0.1451, -2);
-        tail.round_at(-2, RoundingMode::HalfUp, false);
-        assert_eq!(tail.digit_at(-1), b'1');
-        assert_eq!(tail.digit_at(-2), b'5');
+        let mut at_five = Digits::new(0.1451, -2);
+        at_five.round_at(-2, RoundingMode::HalfUp, false);
+        assert_eq!(at_five.digit_at(-1), b'1');
+        assert_eq!(at_five.digit_at(-2), b'5');
     }
 
     #[test]
-    fn rounds_above_the_point_and_carries_out_of_it() {
-        // Below half of the kept place, so a positive value floors to nothing.
-        let mut zero = Digits::new(0.45, 0);
-        zero.round_at(0, RoundingMode::Floor, false);
-        assert!(zero.is_zero());
-
-        // The same dropped remainder makes a ceiling of one.
-        let mut one = Digits::new(0.45, 0);
-        one.round_at(0, RoundingMode::Ceil, false);
-        assert_eq!(one.leading_place(), Some(0));
-        assert_eq!(one.end, Some(0));
-
-        // A carry out of every kept nine opens a place above them.
-        let mut carried = Digits::new(999.95, -1);
+    fn rounding_carries_out_of_every_kept_nine() {
+        // `0.999` at one decimal place is `1`.
+        let mut carried = Digits::new(0.999, -1);
         carried.round_at(-1, RoundingMode::HalfUp, false);
-        assert_eq!(carried.leading_place(), Some(3));
-        assert_eq!(carried.digit_at(3), b'1');
-        assert_eq!(carried.digit_at(2), b'0');
+        assert_eq!(carried.leading_place(), Some(0));
+        assert_eq!(carried.digit_at(0), b'1');
 
-        // Rounding a scaled value far below one up to the first integer place:
-        // the digits keep the zero the value had in front of the point, which
-        // must not reach the output.
+        // A carry out of digits above the decimal point opens a place above
+        // them: `999.95` at one decimal place is `1000`.
+        let mut integer = Digits::new(999.95, -1);
+        integer.round_at(-1, RoundingMode::HalfUp, false);
+        assert_eq!(integer.leading_place(), Some(3));
+        assert_eq!(integer.digit_at(3), b'1');
+        assert_eq!(integer.digit_at(2), b'0');
+    }
+
+    #[test]
+    fn rounding_above_the_point_fills_one_place_at_most() {
+        // A positive remainder below one never floors to anything, and its
+        // ceiling is the single one the drop below one half cannot reach.
+        let mut floored = Digits::new(0.45, 0);
+        floored.round_at(0, RoundingMode::Floor, false);
+        assert!(floored.is_zero());
+        assert_eq!(floored.last_nonzero(), None);
+
+        let mut ceiled = Digits::new(0.45, 0);
+        ceiled.round_at(0, RoundingMode::Ceil, false);
+        assert_eq!(ceiled.leading_place(), Some(0));
+        assert_eq!(ceiled.end, Some(0));
+
+        // The same drop far below the decimal point, reached after a scale-up
+        // that leaves the digits behind the point.
         let mut scaled_up = Digits::new(1e-300, 0);
         scaled_up.shift(-2);
         scaled_up.round_at(0, RoundingMode::Ceil, false);
@@ -493,8 +522,11 @@ mod tests {
         assert_eq!(divided.leading_place(), Some(0));
         assert_eq!(divided.end, Some(0));
 
-        // The percent scale multiplies by a hundred.
+        // The percent scale multiplies by a hundred, which lifts the leading
+        // digit of `0.05` into the ones place and moves the end of the
+        // expansion, which reaches past the printed digits, up by two places.
         let mut multiplied = Digits::new(0.05, -2);
+        assert_eq!(multiplied.leading_place(), Some(-2));
         assert_eq!(multiplied.end, Some(-56));
         multiplied.shift(-2);
         assert_eq!(multiplied.leading_place(), Some(0));
@@ -502,37 +534,15 @@ mod tests {
     }
 
     #[test]
-    fn writes_fractions_trimmed_or_padded() {
+    fn writing_pads_or_drops_fraction_zeros() {
         let mut half = Digits::new(0.5, -3);
         half.round_at(-3, RoundingMode::HalfUp, false);
         assert_rendered(&half, 3, false, "0.5");
         assert_rendered(&half, 3, true, "0.500");
 
-        let mut rounded = Digits::new(0.145, -2);
-        rounded.round_at(-2, RoundingMode::HalfUp, false);
-        assert_rendered(&rounded, 2, false, "0.14");
-
         let mut zeroed = Digits::new(0.4, 0);
         zeroed.round_at(0, RoundingMode::HalfUp, false);
         assert_rendered(&zeroed, 0, false, "0");
         assert_rendered(&zeroed, 2, true, "0.00");
-    }
-
-    /// Renders into a stack buffer and compares, so that these tests need
-    /// neither `std` nor an allocator.
-    fn assert_rendered(digits: &Digits, decimals: usize, fixed_precision: bool, expected: &str) {
-        let mut buf = [0u8; 64];
-        let mut sink = Sink {
-            buf: &mut buf,
-            len: 0,
-        };
-
-        digits
-            .write(&mut sink, decimals, fixed_precision, false, ',', '.')
-            .expect("the test buffer is large enough");
-
-        let text = core::str::from_utf8(&sink.buf[..sink.len]).expect("the sink holds ASCII");
-
-        assert_eq!(text, expected);
     }
 }
