@@ -238,6 +238,13 @@ assert_eq!(number_with(-1500, opts).to_string(), "-1.5K");
 
 ### Rounding modes
 
+Rounding applies to the exact value of the input, the rule `core` follows for
+`format!("{:.2}", value)`: the percentage factor and the compact scale move the
+decimal point of the digits rather than multiplying the binary value. A number
+whose written form sits on a half can therefore fall just below it, and `0.145`
+at two decimal places prints `0.14`, because the `f64` is
+`0.14499999999999999…`.
+
 ```rust
 use humfmt::{number_with, NumberOptions, RoundingMode};
 
@@ -427,10 +434,10 @@ assert_eq!(bytes_with(0_u64, opts).to_string(), "0B");
 Converts a ratio to a percentage: `0.423` -> `"42.3%"`.
 
 The input is a ratio where `1.0` = `100%`. Values outside `0.0..=1.0` are
-accepted and rendered as-is. Ratios whose scaled magnitude is at or above
-`u128::MAX as f64` are written from the exact decimal expansion of the input:
-at that magnitude the `f64` has no fractional digits, so the `* 100` step only
-appends two zeros.
+accepted and rendered as-is. The ratio is scaled by a hundred and rounded at the
+requested decimal place, both on the exact decimal digits of the input, so the
+result keeps every digit the value has: `f64::MAX` prints all 311 digits of
+`f64::MAX * 100`.
 
 ```rust
 use humfmt::{percent, percent_with, PercentOptions};
@@ -486,7 +493,7 @@ assert_eq!(percent_with(0.421_f64, ceil).to_string(), "43%");
 | `1.5` | `"150%"` | Above 100% accepted |
 | `-0.423` | `"-42.3%"` | Negative accepted |
 | `-0.0004` | `"0%"` | Rounds to zero, sign suppressed |
-| `1e37` | `"999999999999999953876265820212114227200%"` | Scaled value exceeds `u128::MAX` |
+| `1e37` | `"999999999999999953876265820212114227200%"` | Scaled from the exact `f64` |
 | `f64::MAX` | `"1797693134862315708…40402618412485836800%"` | 311 digits, scaled exactly |
 | `f64::NAN` | `"NaN%"` | Non-finite preserved |
 | `f64::INFINITY` | `"inf%"` | Non-finite preserved |
