@@ -37,7 +37,7 @@ chrono = { version = "0.4", optional = true, default-features = false }
 time = { version = ">=0.3, <0.3.42", optional = true, default-features = false }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 proptest = "1"
 
 [[bench]]

@@ -31,8 +31,9 @@
 //!     humfmt-only reused-buffer option coverage.
 
 use std::fmt::Write;
+use std::hint::black_box;
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use humfmt::{number, number_with, NumberOptions, RoundingMode};
 
 const VALUES_MIXED_I64: [i64; 10] = [

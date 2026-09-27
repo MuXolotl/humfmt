@@ -1,7 +1,8 @@
 use core::time::Duration;
 use std::fmt::Write as _;
+use std::hint::black_box;
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use humfmt::{
     ago, bytes, duration, list, number, BytesOptions, DurationOptions, ListOptions, NumberOptions,
     RoundingMode,

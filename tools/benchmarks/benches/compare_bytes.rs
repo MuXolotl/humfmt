@@ -15,10 +15,11 @@
 //! examples to make these differences explicit.
 
 use std::fmt::Write;
+use std::hint::black_box;
 
 use byte_unit::{Byte, UnitType};
 use bytesize::ByteSize;
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use human_repr::HumanCount;
 use humansize::{format_size, format_size_i, FormatSizeOptions, SizeFormatter, BINARY, DECIMAL};
 use humfmt::{bytes, bytes_with, BytesOptions};

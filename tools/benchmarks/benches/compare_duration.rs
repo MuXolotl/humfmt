@@ -12,9 +12,10 @@
 //! while `humantime` emits all non-zero units ("1h 1m 5s 123ms ...").
 //! The report calls out these differences explicitly.
 
+use std::hint::black_box;
 use std::time::Duration;
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use humfmt::{duration, duration_with, DurationOptions};
 
 const VALUES: [Duration; 8] = [

@@ -12,9 +12,10 @@
 //! We benchmark both under their natural defaults and under num_items(2) for
 //! timeago to produce output comparable to humfmt's default two-unit mode.
 
+use std::hint::black_box;
 use std::time::Duration;
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use humfmt::{ago, ago_with, AgoOptions};
 
 const VALUES: [Duration; 8] = [
