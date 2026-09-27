@@ -184,21 +184,34 @@ const BINARY_UNITS: [u128; 7] = [
     1_152_921_504_606_846_976,
 ];
 
+/// Pairs a byte magnitude with the unit that turns it into bits.
+///
+/// A bit count is eight times the byte count. Dividing the unit by eight keeps
+/// the magnitude exact, and every unit above raw bits is a multiple of eight,
+/// so inputs near `u128::MAX` stay exact. Raw bits are the one unit that cannot
+/// be divided, and only there can the multiplication overflow.
+fn bit_scale(magnitude: u128, unit: u128, bits: bool) -> (u128, u128) {
+    if !bits {
+        return (magnitude, unit);
+    }
+
+    match unit / 8 {
+        0 => (magnitude.saturating_mul(8), unit),
+        bit_unit => (magnitude, bit_unit),
+    }
+}
+
+
 pub fn format_bytes<W: fmt::Write + ?Sized>(
     f: &mut W,
     value: BytesValue,
     options: &BytesOptions,
 ) -> fmt::Result {
-    let (negative, mut magnitude) = match value {
+    let (negative, magnitude) = match value {
         BytesValue::Int(v) if v < 0 => (true, v.unsigned_abs()),
         BytesValue::Int(v) => (false, v as u128),
         BytesValue::UInt(v) => (false, v),
     };
-
-    if options.bits {
-        // Saturating: documented edge case for inputs near u128::MAX.
-        magnitude = magnitude.saturating_mul(8);
-    }
 
     let min_unit = options.min_unit as usize;
     let max_unit = (options.max_unit as usize).min(6).max(min_unit);
@@ -223,13 +236,17 @@ pub fn format_bytes<W: fmt::Write + ?Sized>(
     let mut unit = table[idx];
     let rounding = options.rounding;
 
-    let get_parts = |u: u128| match options.precision {
-        Precision::Decimals(p) => (
-            p,
-            decimal_parts_rounded(magnitude, u, p, rounding, negative),
-        ),
-        Precision::Significant(n) => {
-            crate::common::fmt::compute_sigfigs_u128(magnitude, u, n, rounding, negative)
+    let get_parts = |u: u128| {
+        let (value, unit) = bit_scale(magnitude, u, options.bits);
+
+        match options.precision {
+            Precision::Decimals(p) => (
+                p,
+                decimal_parts_rounded(value, unit, p, rounding, negative),
+            ),
+            Precision::Significant(n) => {
+                crate::common::fmt::compute_sigfigs_u128(value, unit, n, rounding, negative)
+            }
         }
     };
 
@@ -244,9 +261,9 @@ pub fn format_bytes<W: fmt::Write + ?Sized>(
         parts = res.1;
     }
 
-    if negative && magnitude != 0 {
+    if negative && !parts.is_zero() {
         f.write_str("-")?;
-    } else if options.force_sign && magnitude != 0 {
+    } else if options.force_sign && !parts.is_zero() {
         f.write_str("+")?;
     }
 

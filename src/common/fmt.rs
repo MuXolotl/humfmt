@@ -280,6 +280,12 @@ impl ScaledInteger {
         self.digits == 1 && self.zeros == 0
     }
 
+    /// Returns `true` when the value is zero.
+    #[inline]
+    pub(crate) fn is_zero(self) -> bool {
+        self.digits == 0
+    }
+
     /// Returns `true` when the value is at least `threshold`.
     ///
     /// Compares against the threshold scaled down by the zero run, because the
@@ -342,6 +348,14 @@ impl DecimalParts {
     /// Used for English singular/plural selection in byte labels.
     pub(crate) fn is_exactly_one(&self) -> bool {
         self.integer.is_one() && self.frac_len == 0
+    }
+
+    /// Returns `true` if the rounded value is zero.
+    ///
+    /// A value that rounds to zero is written as `0` without a sign, so callers
+    /// check this before writing one.
+    pub(crate) fn is_zero(&self) -> bool {
+        self.integer.is_zero() && self.frac_len == 0
     }
 }
 
@@ -582,25 +596,29 @@ pub(crate) fn compute_sigfigs_u128(
     }
 
     let scaled_int = magnitude / unit;
-    let int_digits = if scaled_int == 0 {
-        1
+
+    // Place of the leading significant digit. Above the unit it is the top digit
+    // of the integer part; below the unit it is behind the decimal point, and
+    // counting it as an integer digit would drop every digit but the first.
+    let leading_place = if scaled_int == 0 {
+        -first_fraction_place(magnitude, unit)
     } else {
-        (scaled_int.ilog10() + 1) as u8
+        scaled_int.ilog10() as i32
     };
 
-    let shift = sig_figs as i32 - int_digits as i32;
+    let shift = sig_figs as i32 - 1 - leading_place;
 
     if shift >= 0 {
         let mut decimals = (shift as u8).min(6);
         let mut parts = decimal_parts_rounded(magnitude, unit, decimals, rounding, negative);
 
-        let new_int_digits = if parts.integer.digits == 0 {
-            1
-        } else {
-            (parts.integer.digits.ilog10() + 1) as u8
-        };
+        // A carry out of the kept digits opens a place above them, which costs
+        // one fractional digit to keep the same significant count. The carry
+        // shows as the integer part reaching the next power of ten; a rounded
+        // value below one has no integer part and cannot have moved up.
+        let rounded_leading = parts.integer.digits.checked_ilog10().map(|log| log as i32);
 
-        if new_int_digits > int_digits && decimals > 0 {
+        if decimals > 0 && rounded_leading.is_some_and(|place| place > leading_place) {
             decimals -= 1;
 
             if parts.frac_len > decimals {
@@ -613,8 +631,9 @@ pub(crate) fn compute_sigfigs_u128(
         let drop_digits = (-shift) as u32;
         let round_factor = 10u128.pow(drop_digits);
 
-        // `unit * 10^drop_digits <= magnitude`, because `int_digits` counts the
-        // digits of `magnitude / unit`; the product therefore fits in `u128`.
+        // `unit * 10^drop_digits <= magnitude`, because `leading_place` is the
+        // place of the top digit of `magnitude / unit`; the product therefore
+        // fits in `u128`.
         debug_assert!(unit <= u128::MAX / round_factor);
 
         let new_unit = unit * round_factor;
@@ -626,6 +645,31 @@ pub(crate) fn compute_sigfigs_u128(
         parts.integer = ScaledInteger::with_zeros(parts.integer.digits, drop_digits as u8);
 
         (0, parts)
+    }
+}
+
+/// Position of the first nonzero fraction digit of `magnitude / unit`.
+///
+/// Only called with a magnitude below its unit, so the position is at least
+/// one. It is the smallest `k` with `magnitude * 10^k >= unit`, and the digit
+/// counts of the two values leave two candidates: the quotient sits strictly
+/// between `10^(U - M - 1)` and `10^(U - M + 1)`.
+fn first_fraction_place(magnitude: u128, unit: u128) -> i32 {
+    debug_assert!(magnitude != 0);
+    debug_assert!(magnitude < unit);
+
+    let candidates = unit.ilog10() - magnitude.ilog10();
+
+    // The product is below `10^(ilog10(unit) + 1)`, and the largest unit in use
+    // is `10^36`, so it stays inside `u128`.
+    debug_assert!(unit.ilog10() <= 37);
+
+    let scaled = magnitude * 10u128.pow(candidates);
+
+    if scaled >= unit {
+        candidates as i32
+    } else {
+        candidates as i32 + 1
     }
 }
 

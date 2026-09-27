@@ -226,11 +226,14 @@ impl BytesOptions {
 
     /// Formats the input value as bits rather than bytes.
     ///
-    /// Internally multiplies the value by 8 and uses lowercase suffixes (`Kb`, `Mb`).
+    /// The value is scaled by eight and written with lowercase suffixes (`Kb`,
+    /// `Mb`). The scale divides the unit by eight instead of multiplying the
+    /// magnitude, so the value stays exact across the whole `u128` range.
     ///
-    /// Note: for inputs near `u128::MAX`, the multiplication saturates at
-    /// `u128::MAX`. This is a documented limit; in practice no real byte count
-    /// approaches this magnitude.
+    /// Note: raw bits are the one unit that cannot be divided, and only
+    /// [`max_unit(ByteUnit::B)`](BytesOptions::max_unit) reaches it with a
+    /// value large enough to matter. Bit counts above `2^125` saturate at
+    /// `u128::MAX`.
     ///
     /// # Behaviour table
     ///
