@@ -13,8 +13,7 @@
 
 ---
 
-`humfmt` turns raw machine values into readable text without turning formatting
-into a side quest.
+`humfmt` turns raw machine values into readable text.
 
 ```rust
 use humfmt::Humanize;
@@ -24,8 +23,6 @@ println!("{}", 1536_u64.human_bytes());     // 1.5KB
 println!("{}", 0.423_f64.human_percent());  // 42.3%
 println!("{}", humfmt::ordinal(21));        // 21st
 ```
-
-**That's it.** Import the trait, call a method, done.
 
 ---
 
@@ -41,7 +38,7 @@ println!("{}", humfmt::ordinal(21));        // 21st
 | `90s` | `ago` | `1m 30s ago` |
 | `["red", "green", "blue"]` | `list` | `red, green, and blue` |
 
-All formatters implement `Display` — no intermediate heap strings. Write directly into any buffer, padded to a width with the usual format specifiers (`{:>10}`).
+All formatters implement `Display` and write into the output directly, so no intermediate heap string is allocated. Values can be padded with the usual format specifiers (`{:>10}`).
 
 ---
 
@@ -56,14 +53,14 @@ humfmt = "0.7"
 use humfmt::Humanize;
 use core::time::Duration;
 
-// Extension trait — shortest path
+// Extension trait
 println!("{}", 1_500_000.human_number());                     // 1.5M
 println!("{}", 1536_u64.human_bytes());                       // 1.5KB
 println!("{}", 0.423_f64.human_percent());                    // 42.3%
 println!("{}", 42_u32.human_ordinal());                       // 42nd
 println!("{}", Duration::from_secs(90).human_ago());          // 1m 30s ago
 
-// Free functions — same result, no trait import needed
+// Free functions, for callers who prefer not to import the trait
 println!("{}", humfmt::number(15320));                        // 15.3K
 println!("{}", humfmt::bytes(1536));                          // 1.5KB
 println!("{}", humfmt::percent(0.423));                       // 42.3%
@@ -76,10 +73,10 @@ println!("{}", humfmt::list(&["red", "green", "blue"]));      // red, green, and
 
 ## Customization
 
-Every formatter has a `*_with` variant that takes an options builder: `NumberOptions`,
-`BytesOptions`, `PercentOptions`, `DurationOptions`, `AgoOptions` (relative time),
-and `ListOptions`. Options are `Copy`, every setter is `const fn`, and the defaults
-are what most callers want.
+Every formatter that takes options has a `*_with` variant for them:
+`NumberOptions`, `BytesOptions`, `PercentOptions`, `DurationOptions`,
+`AgoOptions` (relative time), and `ListOptions`. Options are `Copy` and every
+setter is `const fn`.
 
 ```rust
 use core::time::Duration;
@@ -156,12 +153,10 @@ assert_eq!(piped.to_string(), "red | green & blue");
 
 ## Performance
 
-`humfmt` is designed to be cheap in hot paths:
-
-- **Zero-alloc `Display`** — formatters write directly into the output, no intermediate `String`
-- **O(1) scaling** — integer path uses `ilog10`, float path uses IEEE 754 exponent
-- **`no_std`** — works without the standard library
-- **No dependencies** — core crate has zero required dependencies
+`humfmt` is designed to be cheap in hot paths. Formatting writes into the
+output through `Display` and allocates nothing, the integer path scales with
+`ilog10` and the float path with the IEEE 754 exponent, and the core crate has
+no required dependencies and builds without the standard library.
 
 See [BENCHMARKS.md](./BENCHMARKS.md) for comparisons against `humansize`, `bytesize`, `byte-unit`, `prettier-bytes`, `human_format`, `numfmt`, `humantime`, `timeago`, and others.
 
@@ -190,7 +185,7 @@ See [BENCHMARKS.md](./BENCHMARKS.md) for comparisons against `humansize`, `bytes
 
 ### Running fuzz targets
 
-Fuzzing requires the **nightly** toolchain.
+Fuzzing requires a nightly toolchain.
 
 ```bash
 # Install cargo-fuzz (once)
@@ -235,24 +230,20 @@ humfmt = { version = "0.7", features = ["chrono", "time"] }
 
 ## Documentation
 
-- **[docs.rs](https://docs.rs/humfmt)** — full API reference
-- **[BENCHMARKS.md](./BENCHMARKS.md)** — performance comparisons and methodology
-- **[CHANGELOG.md](./CHANGELOG.md)** — what changed and when
-- **[TODO.md](./TODO.md)** — planned features and known issues
-- **[examples/](./examples)** — runnable examples
-- **[tests/](./tests)** — integration and property tests
+- [docs.rs](https://docs.rs/humfmt): full API reference
+- [BENCHMARKS.md](./BENCHMARKS.md): performance comparisons and methodology
+- [CHANGELOG.md](./CHANGELOG.md): what changed and when
+- [TODO.md](./TODO.md): planned features and known issues
+- [examples/](./examples): runnable examples
+- [tests/](./tests): integration and property tests
 
 ---
 
 ## Philosophy
 
-This crate follows one simple rule:
+One rule shapes the API:
 
 > Human formatting should feel stupidly easy.
-
-No giant config ceremony. No formatting gymnastics. No "why is this so annoying?" moments.
-
-Just:
 
 ```rust
 use humfmt::Humanize;
@@ -260,7 +251,8 @@ use humfmt::Humanize;
 println!("{}", 1_500_000.human_number());
 ```
 
-and move on with your life.
+The defaults are meant to be used as they come; the `*_with` builders are there
+for the callers they do not fit.
 
 ---
 
