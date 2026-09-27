@@ -201,7 +201,6 @@ fn bit_scale(magnitude: u128, unit: u128, bits: bool) -> (u128, u128) {
     }
 }
 
-
 pub fn format_bytes<W: fmt::Write + ?Sized>(
     f: &mut W,
     value: BytesValue,
@@ -240,10 +239,9 @@ pub fn format_bytes<W: fmt::Write + ?Sized>(
         let (value, unit) = bit_scale(magnitude, u, options.bits);
 
         match options.precision {
-            Precision::Decimals(p) => (
-                p,
-                decimal_parts_rounded(value, unit, p, rounding, negative),
-            ),
+            Precision::Decimals(p) => {
+                (p, decimal_parts_rounded(value, unit, p, rounding, negative))
+            }
             Precision::Significant(n) => {
                 crate::common::fmt::compute_sigfigs_u128(value, unit, n, rounding, negative)
             }

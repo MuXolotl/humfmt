@@ -281,7 +281,10 @@ fn value_rounded_to_zero_keeps_no_sign() {
     let kb = BytesOptions::new().min_unit(ByteUnit::KB);
 
     assert_eq!(humfmt::bytes_with(-1_i64, kb).to_string(), "0KB");
-    assert_eq!(humfmt::bytes_with(-1_i64, kb.precision(0)).to_string(), "0KB");
+    assert_eq!(
+        humfmt::bytes_with(-1_i64, kb.precision(0)).to_string(),
+        "0KB"
+    );
     assert_eq!(
         humfmt::bytes_with(-1_i64, kb.fixed_precision(true)).to_string(),
         "0.0KB"
@@ -301,7 +304,10 @@ fn significant_digits_count_from_the_first_nonzero_digit() {
         .min_unit(ByteUnit::MB)
         .significant_digits(3);
 
-    assert_eq!(humfmt::bytes_with(12_345_u64, below_unit).to_string(), "0.0123MB");
+    assert_eq!(
+        humfmt::bytes_with(12_345_u64, below_unit).to_string(),
+        "0.0123MB"
+    );
     assert_eq!(
         humfmt::bytes_with(12_345_u64, below_unit.significant_digits(1)).to_string(),
         "0.01MB"
@@ -312,7 +318,10 @@ fn significant_digits_count_from_the_first_nonzero_digit() {
     );
 
     // Rounding the leading nine up carries into the unit itself.
-    assert_eq!(humfmt::bytes_with(999_999_u64, below_unit).to_string(), "1MB");
+    assert_eq!(
+        humfmt::bytes_with(999_999_u64, below_unit).to_string(),
+        "1MB"
+    );
 }
 
 #[test]
@@ -334,14 +343,16 @@ fn bits_scale_units_instead_of_saturating() {
         "2361183241434822606848Eib"
     );
     assert_eq!(
-        humfmt::bytes_with(u128::MAX, bits.significant_digits(1))
-            .to_string(),
+        humfmt::bytes_with(u128::MAX, bits.significant_digits(1)).to_string(),
         "3000000000000000000000Eb"
     );
 
     // A kilobyte in bits is eight kilobit, still one unit up from bytes.
     assert_eq!(humfmt::bytes_with(1000_u64, bits).to_string(), "8Kb");
-    assert_eq!(humfmt::bytes_with(500_u64, bits.min_unit(ByteUnit::KB)).to_string(), "4Kb");
+    assert_eq!(
+        humfmt::bytes_with(500_u64, bits.min_unit(ByteUnit::KB)).to_string(),
+        "4Kb"
+    );
 }
 
 #[test]
